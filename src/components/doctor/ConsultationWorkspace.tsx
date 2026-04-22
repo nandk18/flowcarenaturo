@@ -362,12 +362,15 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
           setSharePrescriptionId(prescriptionId);
           setShareOpen(true);
           toast.success("Prescription generated!");
+          auditLog(AUDIT_ACTIONS.PRESCRIPTION_GENERATED, "prescription", prescriptionId, visit.patient?.name);
         } else {
           toast.success("Consultation completed! (PDF generation in progress)");
+          auditLog(AUDIT_ACTIONS.NOTES_SAVED, "clinical_notes", visit.id, visit.patient?.name);
           onComplete();
         }
       } else {
         toast.success("Consultation completed!");
+        auditLog(AUDIT_ACTIONS.NOTES_SAVED, "clinical_notes", visit.id, visit.patient?.name);
         onComplete();
       }
     } catch (err: any) {
