@@ -147,6 +147,7 @@ export default function LandingPage() {
             ))}
           </div>
           <div className="hidden md:flex items-center gap-3">
+            <Link to="/labs"><Button variant="ghost" size="sm">Labs Directory</Button></Link>
             <Link to="/auth"><Button variant="ghost" size="sm">Login</Button></Link>
             <Link to="/auth"><Button size="sm">Start Free Trial <ChevronRight className="h-4 w-4" /></Button></Link>
           </div>
@@ -161,6 +162,7 @@ export default function LandingPage() {
                 {l.label}
               </button>
             ))}
+            <Link to="/labs" className="block"><Button variant="ghost" className="w-full" size="sm">Labs Directory</Button></Link>
             <Link to="/auth" className="block"><Button variant="outline" className="w-full" size="sm">Login</Button></Link>
             <Link to="/auth" className="block"><Button className="w-full" size="sm">Start Free Trial</Button></Link>
           </div>
@@ -632,6 +634,8 @@ export default function LandingPage() {
             <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
               <button onClick={() => scrollTo("features")} className="text-gray-400 hover:text-white transition-colors">Features</button>
               <button onClick={() => scrollTo("pricing")} className="text-gray-400 hover:text-white transition-colors">Pricing</button>
+              <Link to="/labs" className="text-gray-400 hover:text-white transition-colors">Labs Directory</Link>
+              <Link to="/register-lab" className="text-gray-400 hover:text-white transition-colors">Register Your Lab</Link>
               <button onClick={() => scrollTo("contact")} className="text-gray-400 hover:text-white transition-colors">Contact</button>
               <span className="text-gray-400">Privacy</span>
               <span className="text-gray-400">Terms</span>
