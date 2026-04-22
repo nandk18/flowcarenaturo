@@ -93,6 +93,17 @@ function AppRoutes() {
     );
   }
 
+  // Super admin: skip clinic/onboarding checks, route directly to platform dashboard
+  if (profile.role === "super_admin") {
+    return (
+      <Routes>
+        <Route path="/super-admin" element={<SuperAdmin />} />
+        <Route path="/labs" element={<LabsDirectory />} />
+        <Route path="*" element={<Navigate to="/super-admin" replace />} />
+      </Routes>
+    );
+  }
+
   if (profile?.clinic_id && clinicReady === null) {
     supabase
       .from("clinics")
@@ -157,6 +168,8 @@ function AppRoutes() {
       } />
       <Route path="/dashboard/settings" element={<Settings />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/labs" element={<LabsDirectory />} />
+      <Route path="/register-lab" element={<LabRegistration />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
       <Route path="/onboarding" element={<Navigate to="/dashboard" replace />} />
