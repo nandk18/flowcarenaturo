@@ -204,6 +204,7 @@ export default function Settings() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast.success(data?.message || `Invitation sent to ${inviteEmail} as ${inviteRole}`);
+      auditLog(AUDIT_ACTIONS.STAFF_INVITED, "profile", null, inviteEmail, { role: inviteRole });
       setInviteEmail("");
       fetchTeam();
     } catch (err: any) {
@@ -330,6 +331,56 @@ export default function Settings() {
       toast.success("Signature removed");
       refetch();
     } catch (err: any) { toast.error(err.message); }
+  };
+
+  const fetchAuditLogs = async () => {
+    if (!profile?.clinic_id) return;
+    setLoadingAudit(true);
+    let query = supabase
+      .from("audit_logs" as any)
+      .select("*")
+      .eq("clinic_id", profile.clinic_id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (auditFilter.role) query = query.eq("user_role", auditFilter.role);
+    if (auditFilter.action) query = query.eq("action", auditFilter.action);
+    if (auditFilter.date) {
+      const start = new Date(auditFilter.date).toISOString();
+      const end = new Date(new Date(auditFilter.date).getTime() + 86400000).toISOString();
+      query = query.gte("created_at", start).lt("created_at", end);
+    }
+
+    const { data } = await query;
+    setAuditLogs((data as any) || []);
+    setLoadingAudit(false);
+  };
+
+  useEffect(() => {
+    if (devExpanded && profile?.role === "admin") fetchAuditLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [devExpanded, auditFilter, profile?.clinic_id]);
+
+  const exportAuditLogs = () => {
+    if (auditLogs.length === 0) { toast.error("No logs to export"); return; }
+    const csv = [
+      ["Timestamp", "User", "Role", "Action", "Resource Type", "Record"].join(","),
+      ...auditLogs.map(log => [
+        new Date(log.created_at).toLocaleString("en-IN"),
+        log.user_name || "",
+        log.user_role || "",
+        log.action || "",
+        log.resource_type || "",
+        log.resource_name || ""
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `audit-log-${new Date().toLocaleDateString("en-IN").replace(/\//g, "-")}.csv`;
+    a.click();
+    toast.success("Audit log exported");
   };
 
   if (loading) {
