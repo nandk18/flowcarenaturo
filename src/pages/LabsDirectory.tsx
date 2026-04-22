@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { CheckCircle, Loader2, MapPin, Phone, Search } from "lucide-react";
+import PublicNavbar from "@/components/PublicNavbar";
 
 const TEST_CATEGORIES = [
   "Blood Tests",
@@ -87,6 +88,7 @@ export default function LabsDirectory() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PublicNavbar backTo="/" backLabel="Home" />
       <div className="bg-primary text-primary-foreground py-12 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <div className="text-4xl mb-3">🧪</div>

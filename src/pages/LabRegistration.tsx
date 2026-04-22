@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle, Loader2, FlaskConical } from "lucide-react";
+import PublicNavbar from "@/components/PublicNavbar";
 
 const TEST_CATEGORIES = [
   "Blood Tests",
@@ -88,8 +89,9 @@ export default function LabRegistration() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 py-10">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-background">
+      <PublicNavbar backTo="/labs" backLabel="Lab Directory" />
+      <div className="max-w-2xl mx-auto p-4 py-10">
         <div className="text-center mb-8">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
             <FlaskConical className="h-8 w-8 text-primary" />
