@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Building2, User, PenTool, Send, Check, ChevronRight, ChevronLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const steps = [
   { title: "Clinic Details", icon: Building2, description: "Set up your clinic information" },
@@ -21,6 +21,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [dpaAccepted, setDpaAccepted] = useState(false);
 
   // Clinic details
   const [clinicName, setClinicName] = useState("");
@@ -91,6 +92,10 @@ export default function Onboarding() {
   };
 
   const handleComplete = async () => {
+    if (!dpaAccepted) {
+      toast.error("Please accept the Data Processing Agreement to continue");
+      return;
+    }
     setLoading(true);
     try {
       const { data: prof } = await supabase.from("profiles").select("clinic_id").eq("user_id", user!.id).single();
@@ -189,9 +194,22 @@ export default function Onboarding() {
                   <Send className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">Staff invitations coming soon.<br />You can add staff members later from settings.</p>
                 </div>
+                <label className="flex items-start gap-2 cursor-pointer rounded-lg border border-border p-3 bg-muted/20">
+                  <input
+                    type="checkbox"
+                    checked={dpaAccepted}
+                    onChange={e => setDpaAccepted(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    I accept the{" "}
+                    <Link to="/dpa" target="_blank" className="text-primary underline">Data Processing Agreement</Link>
+                    {" "}on behalf of my clinic
+                  </span>
+                </label>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setStep(2)}><ChevronLeft className="mr-2 h-4 w-4" /> Back</Button>
-                  <Button onClick={handleComplete} disabled={loading} className="flex-1">
+                  <Button onClick={handleComplete} disabled={loading || !dpaAccepted} className="flex-1">
                     {loading ? "Completing..." : "Complete Setup"} <Check className="ml-2 h-4 w-4" />
                   </Button>
                 </div>

@@ -170,7 +170,21 @@ export default function Auth() {
                     <Label htmlFor="signup-password">Password</Label>
                     <Input id="signup-password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={consentAccepted}
+                      onChange={e => setConsentAccepted(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      I agree to the{" "}
+                      <Link to="/terms" target="_blank" className="text-primary underline">Terms of Service</Link>
+                      {" "}and{" "}
+                      <Link to="/privacy" target="_blank" className="text-primary underline">Privacy Policy</Link>
+                    </span>
+                  </label>
+                  <Button type="submit" className="w-full" disabled={loading || !consentAccepted}>
                     {loading ? "Creating account..." : "Create Account"}
                   </Button>
                 </form>
