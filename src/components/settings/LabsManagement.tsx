@@ -312,31 +312,19 @@ export default function LabsManagement() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-display">{editing ? "Edit Lab" : "Add Lab"}</DialogTitle>
+            <DialogTitle className="font-display">{editing ? "Edit Internal Lab" : "Add Internal Lab"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             {!editing && (
-              <div>
-                <Label className="text-sm font-semibold mb-2 block">Lab Type</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => setLabType("internal")}
-                    className={`border rounded-lg py-2.5 text-sm font-medium transition-colors ${labType === "internal" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}>
-                    🏥 Internal
-                    <div className="text-xs font-normal mt-0.5 opacity-75">Private to your clinic</div>
-                  </button>
-                  <button type="button" onClick={() => setLabType("external")}
-                    className={`border rounded-lg py-2.5 text-sm font-medium transition-colors ${labType === "external" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}>
-                    🌐 External
-                    <div className="text-xs font-normal mt-0.5 opacity-75">Visible to all clinics</div>
-                  </button>
-                </div>
-              </div>
+              <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+                Add your in-house or partner lab. This lab is private to your clinic only. To connect with external labs, use the Lab Directory.
+              </p>
             )}
             <div className="space-y-2"><Label>Lab Name *</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Sunrise Diagnostics" className="rounded-lg" /></div>
             <div className="space-y-2"><Label>Email</Label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="orders@lab.com" className="rounded-lg" /></div>
             <div className="space-y-2"><Label>Phone</Label><Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91..." className="rounded-lg" /></div>
             <div className="space-y-2"><Label>Address</Label><Input value={address} onChange={e => setAddress(e.target.value)} placeholder="Lab address" className="rounded-lg" /></div>
-            {!editing && labType === "internal" && email && (
+            {!editing && email && (
               <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
                 <div>
                   <Label className="text-sm">Invite Lab to App</Label>
