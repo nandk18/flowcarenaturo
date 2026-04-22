@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,7 @@ export default function OrderInvestigationModal({
   open, onClose, clinicId, visitId, patientId, patientName,
   doctorId, doctorName, clinicName, onOrdered,
 }: Props) {
+  const { log: auditLog } = useAuditLog();
   const [labs, setLabs] = useState<(Lab & { type?: string })[]>([]);
   const [testName, setTestName] = useState("");
   const [testCategory, setTestCategory] = useState("Blood Test");
@@ -120,6 +122,7 @@ export default function OrderInvestigationModal({
       }
 
       toast.success(`${testName} ordered successfully`);
+      auditLog(AUDIT_ACTIONS.LAB_ORDER_CREATED, "lab_order", order.id, testName.trim(), { urgency, lab_id: selectedLab?.id || null });
       reset();
       onClose();
       onOrdered?.();

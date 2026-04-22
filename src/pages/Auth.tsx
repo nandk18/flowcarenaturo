@@ -9,6 +9,32 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Stethoscope, ArrowLeft, AlertCircle } from "lucide-react";
+import { supabase as sb } from "@/integrations/supabase/client";
+
+// Best-effort audit log for login (no useAuditLog hook because profile isn't yet loaded into context)
+async function logLoginAudit(userId: string, userEmail: string | null) {
+  try {
+    const { data: prof } = await sb.from("profiles")
+      .select("clinic_id, full_name, role")
+      .eq("user_id", userId)
+      .single();
+    if (!prof?.clinic_id) return;
+    await sb.from("audit_logs" as any).insert({
+      clinic_id: prof.clinic_id,
+      user_id: userId,
+      user_name: prof.full_name || userEmail,
+      user_role: prof.role,
+      action: "login",
+      resource_type: "auth",
+      resource_id: userId,
+      resource_name: userEmail,
+      metadata: {},
+    });
+  } catch {
+    // Silently fail — never block login on audit
+  }
+}
+
 export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -61,6 +87,8 @@ export default function Auth() {
         setLoading(false);
         return;
       }
+      // Log successful login (fire-and-forget)
+      logLoginAudit(data.user.id, data.user.email ?? null);
       // Auth state change listener in useAuth will handle the redirect
     } catch (err: any) {
       toast.error(err.message);

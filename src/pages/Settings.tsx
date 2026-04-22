@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload } from "lucide-react";
+import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload, Code2, ClipboardList, ChevronDown, ChevronUp } from "lucide-react";
 import LabsManagement from "@/components/settings/LabsManagement";
+import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 
 const LANGUAGES = [
   "Tamil","Hindi","Telugu","Kannada","Malayalam","Marathi",
@@ -35,6 +36,7 @@ export default function Settings() {
   const { user, profile } = useAuth();
   const { clinic, doctor, loading, refetch } = useClinic();
   const [saving, setSaving] = useState(false);
+  const { log: auditLog } = useAuditLog();
 
   const [clinicName, setClinicName] = useState("");
   const [clinicAddress, setClinicAddress] = useState("");
@@ -74,6 +76,14 @@ export default function Settings() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [signatureUrl, setSignatureUrl] = useState("");
   const [uploadingSignature, setUploadingSignature] = useState(false);
+
+  // Developer section
+  const [devExpanded, setDevExpanded] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [loadingAudit, setLoadingAudit] = useState(false);
+  const [auditFilter, setAuditFilter] = useState<{ role: string; action: string; date: string }>({
+    role: "", action: "", date: ""
+  });
 
   useEffect(() => {
     if (clinic) {
@@ -194,6 +204,7 @@ export default function Settings() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast.success(data?.message || `Invitation sent to ${inviteEmail} as ${inviteRole}`);
+      auditLog(AUDIT_ACTIONS.STAFF_INVITED, "profile", null, inviteEmail, { role: inviteRole });
       setInviteEmail("");
       fetchTeam();
     } catch (err: any) {
@@ -320,6 +331,56 @@ export default function Settings() {
       toast.success("Signature removed");
       refetch();
     } catch (err: any) { toast.error(err.message); }
+  };
+
+  const fetchAuditLogs = async () => {
+    if (!profile?.clinic_id) return;
+    setLoadingAudit(true);
+    let query = supabase
+      .from("audit_logs" as any)
+      .select("*")
+      .eq("clinic_id", profile.clinic_id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (auditFilter.role) query = query.eq("user_role", auditFilter.role);
+    if (auditFilter.action) query = query.eq("action", auditFilter.action);
+    if (auditFilter.date) {
+      const start = new Date(auditFilter.date).toISOString();
+      const end = new Date(new Date(auditFilter.date).getTime() + 86400000).toISOString();
+      query = query.gte("created_at", start).lt("created_at", end);
+    }
+
+    const { data } = await query;
+    setAuditLogs((data as any) || []);
+    setLoadingAudit(false);
+  };
+
+  useEffect(() => {
+    if (devExpanded && profile?.role === "admin") fetchAuditLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [devExpanded, auditFilter, profile?.clinic_id]);
+
+  const exportAuditLogs = () => {
+    if (auditLogs.length === 0) { toast.error("No logs to export"); return; }
+    const csv = [
+      ["Timestamp", "User", "Role", "Action", "Resource Type", "Record"].join(","),
+      ...auditLogs.map(log => [
+        new Date(log.created_at).toLocaleString("en-IN"),
+        log.user_name || "",
+        log.user_role || "",
+        log.action || "",
+        log.resource_type || "",
+        log.resource_name || ""
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `audit-log-${new Date().toLocaleDateString("en-IN").replace(/\//g, "-")}.csv`;
+    a.click();
+    toast.success("Audit log exported");
   };
 
   if (loading) {
@@ -567,35 +628,149 @@ export default function Settings() {
         {/* Labs (Admin only) */}
         {profile?.role === "admin" && <LabsManagement />}
 
-        {/* Documentation */}
-        <Card className="rounded-2xl border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-display">
-              <FileDown className="h-5 w-5 text-primary" /> Documentation
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Download product documentation for reference and onboarding.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <a
-                href="/STETHOSCRIBE_USER_GUIDE.md"
-                download
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                <FileDown className="h-4 w-4" /> User Guide
-              </a>
-              <a
-                href="/STETHOSCRIBE_TECHNICAL_REFERENCE.md"
-                download
-                className="inline-flex items-center gap-2 rounded-lg bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/80 transition-colors"
-              >
-                <FileDown className="h-4 w-4" /> Technical Reference
-              </a>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Developer (Admin only) */}
+        {profile?.role === "admin" && (
+          <Card className="rounded-2xl border-0 shadow-sm overflow-hidden">
+            <button
+              onClick={() => setDevExpanded(v => !v)}
+              className="w-full flex items-center justify-between px-6 py-4 bg-muted/30 hover:bg-muted/50 transition-colors"
+              type="button"
+            >
+              <div className="flex items-center gap-2">
+                <Code2 className="h-5 w-5 text-primary" />
+                <span className="font-display font-semibold text-foreground">Developer</span>
+              </div>
+              {devExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+
+            {devExpanded && (
+              <CardContent className="space-y-6 pt-6">
+                {/* Audit Logs */}
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <ClipboardList className="h-4 w-4 text-primary" />
+                    <h3 className="font-display font-semibold text-foreground">Audit Logs</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Complete record of all actions performed in your clinic
+                  </p>
+
+                  {/* Filters */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <select
+                      value={auditFilter.role}
+                      onChange={e => setAuditFilter(p => ({ ...p, role: e.target.value }))}
+                      className="text-xs border border-border rounded-lg px-2 py-1.5 bg-background"
+                    >
+                      <option value="">All Roles</option>
+                      <option value="admin">Admin</option>
+                      <option value="doctor">Doctor</option>
+                      <option value="receptionist">Receptionist</option>
+                      <option value="lab">Lab</option>
+                    </select>
+                    <select
+                      value={auditFilter.action}
+                      onChange={e => setAuditFilter(p => ({ ...p, action: e.target.value }))}
+                      className="text-xs border border-border rounded-lg px-2 py-1.5 bg-background"
+                    >
+                      <option value="">All Actions</option>
+                      <option value="login">Login</option>
+                      <option value="logout">Logout</option>
+                      <option value="patient_viewed">Patient Viewed</option>
+                      <option value="consultation_opened">Consultation Opened</option>
+                      <option value="notes_saved">Notes Saved</option>
+                      <option value="prescription_generated">Prescription Generated</option>
+                      <option value="prescription_shared">Prescription Shared</option>
+                      <option value="lab_order_created">Lab Order Created</option>
+                      <option value="staff_invited">Staff Invited</option>
+                    </select>
+                    <input
+                      type="date"
+                      value={auditFilter.date}
+                      onChange={e => setAuditFilter(p => ({ ...p, date: e.target.value }))}
+                      className="text-xs border border-border rounded-lg px-2 py-1.5 bg-background"
+                    />
+                    <Button
+                      onClick={exportAuditLogs}
+                      size="sm"
+                      variant="secondary"
+                      className="ml-auto text-xs h-8"
+                    >
+                      <FileDown className="h-3 w-3 mr-1" /> Export CSV
+                    </Button>
+                  </div>
+
+                  {/* Table */}
+                  <div className="border border-border rounded-xl overflow-hidden">
+                    <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/40 sticky top-0">
+                          <tr>
+                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">When</th>
+                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Who</th>
+                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Action</th>
+                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Record</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {loadingAudit ? (
+                            <tr><td colSpan={4} className="text-center py-6"><Loader2 className="h-4 w-4 animate-spin inline text-primary" /></td></tr>
+                          ) : auditLogs.length === 0 ? (
+                            <tr><td colSpan={4} className="text-center py-6 text-muted-foreground">No audit logs yet</td></tr>
+                          ) : auditLogs.map(log => (
+                            <tr key={log.id} className="border-t border-border hover:bg-muted/20">
+                              <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                                {new Date(log.created_at).toLocaleString("en-IN", {
+                                  day: "numeric", month: "short",
+                                  hour: "2-digit", minute: "2-digit"
+                                })}
+                              </td>
+                              <td className="px-3 py-2">
+                                <div className="font-medium text-foreground">{log.user_name || "—"}</div>
+                                <div className="text-muted-foreground capitalize">{log.user_role || ""}</div>
+                              </td>
+                              <td className="px-3 py-2">
+                                <span className="inline-block bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs capitalize">
+                                  {String(log.action).replace(/_/g, " ")}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-foreground">{log.resource_name || "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Documentation */}
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <FileDown className="h-4 w-4 text-primary" />
+                    <h3 className="font-display font-semibold text-foreground">Documentation</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">Download product documentation</p>
+                  <div className="flex flex-wrap gap-3">
+                    <a
+                      href="/STETHOSCRIBE_USER_GUIDE.md"
+                      download
+                      className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      <FileDown className="h-4 w-4" /> User Guide
+                    </a>
+                    <a
+                      href="/STETHOSCRIBE_TECHNICAL_REFERENCE.md"
+                      download
+                      className="inline-flex items-center gap-2 rounded-lg bg-muted px-4 py-2 text-xs font-medium text-foreground hover:bg-muted/80 transition-colors"
+                    >
+                      <FileDown className="h-4 w-4" /> Technical Reference
+                    </a>
+                  </div>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        )}
 
       </div>
 
