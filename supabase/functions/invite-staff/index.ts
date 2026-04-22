@@ -15,6 +15,73 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     )
 
+    const body = await req.json()
+
+    // ============ LAB SELF-REGISTRATION (no auth required) ============
+    if (body.mode === "self_register_lab") {
+      const { name, email, phone, address, tests_offered, tests_offered_other, operating_hours } = body
+
+      if (!name || !email) {
+        return new Response(
+          JSON.stringify({ error: "Lab name and email are required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        )
+      }
+
+      // Check if email already registered
+      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
+      const alreadyExists = existingUsers?.users?.some(u => u.email === email)
+      if (alreadyExists) {
+        return new Response(
+          JSON.stringify({ error: "This email is already registered" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        )
+      }
+
+      // Create lab record
+      const { data: lab, error: labError } = await supabaseAdmin
+        .from("labs")
+        .insert({
+          name,
+          email,
+          phone: phone || null,
+          address: address || null,
+          tests_offered: tests_offered || [],
+          tests_offered_other: tests_offered_other || null,
+          operating_hours: operating_hours || null,
+          type: "external",
+          verified: false,
+        })
+        .select()
+        .single()
+
+      if (labError) throw labError
+
+      const origin = req.headers.get("origin") || Deno.env.get("SITE_URL") || "https://stethoscribe.lovable.app"
+      const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+        redirectTo: `${origin}/accept-invite`,
+        data: {
+          invited_role: "lab",
+          invited_lab_id: lab.id,
+          invited_clinic_id: null,
+          full_name: name,
+          invited_by: "StethoScribe Platform",
+        },
+      })
+
+      if (inviteError) {
+        // Rollback lab creation if invite failed
+        await supabaseAdmin.from("labs").delete().eq("id", lab.id)
+        throw inviteError
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, lab_id: lab.id }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      )
+    }
+
+    // ============ STAFF INVITE (auth required) ============
     const authHeader = req.headers.get("Authorization")!
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -34,7 +101,7 @@ serve(async (req) => {
     if (!profile?.clinic_id) throw new Error("No clinic found for this user")
     if (profile.role !== "admin") throw new Error("Only admins can invite staff")
 
-    const { email, role, lab_id } = await req.json()
+    const { email, role, lab_id } = body
     if (!email || !role) throw new Error("Email and role are required")
     if (!["doctor", "receptionist", "lab"].includes(role)) throw new Error("Invalid role")
     if (role === "lab" && !lab_id) throw new Error("lab_id is required when inviting a lab user")
@@ -42,12 +109,10 @@ serve(async (req) => {
     const { data: clinic } = await supabaseAdmin
       .from("clinics").select("name").eq("id", profile.clinic_id).single()
 
-    // Check if user already exists in auth
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
     const existingUser = existingUsers?.users?.find(u => u.email === email)
 
     if (existingUser) {
-      // Link existing user to this clinic with assigned role
       const profileUpdate: any = {
         user_id: existingUser.id,
         clinic_id: profile.clinic_id,
@@ -81,7 +146,6 @@ serve(async (req) => {
       )
     }
 
-    // New user — send invite
     const inviteMeta: any = {
       invited_role: role,
       invited_clinic_id: profile.clinic_id,
@@ -90,7 +154,6 @@ serve(async (req) => {
     }
     if (role === "lab") inviteMeta.invited_lab_id = lab_id
 
-    // Use the request's origin so the invite link works in preview, prod, and custom domains
     const origin = req.headers.get("origin") || "https://stethoscribe.lovable.app"
     const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       email,
@@ -102,7 +165,6 @@ serve(async (req) => {
 
     if (inviteError) throw inviteError
 
-    // Pre-create profile so team list shows pending member immediately
     const newProfile: any = {
       user_id: inviteData.user.id,
       clinic_id: profile.clinic_id,
