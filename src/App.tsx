@@ -26,6 +26,9 @@ import LabResultsInbox from "./pages/LabResultsInbox";
 import LabRegistration from "./pages/LabRegistration";
 import LabsDirectory from "./pages/LabsDirectory";
 import SuperAdmin from "./pages/SuperAdmin";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import DataProcessingAgreement from "./pages/DataProcessingAgreement";
 import NotFound from "./pages/NotFound";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,11 +43,20 @@ function AppRoutes() {
   // Always render these pages regardless of auth state
   // Must be BEFORE any auth checks
   const path = window.location.pathname;
-  if (path === "/accept-invite" || path === "/reset-password") {
+  if (
+    path === "/accept-invite" ||
+    path === "/reset-password" ||
+    path === "/privacy" ||
+    path === "/terms" ||
+    path === "/dpa"
+  ) {
     return (
       <Routes>
         <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/dpa" element={<DataProcessingAgreement />} />
       </Routes>
     );
   }
@@ -68,6 +80,9 @@ function AppRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/register-lab" element={<LabRegistration />} />
         <Route path="/labs" element={<LabsDirectory />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/dpa" element={<DataProcessingAgreement />} />
         <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>
     );

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,13 +8,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Stethoscope, ArrowLeft } from "lucide-react";
+import { Stethoscope, ArrowLeft, AlertCircle } from "lucide-react";
 export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [selectedRole, setSelectedRole] = useState<string>("admin");
+  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [searchParams] = useSearchParams();
+  const sessionExpired = searchParams.get("reason") === "session_expired";
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +70,10 @@ export default function Auth() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!consentAccepted) {
+      toast.error("Please accept the Terms of Service and Privacy Policy");
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
@@ -94,6 +101,15 @@ export default function Auth() {
           <h1 className="font-display text-3xl font-bold text-foreground">StethoScribe</h1>
           <p className="mt-2 text-muted-foreground">AI-Powered Practice Management</p>
         </div>
+
+        {sessionExpired && (
+          <div className="mb-4 rounded-xl border border-warning/30 bg-warning/10 p-3 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-foreground">
+              Your session expired due to inactivity. Please log in again.
+            </p>
+          </div>
+        )}
 
         <Card className="shadow-elevated">
           <Tabs defaultValue="login">

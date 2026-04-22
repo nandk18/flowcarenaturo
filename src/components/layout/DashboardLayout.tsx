@@ -6,6 +6,9 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { requestPushPermission, triggerPushNotification } from "@/lib/pushNotifications";
+import { useSessionTimeout } from "@/hooks/useSessionTimeout";
+import SessionTimeoutWarning from "@/components/SessionTimeoutWarning";
+import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import {
   Stethoscope, Users, CalendarDays, Settings, LogOut, UserPlus, Menu, X, FileText, BarChart2, Calendar, FlaskConical
 } from "lucide-react";
@@ -36,13 +39,15 @@ const adminLinks = [
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, session, user } = useAuth();
   const { clinic } = useClinic();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pendingLabCount, setPendingLabCount] = useState(0);
   const role = profile?.role ?? "admin";
   const clinicId = profile?.clinic_id;
+  const { showWarning, timeLeft, stayLoggedIn, logoutNow } = useSessionTimeout(!!session);
+  const { log } = useAuditLog();
 
   const links = role === "receptionist" ? receptionistLinks :
                 role === "doctor" ? doctorLinks : adminLinks;
@@ -104,6 +109,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, [role]);
 
   const handleSignOut = async () => {
+    await log(AUDIT_ACTIONS.LOGOUT, "auth", user?.id, user?.email);
     await signOut();
     navigate("/auth");
   };
@@ -203,6 +209,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           {children}
         </div>
       </main>
+
+      <SessionTimeoutWarning
+        open={showWarning}
+        timeLeft={timeLeft}
+        onStay={stayLoggedIn}
+        onLogout={logoutNow}
+      />
     </div>
   );
 }
