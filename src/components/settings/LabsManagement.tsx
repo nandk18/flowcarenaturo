@@ -41,7 +41,6 @@ export default function LabsManagement() {
   // Add/edit modal
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Lab | null>(null);
-  const [labType, setLabType] = useState<"internal" | "external">("internal");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -81,13 +80,13 @@ export default function LabsManagement() {
   const linkedLabIds = new Set(myExternalLinks.map(l => l.lab.id));
 
   const openAdd = () => {
-    setEditing(null); setLabType("internal");
+    setEditing(null);
     setName(""); setEmail(""); setPhone(""); setAddress(""); setInviteToApp(false);
     setDialogOpen(true);
   };
 
   const openEdit = (lab: Lab) => {
-    setEditing(lab); setLabType(lab.type);
+    setEditing(lab);
     setName(lab.name); setEmail(lab.email || ""); setPhone(lab.phone || ""); setAddress(lab.address || "");
     setInviteToApp(false);
     setDialogOpen(true);
@@ -113,18 +112,15 @@ export default function LabsManagement() {
           email: email.trim() || null,
           phone: phone.trim() || null,
           address: address.trim() || null,
-          type: labType,
+          type: "internal",
           registered_by_clinic_id: profile.clinic_id,
+          clinic_id: profile.clinic_id,
+          verified: true,
         };
-        if (labType === "internal") insertPayload.clinic_id = profile.clinic_id;
         const { data, error } = await supabase.from("labs").insert(insertPayload).select().single();
         if (error) throw error;
         labId = data.id;
-        // For external labs, link to this clinic too
-        if (labType === "external") {
-          await supabase.from("clinic_labs").insert({ clinic_id: profile.clinic_id, lab_id: labId });
-        }
-        toast.success(`${labType === "internal" ? "Internal" : "External"} lab added`);
+        toast.success("Internal lab added");
       }
 
       if (inviteToApp && email.trim()) {
