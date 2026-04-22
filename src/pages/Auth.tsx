@@ -37,8 +37,23 @@ export default function Auth() {
         return;
       }
 
+      // Super admin: always allow login regardless of selected role
+      if (profile.role === "super_admin") {
+        // App.tsx will redirect to /super-admin
+        return;
+      }
+
       if (profile.role !== selectedRole) {
-        toast.error(`You don't have access as ${selectedRole}. Your role is ${profile.role}.`);
+        const roleLabels: Record<string, string> = {
+          admin: "Admin",
+          doctor: "Doctor",
+          receptionist: "Receptionist",
+          lab: "Lab",
+        };
+        const actualLabel = roleLabels[profile.role] || profile.role;
+        toast.error(
+          `This account is registered as "${actualLabel}". Please select "${actualLabel}" from the role dropdown and try again.`
+        );
         await supabase.auth.signOut();
         setLoading(false);
         return;
