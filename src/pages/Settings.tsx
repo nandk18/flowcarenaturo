@@ -628,35 +628,149 @@ export default function Settings() {
         {/* Labs (Admin only) */}
         {profile?.role === "admin" && <LabsManagement />}
 
-        {/* Documentation */}
-        <Card className="rounded-2xl border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-display">
-              <FileDown className="h-5 w-5 text-primary" /> Documentation
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Download product documentation for reference and onboarding.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <a
-                href="/STETHOSCRIBE_USER_GUIDE.md"
-                download
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                <FileDown className="h-4 w-4" /> User Guide
-              </a>
-              <a
-                href="/STETHOSCRIBE_TECHNICAL_REFERENCE.md"
-                download
-                className="inline-flex items-center gap-2 rounded-lg bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/80 transition-colors"
-              >
-                <FileDown className="h-4 w-4" /> Technical Reference
-              </a>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Developer (Admin only) */}
+        {profile?.role === "admin" && (
+          <Card className="rounded-2xl border-0 shadow-sm overflow-hidden">
+            <button
+              onClick={() => setDevExpanded(v => !v)}
+              className="w-full flex items-center justify-between px-6 py-4 bg-muted/30 hover:bg-muted/50 transition-colors"
+              type="button"
+            >
+              <div className="flex items-center gap-2">
+                <Code2 className="h-5 w-5 text-primary" />
+                <span className="font-display font-semibold text-foreground">Developer</span>
+              </div>
+              {devExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+
+            {devExpanded && (
+              <CardContent className="space-y-6 pt-6">
+                {/* Audit Logs */}
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <ClipboardList className="h-4 w-4 text-primary" />
+                    <h3 className="font-display font-semibold text-foreground">Audit Logs</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Complete record of all actions performed in your clinic
+                  </p>
+
+                  {/* Filters */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <select
+                      value={auditFilter.role}
+                      onChange={e => setAuditFilter(p => ({ ...p, role: e.target.value }))}
+                      className="text-xs border border-border rounded-lg px-2 py-1.5 bg-background"
+                    >
+                      <option value="">All Roles</option>
+                      <option value="admin">Admin</option>
+                      <option value="doctor">Doctor</option>
+                      <option value="receptionist">Receptionist</option>
+                      <option value="lab">Lab</option>
+                    </select>
+                    <select
+                      value={auditFilter.action}
+                      onChange={e => setAuditFilter(p => ({ ...p, action: e.target.value }))}
+                      className="text-xs border border-border rounded-lg px-2 py-1.5 bg-background"
+                    >
+                      <option value="">All Actions</option>
+                      <option value="login">Login</option>
+                      <option value="logout">Logout</option>
+                      <option value="patient_viewed">Patient Viewed</option>
+                      <option value="consultation_opened">Consultation Opened</option>
+                      <option value="notes_saved">Notes Saved</option>
+                      <option value="prescription_generated">Prescription Generated</option>
+                      <option value="prescription_shared">Prescription Shared</option>
+                      <option value="lab_order_created">Lab Order Created</option>
+                      <option value="staff_invited">Staff Invited</option>
+                    </select>
+                    <input
+                      type="date"
+                      value={auditFilter.date}
+                      onChange={e => setAuditFilter(p => ({ ...p, date: e.target.value }))}
+                      className="text-xs border border-border rounded-lg px-2 py-1.5 bg-background"
+                    />
+                    <Button
+                      onClick={exportAuditLogs}
+                      size="sm"
+                      variant="secondary"
+                      className="ml-auto text-xs h-8"
+                    >
+                      <FileDown className="h-3 w-3 mr-1" /> Export CSV
+                    </Button>
+                  </div>
+
+                  {/* Table */}
+                  <div className="border border-border rounded-xl overflow-hidden">
+                    <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/40 sticky top-0">
+                          <tr>
+                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">When</th>
+                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Who</th>
+                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Action</th>
+                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Record</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {loadingAudit ? (
+                            <tr><td colSpan={4} className="text-center py-6"><Loader2 className="h-4 w-4 animate-spin inline text-primary" /></td></tr>
+                          ) : auditLogs.length === 0 ? (
+                            <tr><td colSpan={4} className="text-center py-6 text-muted-foreground">No audit logs yet</td></tr>
+                          ) : auditLogs.map(log => (
+                            <tr key={log.id} className="border-t border-border hover:bg-muted/20">
+                              <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                                {new Date(log.created_at).toLocaleString("en-IN", {
+                                  day: "numeric", month: "short",
+                                  hour: "2-digit", minute: "2-digit"
+                                })}
+                              </td>
+                              <td className="px-3 py-2">
+                                <div className="font-medium text-foreground">{log.user_name || "—"}</div>
+                                <div className="text-muted-foreground capitalize">{log.user_role || ""}</div>
+                              </td>
+                              <td className="px-3 py-2">
+                                <span className="inline-block bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs capitalize">
+                                  {String(log.action).replace(/_/g, " ")}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-foreground">{log.resource_name || "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Documentation */}
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <FileDown className="h-4 w-4 text-primary" />
+                    <h3 className="font-display font-semibold text-foreground">Documentation</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">Download product documentation</p>
+                  <div className="flex flex-wrap gap-3">
+                    <a
+                      href="/STETHOSCRIBE_USER_GUIDE.md"
+                      download
+                      className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      <FileDown className="h-4 w-4" /> User Guide
+                    </a>
+                    <a
+                      href="/STETHOSCRIBE_TECHNICAL_REFERENCE.md"
+                      download
+                      className="inline-flex items-center gap-2 rounded-lg bg-muted px-4 py-2 text-xs font-medium text-foreground hover:bg-muted/80 transition-colors"
+                    >
+                      <FileDown className="h-4 w-4" /> Technical Reference
+                    </a>
+                  </div>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        )}
 
       </div>
 
