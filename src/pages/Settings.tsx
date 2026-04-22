@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload } from "lucide-react";
+import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload, Code2, ClipboardList, ChevronDown, ChevronUp } from "lucide-react";
 import LabsManagement from "@/components/settings/LabsManagement";
+import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 
 const LANGUAGES = [
   "Tamil","Hindi","Telugu","Kannada","Malayalam","Marathi",
@@ -35,6 +36,7 @@ export default function Settings() {
   const { user, profile } = useAuth();
   const { clinic, doctor, loading, refetch } = useClinic();
   const [saving, setSaving] = useState(false);
+  const { log: auditLog } = useAuditLog();
 
   const [clinicName, setClinicName] = useState("");
   const [clinicAddress, setClinicAddress] = useState("");
@@ -74,6 +76,14 @@ export default function Settings() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [signatureUrl, setSignatureUrl] = useState("");
   const [uploadingSignature, setUploadingSignature] = useState(false);
+
+  // Developer section
+  const [devExpanded, setDevExpanded] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [loadingAudit, setLoadingAudit] = useState(false);
+  const [auditFilter, setAuditFilter] = useState<{ role: string; action: string; date: string }>({
+    role: "", action: "", date: ""
+  });
 
   useEffect(() => {
     if (clinic) {
