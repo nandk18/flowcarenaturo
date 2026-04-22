@@ -20,6 +20,7 @@ import EMRExportButtons from "@/components/doctor/EMRExportButtons";
 import OrderInvestigationModal from "@/components/doctor/OrderInvestigationModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FlaskConical } from "lucide-react";
+import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 
 type Visit = {
   id: string;
@@ -88,6 +89,15 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
   const { clinic, doctor } = useClinic();
   const isMobile = useIsMobile();
   const [tab, setTab] = useState<string>("summary");
+  const { log: auditLog } = useAuditLog();
+
+  // Log consultation opened once per visit
+  useEffect(() => {
+    if (visit?.id && visit.patient?.name) {
+      auditLog(AUDIT_ACTIONS.CONSULTATION_OPENED, "visit", visit.id, visit.patient.name);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visit?.id]);
 
   // Dynamic note fields keyed by section name
   const [noteFields, setNoteFields] = useState<Record<string, string>>({

@@ -15,6 +15,7 @@ import VitalsTrends from "@/components/vitals/VitalsTrends";
 import { renderClinicalNotes } from "@/lib/templateFields";
 import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 import { openPrescription } from "@/lib/prescriptionUtils";
+import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 
 type Patient = {
   id: string; name: string; healthcare_id: string | null; gender: string | null;
@@ -41,6 +42,7 @@ export default function PatientDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editingVisit, setEditingVisit] = useState<any>(null);
+  const { log: auditLog } = useAuditLog();
 
   const isAdmin = profile?.role === "admin";
   const canEdit = profile?.role === "doctor" || profile?.role === "admin";
@@ -70,6 +72,9 @@ export default function PatientDetailPage() {
       })));
     }
     setLoading(false);
+    if (patientRes.data) {
+      auditLog(AUDIT_ACTIONS.PATIENT_VIEWED, "patient", (patientRes.data as any).id, (patientRes.data as any).name);
+    }
   };
 
   useEffect(() => {

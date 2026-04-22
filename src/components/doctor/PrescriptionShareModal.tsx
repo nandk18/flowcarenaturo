@@ -7,6 +7,7 @@ import { CheckCircle, MessageCircle, Mail, Copy, Download, Printer, Loader2 } fr
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import EMRExportButtons from "@/components/doctor/EMRExportButtons";
+import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 
 type Props = {
   open: boolean;
