@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Building2, User, Save, Loader2, UserPlus, Send, Smartphone, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload } from "lucide-react";
+import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload } from "lucide-react";
 import LabsManagement from "@/components/settings/LabsManagement";
 
 const LANGUAGES = [
@@ -597,19 +597,6 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Mobile App */}
-        <Card className="rounded-2xl border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-display">
-              <Smartphone className="h-5 w-5 text-primary" /> Mobile App
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              To build the native app, export this project to GitHub, clone locally, run <code className="rounded-lg bg-muted px-1.5 py-0.5 text-xs font-mono">npm run build && npx cap sync</code>, then open in Android Studio or Xcode.
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Edit Member Sheet */}

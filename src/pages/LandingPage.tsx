@@ -637,8 +637,9 @@ export default function LandingPage() {
               <Link to="/labs" className="text-gray-400 hover:text-white transition-colors">Labs Directory</Link>
               <Link to="/register-lab" className="text-gray-400 hover:text-white transition-colors">Register Your Lab</Link>
               <button onClick={() => scrollTo("contact")} className="text-gray-400 hover:text-white transition-colors">Contact</button>
-              <span className="text-gray-400">Privacy</span>
-              <span className="text-gray-400">Terms</span>
+              <Link to="/privacy" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</Link>
+              <Link to="/terms" className="text-gray-400 hover:text-white transition-colors">Terms of Service</Link>
+              <Link to="/dpa" className="text-gray-400 hover:text-white transition-colors">Data Processing Agreement</Link>
             </div>
             <div className="text-sm text-gray-400 space-y-1">
               <p>📧 hello@stethoscribe.app</p>

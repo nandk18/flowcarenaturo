@@ -7,7 +7,7 @@ import { toast } from "sonner";
 export default function SuperAdmin() {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"labs" | "clinics">("labs");
+  const [activeTab, setActiveTab] = useState<"labs" | "clinics" | "mobile">("labs");
   const [labs, setLabs] = useState<any[]>([]);
   const [clinics, setClinics] = useState<any[]>([]);
   const [stats, setStats] = useState<any>({});
@@ -99,7 +99,7 @@ export default function SuperAdmin() {
         </div>
 
         <div className="flex gap-2 mb-6">
-          {(["labs", "clinics"] as const).map(tab => (
+          {(["labs", "clinics", "mobile"] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -109,7 +109,7 @@ export default function SuperAdmin() {
                   : "bg-slate-800 text-slate-400 hover:text-white"
               }`}
             >
-              {tab}
+              {tab === "mobile" ? "📱 Mobile App" : tab}
             </button>
           ))}
         </div>
@@ -200,6 +200,35 @@ export default function SuperAdmin() {
             {!loading && clinics.length === 0 && (
               <div className="text-center py-12 text-slate-500">No clinics registered yet</div>
             )}
+          </div>
+        )}
+
+        {activeTab === "mobile" && (
+          <div className="bg-slate-900 rounded-xl p-6 border border-slate-800">
+            <h2 className="text-lg font-bold text-white mb-2">Native Mobile App Build</h2>
+            <p className="text-sm text-slate-400 mb-4">
+              StethoScribe is configured for native Android and iOS builds using Capacitor.
+            </p>
+            <div className="bg-slate-950 rounded-lg p-4 font-mono text-xs text-slate-300 space-y-1 mb-4 border border-slate-800">
+              <p className="text-slate-500"># 1. Export project to GitHub and clone locally</p>
+              <p>git clone https://github.com/your-repo/stethoscribe</p>
+              <p>cd stethoscribe</p>
+              <p className="text-slate-500 mt-2"># 2. Install dependencies and build</p>
+              <p>npm install</p>
+              <p>npm run build</p>
+              <p className="text-slate-500 mt-2"># 3. Sync with Capacitor</p>
+              <p>npx cap sync</p>
+              <p className="text-slate-500 mt-2"># 4. Open in IDE</p>
+              <p>npx cap open android   <span className="text-slate-500"># Android Studio</span></p>
+              <p>npx cap open ios       <span className="text-slate-500"># Xcode (Mac only)</span></p>
+            </div>
+            <div className="bg-yellow-900/20 border border-yellow-900/40 rounded-lg p-3">
+              <p className="text-xs text-yellow-300">
+                ⚠️ Requires Android Studio (Android) or Xcode with a Mac (iOS).
+                iOS builds require an Apple Developer account ($99/year).
+                Android builds require a Google Play Console account ($25 one-time).
+              </p>
+            </div>
           </div>
         )}
       </div>
