@@ -8,7 +8,7 @@ type UserProfile = {
   clinic_id: string | null;
   lab_id: string | null;
   full_name: string | null;
-  role: "admin" | "doctor" | "receptionist" | "lab";
+  role: "admin" | "doctor" | "receptionist" | "lab" | "super_admin";
   password_set: boolean;
 };
 

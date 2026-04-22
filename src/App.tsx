@@ -24,6 +24,8 @@ import AppointmentsPage from "./pages/AppointmentsPage";
 import LabDashboard from "./pages/LabDashboard";
 import LabResultsInbox from "./pages/LabResultsInbox";
 import LabRegistration from "./pages/LabRegistration";
+import LabsDirectory from "./pages/LabsDirectory";
+import SuperAdmin from "./pages/SuperAdmin";
 import NotFound from "./pages/NotFound";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,6 +67,7 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/register-lab" element={<LabRegistration />} />
+        <Route path="/labs" element={<LabsDirectory />} />
         <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>
     );
@@ -86,6 +89,17 @@ function AppRoutes() {
         <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route path="/rx/:prescriptionId" element={<PrescriptionViewer />} />
         <Route path="*" element={<Navigate to="/accept-invite" replace />} />
+      </Routes>
+    );
+  }
+
+  // Super admin: skip clinic/onboarding checks, route directly to platform dashboard
+  if (profile.role === "super_admin") {
+    return (
+      <Routes>
+        <Route path="/super-admin" element={<SuperAdmin />} />
+        <Route path="/labs" element={<LabsDirectory />} />
+        <Route path="*" element={<Navigate to="/super-admin" replace />} />
       </Routes>
     );
   }
@@ -154,6 +168,8 @@ function AppRoutes() {
       } />
       <Route path="/dashboard/settings" element={<Settings />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/labs" element={<LabsDirectory />} />
+      <Route path="/register-lab" element={<LabRegistration />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
       <Route path="/onboarding" element={<Navigate to="/dashboard" replace />} />

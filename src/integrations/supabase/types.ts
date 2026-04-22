@@ -493,8 +493,12 @@ export type Database = {
           email: string | null
           id: string
           name: string
+          operating_hours: string | null
           phone: string | null
           registered_by_clinic_id: string | null
+          suspended: boolean | null
+          tests_offered: string[] | null
+          tests_offered_other: string | null
           type: string
           verified: boolean
         }
@@ -505,8 +509,12 @@ export type Database = {
           email?: string | null
           id?: string
           name: string
+          operating_hours?: string | null
           phone?: string | null
           registered_by_clinic_id?: string | null
+          suspended?: boolean | null
+          tests_offered?: string[] | null
+          tests_offered_other?: string | null
           type?: string
           verified?: boolean
         }
@@ -517,8 +525,12 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string
+          operating_hours?: string | null
           phone?: string | null
           registered_by_clinic_id?: string | null
+          suspended?: boolean | null
+          tests_offered?: string[] | null
+          tests_offered_other?: string | null
           type?: string
           verified?: boolean
         }
@@ -902,11 +914,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
-      app_role: "admin" | "doctor" | "receptionist" | "lab"
+      app_role: "admin" | "doctor" | "receptionist" | "lab" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1034,7 +1047,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "doctor", "receptionist", "lab"],
+      app_role: ["admin", "doctor", "receptionist", "lab", "super_admin"],
     },
   },
 } as const
