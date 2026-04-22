@@ -104,6 +104,17 @@ function AppRoutes() {
     );
   }
 
+  // Lab role: skip clinic/onboarding checks, route directly to lab dashboard
+  if (profile.role === "lab") {
+    return (
+      <Routes>
+        <Route path="/lab" element={<LabDashboard />} />
+        <Route path="/rx/:prescriptionId" element={<PrescriptionViewer />} />
+        <Route path="*" element={<Navigate to="/lab" replace />} />
+      </Routes>
+    );
+  }
+
   if (profile?.clinic_id && clinicReady === null) {
     supabase
       .from("clinics")
@@ -131,16 +142,6 @@ function AppRoutes() {
   }
 
   const role = profile?.role;
-
-  if (role === "lab") {
-    return (
-      <Routes>
-        <Route path="/lab" element={<LabDashboard />} />
-        <Route path="/rx/:prescriptionId" element={<PrescriptionViewer />} />
-        <Route path="*" element={<Navigate to="/lab" replace />} />
-      </Routes>
-    );
-  }
 
   const DashboardComponent =
     role === "receptionist" ? ReceptionistDashboard :
