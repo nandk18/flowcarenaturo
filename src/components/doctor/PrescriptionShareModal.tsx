@@ -33,6 +33,7 @@ export default function PrescriptionShareModal({ open, onClose, prescriptionPdfU
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const isMobile = useIsMobile();
+  const { log: auditLog } = useAuditLog();
 
   useEffect(() => {
     if (open && prescriptionPdfUrl) {
@@ -52,6 +53,10 @@ export default function PrescriptionShareModal({ open, onClose, prescriptionPdfU
       `Dear ${patient.name}, your prescription from ${clinicName} is ready.\n\nView & Download: ${viewerUrl}\n\nThe prescription will open in your browser.`
     );
     window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
+    if (prescriptionId) {
+      auditLog(AUDIT_ACTIONS.PRESCRIPTION_SHARED, "prescription", prescriptionId, patient?.name, { via: "whatsapp" });
+      supabase.from("document_shares").insert({ prescription_id: prescriptionId, shared_via: "whatsapp", recipient: patient.phone }).then(() => {});
+    }
   };
 
   const handleEmail = () => {
@@ -61,6 +66,10 @@ export default function PrescriptionShareModal({ open, onClose, prescriptionPdfU
       `Dear ${patient.name},\n\nYour prescription is ready.\nClick here to view: ${viewerUrl}\n\nRegards,\n${doctorName}\n${clinicName}`
     );
     window.open(`mailto:${patient.email}?subject=${subject}&body=${body}`);
+    if (prescriptionId) {
+      auditLog(AUDIT_ACTIONS.PRESCRIPTION_SHARED, "prescription", prescriptionId, patient?.name, { via: "email" });
+      supabase.from("document_shares").insert({ prescription_id: prescriptionId, shared_via: "email", recipient: patient.email }).then(() => {});
+    }
   };
 
   const handleCopy = async () => {

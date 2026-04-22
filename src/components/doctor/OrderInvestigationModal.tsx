@@ -40,6 +40,7 @@ export default function OrderInvestigationModal({
   open, onClose, clinicId, visitId, patientId, patientName,
   doctorId, doctorName, clinicName, onOrdered,
 }: Props) {
+  const { log: auditLog } = useAuditLog();
   const [labs, setLabs] = useState<(Lab & { type?: string })[]>([]);
   const [testName, setTestName] = useState("");
   const [testCategory, setTestCategory] = useState("Blood Test");
@@ -121,6 +122,7 @@ export default function OrderInvestigationModal({
       }
 
       toast.success(`${testName} ordered successfully`);
+      auditLog(AUDIT_ACTIONS.LAB_ORDER_CREATED, "lab_order", order.id, testName.trim(), { urgency, lab_id: selectedLab?.id || null });
       reset();
       onClose();
       onOrdered?.();
