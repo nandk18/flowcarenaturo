@@ -597,19 +597,6 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Mobile App */}
-        <Card className="rounded-2xl border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-display">
-              <Smartphone className="h-5 w-5 text-primary" /> Mobile App
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              To build the native app, export this project to GitHub, clone locally, run <code className="rounded-lg bg-muted px-1.5 py-0.5 text-xs font-mono">npm run build && npx cap sync</code>, then open in Android Studio or Xcode.
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Edit Member Sheet */}
