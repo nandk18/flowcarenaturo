@@ -873,8 +873,133 @@ export default function Settings() {
                     </a>
                   </div>
                 </div>
+
+                {/* Data Export */}
+                <div className="border-t border-border pt-6">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Database className="h-4 w-4 text-primary" />
+                    <h3 className="font-display font-semibold text-foreground">Data Export</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Download a complete copy of all your clinic data — patients, visits,
+                    clinical notes, prescriptions, appointments, lab orders and results.
+                    This is your right under the DPDP Act 2023.
+                  </p>
+                  <div className="rounded-xl border border-warning/30 bg-warning/10 p-3 mb-3 flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-foreground">
+                      The export contains sensitive patient health information. Store the
+                      downloaded files securely and do not share them with unauthorized persons.
+                    </p>
+                  </div>
+                  {isExporting ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Preparing your data export... this may take a moment.
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleDataExport}
+                      className="inline-flex items-center gap-2 rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
+                    >
+                      <Download className="h-4 w-4" />
+                      Export All Clinic Data (CSV)
+                    </button>
+                  )}
+                  {exportComplete && (
+                    <p className="mt-3 text-xs text-success flex items-center gap-1">
+                      ✓ Export complete — check your downloads folder
+                    </p>
+                  )}
+                </div>
               </CardContent>
             )}
+          </Card>
+        )}
+
+        {/* Danger Zone (Admin only) */}
+        {profile?.role === "admin" && (
+          <Card className="border-destructive/30">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                Danger Zone
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="font-display font-semibold text-foreground mb-1">Delete Clinic Account</h3>
+                <p className="text-sm text-muted-foreground">
+                  Request permanent deletion of your clinic account and all associated data
+                  including patients, visits, prescriptions, and staff accounts.
+                  This is your right under the DPDP Act 2023.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+                <p className="text-sm font-semibold text-foreground mb-2">Before deleting, please note:</p>
+                <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                  <li>Your account will be deactivated immediately</li>
+                  <li>All data will be permanently deleted after a 30-day grace period</li>
+                  <li>You can cancel the deletion request within 30 days by contacting us</li>
+                  <li>After 30 days, deletion is irreversible and cannot be undone</li>
+                  <li>Export your data before requesting deletion</li>
+                </ul>
+              </div>
+
+              {!showDeleteConfirm ? (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-sm border border-destructive/30 text-destructive rounded-xl px-5 py-2.5 font-medium hover:bg-destructive/10 transition-colors"
+                >
+                  Request Account Deletion
+                </button>
+              ) : (
+                <div className="space-y-3 rounded-xl border border-destructive/40 p-4 bg-destructive/5">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Type <span className="font-bold text-destructive">DELETE</span> to confirm:</Label>
+                    <Input
+                      value={deleteConfirmText}
+                      onChange={e => setDeleteConfirmText(e.target.value)}
+                      placeholder="Type DELETE to confirm"
+                      className="rounded-lg"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Your reason (optional):</Label>
+                    <textarea
+                      value={deleteReason}
+                      onChange={e => setDeleteReason(e.target.value)}
+                      placeholder="Reason for deletion (helps us improve)"
+                      rows={2}
+                      className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      className="flex-1 rounded-lg"
+                      onClick={() => {
+                        setShowDeleteConfirm(false);
+                        setDeleteConfirmText("");
+                        setDeleteReason("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      className="flex-1 rounded-lg"
+                      onClick={handleRequestDeletion}
+                      disabled={deleteConfirmText !== "DELETE" || isDeletingAccount}
+                    >
+                      {isDeletingAccount && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Confirm Deletion Request
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
           </Card>
         )}
 
