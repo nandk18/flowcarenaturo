@@ -44,6 +44,7 @@ export default function Auth() {
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [searchParams] = useSearchParams();
   const sessionExpired = searchParams.get("reason") === "session_expired";
+  const deletionRequested = searchParams.get("reason") === "deletion_requested";
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,6 +136,16 @@ export default function Auth() {
             <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
             <p className="text-sm text-foreground">
               Your session expired due to inactivity. Please log in again.
+            </p>
+          </div>
+        )}
+        {deletionRequested && (
+          <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-foreground">
+              Your account deletion request has been received. Your data will be permanently
+              deleted within 30 days. To cancel this request contact{" "}
+              <a href="mailto:privacy@stethoscribe.app" className="underline text-primary">privacy@stethoscribe.app</a>
             </p>
           </div>
         )}

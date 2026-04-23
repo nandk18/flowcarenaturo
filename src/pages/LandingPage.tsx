@@ -640,6 +640,7 @@ export default function LandingPage() {
               <Link to="/privacy" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</Link>
               <Link to="/terms" className="text-gray-400 hover:text-white transition-colors">Terms of Service</Link>
               <Link to="/dpa" className="text-gray-400 hover:text-white transition-colors">Data Processing Agreement</Link>
+              <Link to="/security" className="text-gray-400 hover:text-white transition-colors">Security</Link>
             </div>
             <div className="text-sm text-gray-400 space-y-1">
               <p>📧 hello@stethoscribe.app</p>
