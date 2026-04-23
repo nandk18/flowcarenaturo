@@ -395,6 +395,100 @@ export default function Settings() {
     toast.success("Audit log exported");
   };
 
+  const handleDataExport = async () => {
+    if (!profile?.clinic_id) return;
+    const clinicId = profile.clinic_id;
+    setIsExporting(true);
+    setExportComplete(false);
+
+    try {
+      const [
+        patientsRes, visitsRes, notesRes, prescriptionsRes,
+        appointmentsRes, labOrdersRes, labResultsRes, doctorsRes
+      ] = await Promise.all([
+        supabase.from("patients").select("*").eq("clinic_id", clinicId),
+        supabase.from("visits").select("*").eq("clinic_id", clinicId),
+        supabase.from("clinical_notes").select("*, visits!inner(clinic_id)").eq("visits.clinic_id", clinicId),
+        supabase.from("prescriptions").select("*, visits!inner(clinic_id)").eq("visits.clinic_id", clinicId),
+        supabase.from("appointments").select("*").eq("clinic_id", clinicId),
+        supabase.from("lab_orders").select("*").eq("clinic_id", clinicId),
+        supabase.from("lab_results").select("*").eq("clinic_id", clinicId),
+        supabase.from("doctors").select("*").eq("clinic_id", clinicId),
+      ]);
+
+      const toCSV = (data: any[]) => {
+        if (!data || data.length === 0) return "No data";
+        const headers = Object.keys(data[0]).join(",");
+        const rows = data.map(row =>
+          Object.values(row).map(v =>
+            typeof v === "object" && v !== null
+              ? `"${JSON.stringify(v).replace(/"/g, '""')}"`
+              : `"${String(v ?? "").replace(/"/g, '""')}"`
+          ).join(",")
+        );
+        return [headers, ...rows].join("\n");
+      };
+
+      const exports = [
+        { name: "patients.csv", data: patientsRes.data || [] },
+        { name: "visits.csv", data: visitsRes.data || [] },
+        { name: "clinical_notes.csv", data: notesRes.data || [] },
+        { name: "prescriptions.csv", data: prescriptionsRes.data || [] },
+        { name: "appointments.csv", data: appointmentsRes.data || [] },
+        { name: "lab_orders.csv", data: labOrdersRes.data || [] },
+        { name: "lab_results.csv", data: labResultsRes.data || [] },
+        { name: "doctors.csv", data: doctorsRes.data || [] },
+      ];
+
+      for (const file of exports) {
+        const csv = toCSV(file.data);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `stethoscribe-${file.name}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        await new Promise(r => setTimeout(r, 300));
+      }
+
+      await auditLog(AUDIT_ACTIONS.SETTINGS_UPDATED, "clinic", clinicId, "Data export", { action: "full_data_export" });
+      setExportComplete(true);
+      toast.success("All data exported successfully");
+    } catch (err: any) {
+      toast.error("Export failed: " + err.message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleRequestDeletion = async () => {
+    if (deleteConfirmText !== "DELETE" || !profile?.clinic_id || !user) return;
+    setIsDeletingAccount(true);
+    try {
+      await auditLog("account_deletion_requested", "clinic", profile.clinic_id, clinic?.name || null, { reason: deleteReason });
+      await supabase.functions.invoke("send-deletion-request", {
+        body: {
+          clinic_id: profile.clinic_id,
+          clinic_name: clinic?.name,
+          admin_email: user.email,
+          reason: deleteReason,
+          requested_at: new Date().toISOString(),
+        },
+      }).catch(() => { /* edge function optional */ });
+      toast.success("Deletion request submitted");
+      setShowDeleteConfirm(false);
+      await supabase.auth.signOut();
+      navigate("/auth?reason=deletion_requested");
+    } catch (err: any) {
+      toast.error("Failed to submit deletion request: " + err.message);
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
