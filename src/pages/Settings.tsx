@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload, Code2, ClipboardList, ChevronDown, ChevronUp } from "lucide-react";
+import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload, Code2, ClipboardList, ChevronDown, ChevronUp, Database, AlertTriangle, Download } from "lucide-react";
 import LabsManagement from "@/components/settings/LabsManagement";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 
@@ -35,6 +36,7 @@ type TeamMember = {
 export default function Settings() {
   const { user, profile } = useAuth();
   const { clinic, doctor, loading, refetch } = useClinic();
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const { log: auditLog } = useAuditLog();
 
@@ -84,6 +86,16 @@ export default function Settings() {
   const [auditFilter, setAuditFilter] = useState<{ role: string; action: string; date: string }>({
     role: "", action: "", date: ""
   });
+
+  // Data export
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportComplete, setExportComplete] = useState(false);
+
+  // Danger zone — account deletion
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (clinic) {
