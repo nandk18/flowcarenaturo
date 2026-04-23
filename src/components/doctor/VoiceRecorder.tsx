@@ -5,19 +5,37 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Mic, Square, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { features } from "@/lib/featureFlags";
+import { rateLimiter } from "@/lib/rateLimiter";
+import { useJobQueue } from "@/hooks/useJobQueue";
 
 type Props = {
   visitId: string;
   onTranscriptProcessed: (soapData: any) => void;
+  clinicId?: string;
+  doctorId?: string;
+  templateName?: string;
+  templateFields?: string[];
+  patientContext?: string;
 };
 
-export default function VoiceRecorder({ visitId, onTranscriptProcessed }: Props) {
+export default function VoiceRecorder({
+  visitId,
+  onTranscriptProcessed,
+  clinicId,
+  doctorId,
+  templateName,
+  templateFields,
+  patientContext,
+}: Props) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [manualMode, setManualMode] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [audioLevels, setAudioLevels] = useState<number[]>(new Array(24).fill(0));
+  const [processingStatus, setProcessingStatus] = useState<string>("");
+  const { enqueue, waitForJob } = useJobQueue();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -57,6 +75,59 @@ export default function VoiceRecorder({ visitId, onTranscriptProcessed }: Props)
 
   const handleTranscription = useCallback(async (audioBlob: Blob) => {
     setIsTranscribing(true);
+
+    // Rate limit: max 10 transcriptions per minute per clinic
+    if (clinicId) {
+      const ok = rateLimiter.check(`voice:${clinicId}`, 10, 60);
+      if (!ok) {
+        const wait = rateLimiter.getTimeUntilReset(`voice:${clinicId}`);
+        toast.error(`Too many requests. Please wait ${wait}s.`);
+        setIsTranscribing(false);
+        return;
+      }
+    }
+
+    // Async queue path — non-blocking, scales to thousands of users
+    if (features.asyncAI && clinicId && doctorId) {
+      try {
+        setProcessingStatus("Uploading audio...");
+        const audioPath = `${clinicId}/${visitId}/audio_${Date.now()}.webm`;
+        const { error: upErr } = await supabase.storage
+          .from("audio-recordings")
+          .upload(audioPath, audioBlob, { upsert: true });
+        if (upErr) throw upErr;
+
+        setProcessingStatus("Queued for transcription...");
+        const jobId = await enqueue(
+          "transcribe_audio",
+          {
+            visit_id: visitId,
+            audio_path: audioPath,
+            doctor_id: doctorId,
+            template_name: templateName || "SOAP Notes",
+            template_fields: templateFields || ["subjective", "objective", "assessment", "plan"],
+            patient_context: patientContext || "",
+          },
+          clinicId
+        );
+
+        setProcessingStatus("AI is transcribing...");
+        const result = await waitForJob(jobId);
+        const notes = result?.notes || result;
+        if (result?.transcript) setTranscript(result.transcript);
+        onTranscriptProcessed(notes);
+        toast.success("Notes generated successfully");
+      } catch (err: any) {
+        toast.error("Processing failed: " + (err?.message || "Unknown error"));
+        setManualMode(true);
+      } finally {
+        setIsTranscribing(false);
+        setProcessingStatus("");
+      }
+      return;
+    }
+
+    // Synchronous fallback path (default)
     try {
       const formData = new FormData();
       formData.append("audio", audioBlob, "recording.webm");
@@ -83,7 +154,7 @@ export default function VoiceRecorder({ visitId, onTranscriptProcessed }: Props)
       } else { toast.error("No transcript received."); setManualMode(true); }
     } catch (err: any) { toast.error(err.message || "Transcription failed."); setManualMode(true); }
     finally { setIsTranscribing(false); }
-  }, [onTranscriptProcessed]);
+  }, [onTranscriptProcessed, clinicId, doctorId, visitId, templateName, templateFields, patientContext, enqueue, waitForJob]);
 
   const startRecording = async () => {
     try {
@@ -154,8 +225,14 @@ export default function VoiceRecorder({ visitId, onTranscriptProcessed }: Props)
       <Card className="rounded-2xl border-0 shadow-sm">
         <CardContent className="flex flex-col items-center justify-center gap-4 py-16">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="font-display text-lg font-semibold text-foreground">Transcribing your notes...</p>
-          <p className="text-sm text-muted-foreground">AI is converting your recording into structured SOAP notes</p>
+          <p className="font-display text-lg font-semibold text-foreground">
+            {processingStatus || "Transcribing your notes..."}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {features.asyncAI
+              ? "You can switch tabs while AI processes. Notes will appear automatically."
+              : "AI is converting your recording into structured SOAP notes"}
+          </p>
         </CardContent>
       </Card>
     );
