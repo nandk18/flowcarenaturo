@@ -75,6 +75,59 @@ export default function VoiceRecorder({
 
   const handleTranscription = useCallback(async (audioBlob: Blob) => {
     setIsTranscribing(true);
+
+    // Rate limit: max 10 transcriptions per minute per clinic
+    if (clinicId) {
+      const ok = rateLimiter.check(`voice:${clinicId}`, 10, 60);
+      if (!ok) {
+        const wait = rateLimiter.getTimeUntilReset(`voice:${clinicId}`);
+        toast.error(`Too many requests. Please wait ${wait}s.`);
+        setIsTranscribing(false);
+        return;
+      }
+    }
+
+    // Async queue path — non-blocking, scales to thousands of users
+    if (features.asyncAI && clinicId && doctorId) {
+      try {
+        setProcessingStatus("Uploading audio...");
+        const audioPath = `${clinicId}/${visitId}/audio_${Date.now()}.webm`;
+        const { error: upErr } = await supabase.storage
+          .from("audio-recordings")
+          .upload(audioPath, audioBlob, { upsert: true });
+        if (upErr) throw upErr;
+
+        setProcessingStatus("Queued for transcription...");
+        const jobId = await enqueue(
+          "transcribe_audio",
+          {
+            visit_id: visitId,
+            audio_path: audioPath,
+            doctor_id: doctorId,
+            template_name: templateName || "SOAP Notes",
+            template_fields: templateFields || ["subjective", "objective", "assessment", "plan"],
+            patient_context: patientContext || "",
+          },
+          clinicId
+        );
+
+        setProcessingStatus("AI is transcribing...");
+        const result = await waitForJob(jobId);
+        const notes = result?.notes || result;
+        if (result?.transcript) setTranscript(result.transcript);
+        onTranscriptProcessed(notes);
+        toast.success("Notes generated successfully");
+      } catch (err: any) {
+        toast.error("Processing failed: " + (err?.message || "Unknown error"));
+        setManualMode(true);
+      } finally {
+        setIsTranscribing(false);
+        setProcessingStatus("");
+      }
+      return;
+    }
+
+    // Synchronous fallback path (default)
     try {
       const formData = new FormData();
       formData.append("audio", audioBlob, "recording.webm");
@@ -101,7 +154,7 @@ export default function VoiceRecorder({
       } else { toast.error("No transcript received."); setManualMode(true); }
     } catch (err: any) { toast.error(err.message || "Transcription failed."); setManualMode(true); }
     finally { setIsTranscribing(false); }
-  }, [onTranscriptProcessed]);
+  }, [onTranscriptProcessed, clinicId, doctorId, visitId, templateName, templateFields, patientContext, enqueue, waitForJob]);
 
   const startRecording = async () => {
     try {
