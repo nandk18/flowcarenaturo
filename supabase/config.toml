@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.summarize-lab-result]
 verify_jwt = false
+
+[functions.process-queue]
+verify_jwt = false
