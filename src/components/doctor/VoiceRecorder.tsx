@@ -5,19 +5,37 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Mic, Square, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { features } from "@/lib/featureFlags";
+import { rateLimiter } from "@/lib/rateLimiter";
+import { useJobQueue } from "@/hooks/useJobQueue";
 
 type Props = {
   visitId: string;
   onTranscriptProcessed: (soapData: any) => void;
+  clinicId?: string;
+  doctorId?: string;
+  templateName?: string;
+  templateFields?: string[];
+  patientContext?: string;
 };
 
-export default function VoiceRecorder({ visitId, onTranscriptProcessed }: Props) {
+export default function VoiceRecorder({
+  visitId,
+  onTranscriptProcessed,
+  clinicId,
+  doctorId,
+  templateName,
+  templateFields,
+  patientContext,
+}: Props) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [manualMode, setManualMode] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [audioLevels, setAudioLevels] = useState<number[]>(new Array(24).fill(0));
+  const [processingStatus, setProcessingStatus] = useState<string>("");
+  const { enqueue, waitForJob } = useJobQueue();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
