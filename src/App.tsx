@@ -29,7 +29,9 @@ import SuperAdmin from "./pages/SuperAdmin";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import DataProcessingAgreement from "./pages/DataProcessingAgreement";
+import SecurityPage from "./pages/SecurityPage";
 import NotFound from "./pages/NotFound";
+import CookieConsent from "./components/CookieConsent";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
@@ -48,7 +50,8 @@ function AppRoutes() {
     path === "/reset-password" ||
     path === "/privacy" ||
     path === "/terms" ||
-    path === "/dpa"
+    path === "/dpa" ||
+    path === "/security"
   ) {
     return (
       <Routes>
@@ -57,6 +60,7 @@ function AppRoutes() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/dpa" element={<DataProcessingAgreement />} />
+        <Route path="/security" element={<SecurityPage />} />
       </Routes>
     );
   }
@@ -83,6 +87,7 @@ function AppRoutes() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/dpa" element={<DataProcessingAgreement />} />
+        <Route path="/security" element={<SecurityPage />} />
         <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>
     );
@@ -202,6 +207,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <AppRoutes />
+          <CookieConsent />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

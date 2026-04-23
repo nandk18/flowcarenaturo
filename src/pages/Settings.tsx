@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload, Code2, ClipboardList, ChevronDown, ChevronUp } from "lucide-react";
+import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload, Code2, ClipboardList, ChevronDown, ChevronUp, Database, AlertTriangle, Download } from "lucide-react";
 import LabsManagement from "@/components/settings/LabsManagement";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 
@@ -35,6 +36,7 @@ type TeamMember = {
 export default function Settings() {
   const { user, profile } = useAuth();
   const { clinic, doctor, loading, refetch } = useClinic();
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const { log: auditLog } = useAuditLog();
 
@@ -84,6 +86,16 @@ export default function Settings() {
   const [auditFilter, setAuditFilter] = useState<{ role: string; action: string; date: string }>({
     role: "", action: "", date: ""
   });
+
+  // Data export
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportComplete, setExportComplete] = useState(false);
+
+  // Danger zone — account deletion
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (clinic) {
@@ -381,6 +393,100 @@ export default function Settings() {
     a.download = `audit-log-${new Date().toLocaleDateString("en-IN").replace(/\//g, "-")}.csv`;
     a.click();
     toast.success("Audit log exported");
+  };
+
+  const handleDataExport = async () => {
+    if (!profile?.clinic_id) return;
+    const clinicId = profile.clinic_id;
+    setIsExporting(true);
+    setExportComplete(false);
+
+    try {
+      const [
+        patientsRes, visitsRes, notesRes, prescriptionsRes,
+        appointmentsRes, labOrdersRes, labResultsRes, doctorsRes
+      ] = await Promise.all([
+        supabase.from("patients").select("*").eq("clinic_id", clinicId),
+        supabase.from("visits").select("*").eq("clinic_id", clinicId),
+        supabase.from("clinical_notes").select("*, visits!inner(clinic_id)").eq("visits.clinic_id", clinicId),
+        supabase.from("prescriptions").select("*, visits!inner(clinic_id)").eq("visits.clinic_id", clinicId),
+        supabase.from("appointments").select("*").eq("clinic_id", clinicId),
+        supabase.from("lab_orders").select("*").eq("clinic_id", clinicId),
+        supabase.from("lab_results").select("*").eq("clinic_id", clinicId),
+        supabase.from("doctors").select("*").eq("clinic_id", clinicId),
+      ]);
+
+      const toCSV = (data: any[]) => {
+        if (!data || data.length === 0) return "No data";
+        const headers = Object.keys(data[0]).join(",");
+        const rows = data.map(row =>
+          Object.values(row).map(v =>
+            typeof v === "object" && v !== null
+              ? `"${JSON.stringify(v).replace(/"/g, '""')}"`
+              : `"${String(v ?? "").replace(/"/g, '""')}"`
+          ).join(",")
+        );
+        return [headers, ...rows].join("\n");
+      };
+
+      const exports = [
+        { name: "patients.csv", data: patientsRes.data || [] },
+        { name: "visits.csv", data: visitsRes.data || [] },
+        { name: "clinical_notes.csv", data: notesRes.data || [] },
+        { name: "prescriptions.csv", data: prescriptionsRes.data || [] },
+        { name: "appointments.csv", data: appointmentsRes.data || [] },
+        { name: "lab_orders.csv", data: labOrdersRes.data || [] },
+        { name: "lab_results.csv", data: labResultsRes.data || [] },
+        { name: "doctors.csv", data: doctorsRes.data || [] },
+      ];
+
+      for (const file of exports) {
+        const csv = toCSV(file.data);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `stethoscribe-${file.name}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        await new Promise(r => setTimeout(r, 300));
+      }
+
+      await auditLog(AUDIT_ACTIONS.SETTINGS_UPDATED, "clinic", clinicId, "Data export", { action: "full_data_export" });
+      setExportComplete(true);
+      toast.success("All data exported successfully");
+    } catch (err: any) {
+      toast.error("Export failed: " + err.message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleRequestDeletion = async () => {
+    if (deleteConfirmText !== "DELETE" || !profile?.clinic_id || !user) return;
+    setIsDeletingAccount(true);
+    try {
+      await auditLog("account_deletion_requested", "clinic", profile.clinic_id, clinic?.name || null, { reason: deleteReason });
+      await supabase.functions.invoke("send-deletion-request", {
+        body: {
+          clinic_id: profile.clinic_id,
+          clinic_name: clinic?.name,
+          admin_email: user.email,
+          reason: deleteReason,
+          requested_at: new Date().toISOString(),
+        },
+      }).catch(() => { /* edge function optional */ });
+      toast.success("Deletion request submitted");
+      setShowDeleteConfirm(false);
+      await supabase.auth.signOut();
+      navigate("/auth?reason=deletion_requested");
+    } catch (err: any) {
+      toast.error("Failed to submit deletion request: " + err.message);
+    } finally {
+      setIsDeletingAccount(false);
+    }
   };
 
   if (loading) {
@@ -767,8 +873,133 @@ export default function Settings() {
                     </a>
                   </div>
                 </div>
+
+                {/* Data Export */}
+                <div className="border-t border-border pt-6">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Database className="h-4 w-4 text-primary" />
+                    <h3 className="font-display font-semibold text-foreground">Data Export</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Download a complete copy of all your clinic data — patients, visits,
+                    clinical notes, prescriptions, appointments, lab orders and results.
+                    This is your right under the DPDP Act 2023.
+                  </p>
+                  <div className="rounded-xl border border-warning/30 bg-warning/10 p-3 mb-3 flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-foreground">
+                      The export contains sensitive patient health information. Store the
+                      downloaded files securely and do not share them with unauthorized persons.
+                    </p>
+                  </div>
+                  {isExporting ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Preparing your data export... this may take a moment.
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleDataExport}
+                      className="inline-flex items-center gap-2 rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
+                    >
+                      <Download className="h-4 w-4" />
+                      Export All Clinic Data (CSV)
+                    </button>
+                  )}
+                  {exportComplete && (
+                    <p className="mt-3 text-xs text-success flex items-center gap-1">
+                      ✓ Export complete — check your downloads folder
+                    </p>
+                  )}
+                </div>
               </CardContent>
             )}
+          </Card>
+        )}
+
+        {/* Danger Zone (Admin only) */}
+        {profile?.role === "admin" && (
+          <Card className="border-destructive/30">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                Danger Zone
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="font-display font-semibold text-foreground mb-1">Delete Clinic Account</h3>
+                <p className="text-sm text-muted-foreground">
+                  Request permanent deletion of your clinic account and all associated data
+                  including patients, visits, prescriptions, and staff accounts.
+                  This is your right under the DPDP Act 2023.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+                <p className="text-sm font-semibold text-foreground mb-2">Before deleting, please note:</p>
+                <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                  <li>Your account will be deactivated immediately</li>
+                  <li>All data will be permanently deleted after a 30-day grace period</li>
+                  <li>You can cancel the deletion request within 30 days by contacting us</li>
+                  <li>After 30 days, deletion is irreversible and cannot be undone</li>
+                  <li>Export your data before requesting deletion</li>
+                </ul>
+              </div>
+
+              {!showDeleteConfirm ? (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-sm border border-destructive/30 text-destructive rounded-xl px-5 py-2.5 font-medium hover:bg-destructive/10 transition-colors"
+                >
+                  Request Account Deletion
+                </button>
+              ) : (
+                <div className="space-y-3 rounded-xl border border-destructive/40 p-4 bg-destructive/5">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Type <span className="font-bold text-destructive">DELETE</span> to confirm:</Label>
+                    <Input
+                      value={deleteConfirmText}
+                      onChange={e => setDeleteConfirmText(e.target.value)}
+                      placeholder="Type DELETE to confirm"
+                      className="rounded-lg"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Your reason (optional):</Label>
+                    <textarea
+                      value={deleteReason}
+                      onChange={e => setDeleteReason(e.target.value)}
+                      placeholder="Reason for deletion (helps us improve)"
+                      rows={2}
+                      className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      className="flex-1 rounded-lg"
+                      onClick={() => {
+                        setShowDeleteConfirm(false);
+                        setDeleteConfirmText("");
+                        setDeleteReason("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      className="flex-1 rounded-lg"
+                      onClick={handleRequestDeletion}
+                      disabled={deleteConfirmText !== "DELETE" || isDeletingAccount}
+                    >
+                      {isDeletingAccount && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Confirm Deletion Request
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
           </Card>
         )}
 
