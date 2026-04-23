@@ -225,8 +225,14 @@ export default function VoiceRecorder({
       <Card className="rounded-2xl border-0 shadow-sm">
         <CardContent className="flex flex-col items-center justify-center gap-4 py-16">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="font-display text-lg font-semibold text-foreground">Transcribing your notes...</p>
-          <p className="text-sm text-muted-foreground">AI is converting your recording into structured SOAP notes</p>
+          <p className="font-display text-lg font-semibold text-foreground">
+            {processingStatus || "Transcribing your notes..."}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {features.asyncAI
+              ? "You can switch tabs while AI processes. Notes will appear automatically."
+              : "AI is converting your recording into structured SOAP notes"}
+          </p>
         </CardContent>
       </Card>
     );
