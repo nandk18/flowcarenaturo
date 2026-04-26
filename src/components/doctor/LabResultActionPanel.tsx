@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { FlaskConical, Loader2, Send, ExternalLink, Plus, Trash2, Mic, MicOff, CheckCircle2, ArrowRight } from "lucide-react";
 import PrescriptionShareModal from "@/components/doctor/PrescriptionShareModal";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { withRetry } from "@/lib/errors";
 
 type Medication = {
   name: string; dosage: string;
@@ -169,9 +170,11 @@ export default function LabResultActionPanel({ open, onClose, result, doctorId, 
         .eq("id", result.id);
 
       // 4. Generate PDF/HTML
-      const { data: pdfData, error: pdfErr } = await supabase.functions.invoke("generate-prescription-pdf", {
-        body: { visit_id: result.order.visit_id, prescription_id: prescription.id },
-      });
+      const { data: pdfData, error: pdfErr } = await withRetry(() =>
+        supabase.functions.invoke("generate-prescription-pdf", {
+          body: { visit_id: result.order.visit_id, prescription_id: prescription.id },
+        })
+      , 3, 1000);
       if (pdfErr) {
         console.warn("PDF generation failed:", pdfErr);
       }

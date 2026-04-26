@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Mic, FileText, Pill, CheckCircle, AlertTriangle, Activity, History, User, FolderOpen, Upload, Loader2 } from "lucide-react";
 import VoiceRecorder from "@/components/doctor/VoiceRecorder";
 import PatientHistory from "@/components/doctor/PatientHistory";
+import { withRetry } from "@/lib/errors";
 import PrescriptionShareModal from "@/components/doctor/PrescriptionShareModal";
 import DocumentsTab from "@/components/doctor/DocumentsTab";
 import TemplateSelector from "@/components/doctor/TemplateSelector";
@@ -229,13 +230,15 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
         return { key: s, label: meta.label, placeholder: meta.placeholder };
       });
 
-      const { data, error } = await supabase.functions.invoke("reformat-notes", {
-        body: {
-          existing_content: existingContent,
-          new_template_name: template?.name || "SOAP Notes",
-          field_definitions: fieldDefinitions,
-        },
-      });
+      const { data, error } = await withRetry(() =>
+        supabase.functions.invoke("reformat-notes", {
+          body: {
+            existing_content: existingContent,
+            new_template_name: template?.name || "SOAP Notes",
+            field_definitions: fieldDefinitions,
+          },
+        })
+      , 3, 1000);
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -354,9 +357,11 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
       }
 
       if (prescriptionId) {
-        const { data: pdfResult, error: pdfError } = await supabase.functions.invoke("generate-prescription-pdf", {
-          body: { visit_id: visit.id, prescription_id: prescriptionId },
-        });
+        const { data: pdfResult, error: pdfError } = await withRetry(() =>
+          supabase.functions.invoke("generate-prescription-pdf", {
+            body: { visit_id: visit.id, prescription_id: prescriptionId },
+          })
+        , 3, 1000);
         if (!pdfError && pdfResult?.path) {
           setSharePdfUrl(pdfResult.path);
           setSharePrescriptionId(prescriptionId);

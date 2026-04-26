@@ -5,9 +5,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Mic, Square, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { features } from "@/lib/featureFlags";
 import { rateLimiter } from "@/lib/rateLimiter";
 import { useJobQueue } from "@/hooks/useJobQueue";
+import { handleError } from "@/lib/errors";
 
 type Props = {
   visitId: string;
@@ -87,73 +87,49 @@ export default function VoiceRecorder({
       }
     }
 
-    // Async queue path — non-blocking, scales to thousands of users
-    if (features.asyncAI && clinicId && doctorId) {
-      try {
-        setProcessingStatus("Uploading audio...");
-        const audioPath = `${clinicId}/${visitId}/audio_${Date.now()}.webm`;
-        const { error: upErr } = await supabase.storage
-          .from("audio-recordings")
-          .upload(audioPath, audioBlob, { upsert: true });
-        if (upErr) throw upErr;
-
-        setProcessingStatus("Queued for transcription...");
-        const jobId = await enqueue(
-          "transcribe_audio",
-          {
-            visit_id: visitId,
-            audio_path: audioPath,
-            doctor_id: doctorId,
-            template_name: templateName || "SOAP Notes",
-            template_fields: templateFields || ["subjective", "objective", "assessment", "plan"],
-            patient_context: patientContext || "",
-          },
-          clinicId
-        );
-
-        setProcessingStatus("AI is transcribing...");
-        const result = await waitForJob(jobId);
-        const notes = result?.notes || result;
-        if (result?.transcript) setTranscript(result.transcript);
-        onTranscriptProcessed(notes);
-        toast.success("Notes generated successfully");
-      } catch (err: any) {
-        toast.error("Processing failed: " + (err?.message || "Unknown error"));
-        setManualMode(true);
-      } finally {
-        setIsTranscribing(false);
-        setProcessingStatus("");
-      }
+    // Always use async queue — non-blocking, scales to thousands of users.
+    if (!clinicId || !doctorId) {
+      toast.error("Missing clinic or doctor context. Please refresh and try again.");
+      setIsTranscribing(false);
+      setManualMode(true);
       return;
     }
 
-    // Synchronous fallback path (default)
     try {
-      const formData = new FormData();
-      formData.append("audio", audioBlob, "recording.webm");
-      const { data, error } = await supabase.functions.invoke("transcribe-audio", { body: formData });
+      setProcessingStatus("Uploading audio...");
+      const audioPath = `${clinicId}/${visitId}/audio_${Date.now()}.webm`;
+      const { error: upErr } = await supabase.storage
+        .from("audio-recordings")
+        .upload(audioPath, audioBlob, { upsert: true });
+      if (upErr) throw upErr;
 
-      if (error) {
-        let msg = "Transcription failed.";
-        try { const p = typeof error === "string" ? JSON.parse(error) : error; if (p?.context?.body) { const b = JSON.parse(p.context.body); msg = b.error || msg; } } catch {}
-        toast.error(msg); setManualMode(true); return;
-      }
-      if (data?.error) { toast.error(data.error); setManualMode(true); return; }
+      setProcessingStatus("Queued for transcription...");
+      const jobId = await enqueue(
+        "transcribe_audio",
+        {
+          visit_id: visitId,
+          audio_path: audioPath,
+          doctor_id: doctorId,
+          template_name: templateName || "SOAP Notes",
+          template_fields: templateFields || ["subjective", "objective", "assessment", "plan"],
+          patient_context: patientContext || "",
+        },
+        clinicId
+      );
 
-      if (data?.transcript) {
-        setTranscript(data.transcript);
-        toast.success("Transcription complete! Processing SOAP notes...");
-        try {
-          const { data: soapData, error: soapError } = await supabase.functions.invoke("format-soap-notes", {
-            body: { transcript: data.transcript },
-          });
-          if (soapError) { toast.error("Failed to generate SOAP notes."); setManualMode(true); return; }
-          if (soapData?.error) { toast.error(soapData.error); setManualMode(true); return; }
-          onTranscriptProcessed(soapData);
-        } catch (err: any) { toast.error(err.message || "Failed to process SOAP notes"); setManualMode(true); }
-      } else { toast.error("No transcript received."); setManualMode(true); }
-    } catch (err: any) { toast.error(err.message || "Transcription failed."); setManualMode(true); }
-    finally { setIsTranscribing(false); }
+      setProcessingStatus("AI is transcribing...");
+      const result = await waitForJob(jobId);
+      const notes = result?.notes || result;
+      if (result?.transcript) setTranscript(result.transcript);
+      onTranscriptProcessed(notes);
+      toast.success("Notes generated successfully");
+    } catch (err: any) {
+      toast.error(handleError(err, "voice-recording"));
+      setManualMode(true);
+    } finally {
+      setIsTranscribing(false);
+      setProcessingStatus("");
+    }
   }, [onTranscriptProcessed, clinicId, doctorId, visitId, templateName, templateFields, patientContext, enqueue, waitForJob]);
 
   const startRecording = async () => {
@@ -229,9 +205,7 @@ export default function VoiceRecorder({
             {processingStatus || "Transcribing your notes..."}
           </p>
           <p className="text-sm text-muted-foreground">
-            {features.asyncAI
-              ? "You can switch tabs while AI processes. Notes will appear automatically."
-              : "AI is converting your recording into structured SOAP notes"}
+            You can switch tabs while AI processes. Notes will appear automatically.
           </p>
         </CardContent>
       </Card>

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, User } from "lucide-react";
+import { fetchQueue } from "@/lib/queryHelpers";
 
 type Visit = {
   id: string;
@@ -24,12 +25,7 @@ export default function TodayQueue() {
   const fetchVisits = useCallback(async () => {
     if (!profile?.clinic_id) return;
     const today = new Date().toISOString().split("T")[0];
-    const { data, error } = await supabase
-      .from("visits")
-      .select("id, token_number, status, chief_complaint, vitals, created_at, patients!inner(id, name, healthcare_id, gender, dob, allergies)")
-      .eq("clinic_id", profile.clinic_id)
-      .eq("visit_date", today)
-      .order("token_number", { ascending: true });
+    const { data, error } = await fetchQueue(profile.clinic_id, today);
 
     if (!error && data) {
       setVisits(data.map((v: any) => ({ ...v, patient: v.patients })));
