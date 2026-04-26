@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { FlaskConical, Upload, LogOut, Loader2, FileText, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import { withRetry } from "@/lib/errors";
 
 type LabOrder = {
   id: string;
@@ -254,15 +255,17 @@ function UploadResultDialog({
       await supabase.from("lab_orders").update({ status: "completed" }).eq("id", order.id);
 
       // Trigger AI summarization (don't block on errors)
-      supabase.functions.invoke("summarize-lab-result", {
-        body: {
-          lab_result_id: result.id,
-          file_path: path,
-          file_type: file.type,
-          test_name: order.test_name,
-          patient_context: order.clinical_notes || "",
-        },
-      }).catch(e => console.warn("AI summary failed:", e));
+      withRetry(() =>
+        supabase.functions.invoke("summarize-lab-result", {
+          body: {
+            lab_result_id: result.id,
+            file_path: path,
+            file_type: file.type,
+            test_name: order.test_name,
+            patient_context: order.clinical_notes || "",
+          },
+        })
+      , 3, 1000).catch(e => console.warn("AI summary failed:", e));
 
       toast.success("Result uploaded. Doctor has been notified.");
       onUploaded();
