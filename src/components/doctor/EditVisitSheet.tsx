@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Save, FileText } from "lucide-react";
 import { TEMPLATE_FIELDS } from "@/lib/templateFields";
-import { withRetry } from "@/lib/errors";
 
 type Medication = {
   name: string; dosage: string;
@@ -101,11 +100,9 @@ export default function EditVisitSheet({ open, onClose, visit, onSaved }: Props)
         if (pErr) throw pErr;
 
         // Regenerate prescription PDF
-        await withRetry(() =>
-          supabase.functions.invoke("generate-prescription-pdf", {
-            body: { visit_id: visit.id, prescription_id: visit.prescription_id },
-          })
-        , 3, 1000).catch(e => console.warn("PDF regeneration failed:", e));
+        await supabase.functions.invoke("generate-prescription-pdf", {
+          body: { visit_id: visit.id, prescription_id: visit.prescription_id },
+        }).catch(e => console.warn("PDF regeneration failed:", e));
       }
 
       toast.success("Visit updated successfully");

@@ -1,58 +1,55 @@
-## Wire performance improvements permanently — drop feature flags
 
-Goal: always use the async queue, cache, query helpers, and retry paths. Delete all feature-flag plumbing.
+## Import stethocribe codebase into this Lovable project
 
-### 1. VoiceRecorder — always async
-File: `src/components/doctor/VoiceRecorder.tsx`
-- Remove `import { features } from "@/lib/featureFlags"`.
-- Delete the entire synchronous fallback branch (lines ~130–157, the `transcribe-audio` + `format-soap-notes` invoke path).
-- Always run the queue path (upload to `audio-recordings` → `enqueue("transcribe_audio", …)` → `waitForJob`).
-- Wrap errors in `handleError(err, "voice-recording")` from `@/lib/errors`.
-- In the transcribing UI, drop the `features.asyncAI ? … : …` ternary and always show:  
-  *"You can switch tabs while AI processes. Notes will appear automatically."*
-- Keep rate limiter, manual-mode fallback, and waveform UI untouched.
+### Context
+- Lovable does not support direct GitHub repo import. We'll bring the code in via a zip upload.
+- This project is **already connected** to your Supabase project `boskgmampbfccbfpgzea` — no DB changes will be made. The full schema (patients, visits, appointments, prescriptions, lab_orders, lab_results, clinics, doctors, profiles, user_roles, etc.) is preserved as-is.
+- Lovable Cloud secrets are already in place (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `LOVABLE_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.).
 
-### 2. Cache hot reads
-File: `src/hooks/useClinic.tsx`
-- Import `clientCache, CACHE_KEYS, CACHE_TTL`.
-- In both `fetchData` (effect) and `refetch`, check `clientCache.get(CACHE_KEYS.clinicSettings(clinic_id))` and `CACHE_KEYS.clinicDoctors(clinic_id)` first. On miss, fetch from Supabase and `clientCache.set(...)` with `CACHE_TTL.clinicSettings` / `CACHE_TTL.doctors`.
-- Note: the doctor row here is per-user (filtered by `user_id`), so cache key will be `clinicDoctors(clinic_id)+":"+user_id` — extend CACHE_KEYS with a small variant or just append the suffix inline.
+### What you do
+After approving this plan, in your next message **upload `stethocribe.zip`** (max 20MB). If the repo is larger than 20MB, we'll split it into a few smaller zips (e.g. `src.zip`, `supabase.zip`, `public.zip`).
 
-File: `src/components/doctor/TemplateSelector.tsx`
-- Same pattern for `note_templates` using `CACHE_KEYS.clinicTemplates` / `CACHE_TTL.templates`.
+### What I do once the zip is uploaded
 
-File: `src/pages/Settings.tsx` — invalidate on writes:
-- After clinic update (line ~174) and logo upload (line ~308): `clientCache.delete(CACHE_KEYS.clinicSettings(clinic_id))`.
-- After every doctor insert/update/signature change (lines ~192, 197, 282, 326, 341): `clientCache.delete(CACHE_KEYS.clinicDoctors(clinic_id))` (and the per-user variant if used).
+**1. Extract and inventory**
+- Unpack the zip into a staging area
+- Scan the structure (pages, components, hooks, lib, supabase functions, public assets, configs)
+- Identify the Supabase client setup, routing entry, and any environment-variable usage
 
-### 3. Use query helpers where they fit cleanly
-Only swap in places the helper signature already matches what the page wants — don't refactor unrelated logic.
-- `src/components/receptionist/TodayQueue.tsx` and `src/pages/DoctorDashboard.tsx`: replace today's-queue fetch with `fetchQueue(clinicId, today, statusFilter)`.
-- `src/pages/PatientsPage.tsx`: replace patient list/search with `searchPatients(clinicId, term, page)`.
-- `src/pages/PatientDetailPage.tsx`: replace visit-history fetch with `fetchPatientSummary(patientId)`.
-- `src/components/layout/DashboardLayout.tsx` (sidebar badges) or wherever the three pending counts are computed: replace with one `countPending(clinicId)` call.
+**2. Reconcile with Lovable conventions**
+- Keep Lovable's existing `src/integrations/supabase/client.ts` and `src/integrations/supabase/types.ts` (auto-generated — won't overwrite)
+- Replace any custom Supabase client init with imports from `@/integrations/supabase/client`
+- Map `process.env.*` / `import.meta.env.VITE_SUPABASE_*` references onto Lovable's auto-injected env
+- Preserve Lovable's `App.tsx` providers (QueryClient, Tooltip, Toasters, Router) and merge stethocribe's routes into the existing `<Routes>`
+- Keep Lovable's shadcn `src/components/ui/*` — drop incoming UI primitives that duplicate them
 
-I'll inspect each call site first; if a page uses extra columns the helper doesn't return, I'll either extend the helper or skip that swap and note it in the summary.
+**3. Copy files in this order (everything as-is, fix later)**
+1. `package.json` deps → merge missing dependencies into Lovable's `package.json`
+2. `tailwind.config.ts`, `index.css`, `postcss.config.js` → merge tokens/theme additions
+3. `src/lib/**`, `src/utils/**`, `src/types/**`
+4. `src/hooks/**` (skip duplicates of `use-mobile`, `use-toast`)
+5. `src/components/**` (excluding `ui/`)
+6. `src/pages/**` and route wiring in `App.tsx`
+7. `public/**` assets
+8. `supabase/functions/**` edge functions (auto-deploy)
+9. `supabase/config.toml` — merge function config only (no DB migrations)
 
-### 4. Retry on AI edge function calls
-Wrap with `withRetry(() => supabase.functions.invoke(...), 3, 1000)` from `@/lib/errors`:
-- `src/components/doctor/ConsultationWorkspace.tsx` line ~232 (`reformat-notes`) and line ~357 (`generate-prescription-pdf`).
-- `src/components/doctor/EditVisitSheet.tsx` line ~103 (`generate-prescription-pdf`, keep the `.catch` swallowing).
-- `src/components/doctor/LabResultActionPanel.tsx` line ~172 (`generate-prescription-pdf`).
-- `src/pages/LabDashboard.tsx` line ~257 (`summarize-lab-result`, fire-and-forget — wrap inside the existing background promise).
+**4. Fix-up pass**
+- Resolve broken imports / path aliases (`@/...`)
+- Remove or stub anything depending on a backend feature that doesn't exist in your schema
+- TypeScript: address blocking errors; non-blocking warnings noted but left
+- Confirm app boots, login screen renders, and at least one Supabase query succeeds against your existing data
 
-Note: `transcribe-audio` / `format-soap-notes` direct calls disappear with step 1 (queue worker handles its own retries via `attempts` column).
-
-### 5. Delete feature-flag plumbing
-- Delete `src/lib/featureFlags.ts`.
-- Remove the 5 `VITE_FEATURE_*` and `VITE_DEBUG` lines from `.env` (keep `VITE_SUPABASE_*`).
-- Confirmed only consumer is `VoiceRecorder.tsx` (the LandingPage match was an unrelated `plan.features.map`). Step 1 already removes that import.
-
-### 6. Verify
-- `npx tsc --noEmit` to catch type drift from cache/helper swaps.
-- Manual flow per the user's checklist (voice → tab switch → notes appear; second page loads instant; settings save invalidates; patient search paginates; AI calls retry).
+**5. Status report**
+After the import I'll list:
+- Files imported, files skipped (with reason), files needing follow-up
+- Any routes/pages currently broken and why
+- Suggested next steps (e.g. "wire up auth flow", "fix prescriptions page imports")
 
 ### Out of scope
-- No DB or edge function changes (queue worker, cache lib, helpers, errors lib, rate limiter all already exist).
-- Not touching `src/integrations/supabase/types.ts`.
-- Not adding a Redis adapter — `clientCache` stays in-memory; swap point is preserved for later.
+- No new DB tables, columns, RLS policies, triggers, or migrations
+- No edits to `src/integrations/supabase/types.ts`
+- No GitHub repo connection (separate action — you can do that later via Connectors → GitHub)
+
+### Ready check
+Approve this plan, then upload `stethocribe.zip` in your next message.

@@ -13,7 +13,6 @@ import { toast } from "sonner";
 import { Mic, FileText, Pill, CheckCircle, AlertTriangle, Activity, History, User, FolderOpen, Upload, Loader2 } from "lucide-react";
 import VoiceRecorder from "@/components/doctor/VoiceRecorder";
 import PatientHistory from "@/components/doctor/PatientHistory";
-import { withRetry } from "@/lib/errors";
 import PrescriptionShareModal from "@/components/doctor/PrescriptionShareModal";
 import DocumentsTab from "@/components/doctor/DocumentsTab";
 import TemplateSelector from "@/components/doctor/TemplateSelector";
@@ -230,15 +229,13 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
         return { key: s, label: meta.label, placeholder: meta.placeholder };
       });
 
-      const { data, error } = await withRetry(() =>
-        supabase.functions.invoke("reformat-notes", {
-          body: {
-            existing_content: existingContent,
-            new_template_name: template?.name || "SOAP Notes",
-            field_definitions: fieldDefinitions,
-          },
-        })
-      , 3, 1000);
+      const { data, error } = await supabase.functions.invoke("reformat-notes", {
+        body: {
+          existing_content: existingContent,
+          new_template_name: template?.name || "SOAP Notes",
+          field_definitions: fieldDefinitions,
+        },
+      });
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -357,11 +354,9 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
       }
 
       if (prescriptionId) {
-        const { data: pdfResult, error: pdfError } = await withRetry(() =>
-          supabase.functions.invoke("generate-prescription-pdf", {
-            body: { visit_id: visit.id, prescription_id: prescriptionId },
-          })
-        , 3, 1000);
+        const { data: pdfResult, error: pdfError } = await supabase.functions.invoke("generate-prescription-pdf", {
+          body: { visit_id: visit.id, prescription_id: prescriptionId },
+        });
         if (!pdfError && pdfResult?.path) {
           setSharePdfUrl(pdfResult.path);
           setSharePrescriptionId(prescriptionId);
@@ -473,17 +468,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
 
           {tab === "summary" && renderSummary()}
           {tab === "history" && visit.patient && <PatientHistory patientId={visit.patient.id} currentVisitId={visit.id} />}
-          {tab === "voice" && (
-            <VoiceRecorder
-              visitId={visit.id}
-              onTranscriptProcessed={handleTranscriptProcessed}
-              clinicId={profile?.clinic_id ?? clinic?.id}
-              doctorId={doctor?.id}
-              templateName={selectedTemplate?.name}
-              templateFields={activeSections}
-              patientContext={visit.patient ? `${visit.patient.name}${visit.patient.gender ? `, ${visit.patient.gender}` : ""}${visit.patient.dob ? `, ${Math.floor((Date.now() - new Date(visit.patient.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000))}y` : ""}` : ""}
-            />
-          )}
+          {tab === "voice" && <VoiceRecorder visitId={visit.id} onTranscriptProcessed={handleTranscriptProcessed} />}
           {tab === "soap" && renderSoap()}
           {tab === "prescription" && renderPrescription()}
           {tab === "documents" && visit.patient && profile?.clinic_id && (
@@ -511,15 +496,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
             {visit.patient && <PatientHistory patientId={visit.patient.id} currentVisitId={visit.id} />}
           </TabsContent>
           <TabsContent value="voice">
-            <VoiceRecorder
-              visitId={visit.id}
-              onTranscriptProcessed={handleTranscriptProcessed}
-              clinicId={profile?.clinic_id ?? clinic?.id}
-              doctorId={doctor?.id}
-              templateName={selectedTemplate?.name}
-              templateFields={activeSections}
-              patientContext={visit.patient ? `${visit.patient.name}${visit.patient.gender ? `, ${visit.patient.gender}` : ""}${visit.patient.dob ? `, ${Math.floor((Date.now() - new Date(visit.patient.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000))}y` : ""}` : ""}
-            />
+            <VoiceRecorder visitId={visit.id} onTranscriptProcessed={handleTranscriptProcessed} />
           </TabsContent>
           <TabsContent value="soap">{renderSoap()}</TabsContent>
           <TabsContent value="prescription">{renderPrescription()}</TabsContent>

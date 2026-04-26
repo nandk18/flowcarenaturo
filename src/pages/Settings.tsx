@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload, Code2, ClipboardList, ChevronDown, ChevronUp, Database, AlertTriangle, Download } from "lucide-react";
 import LabsManagement from "@/components/settings/LabsManagement";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
-import { clientCache, CACHE_KEYS } from "@/lib/clientCache";
 
 const LANGUAGES = [
   "Tamil","Hindi","Telugu","Kannada","Malayalam","Marathi",
@@ -179,7 +178,6 @@ export default function Settings() {
         regional_language: regionalLanguage,
       } as any).eq("id", profile.clinic_id);
       if (error) throw error;
-      clientCache.delete(CACHE_KEYS.clinicSettings(profile.clinic_id));
       toast.success("Clinic details saved!");
       refetch();
     } catch (err: any) { toast.error(err.message); }
@@ -202,7 +200,6 @@ export default function Settings() {
         });
         if (error) throw error;
       }
-      clientCache.deletePattern(CACHE_KEYS.clinicDoctors(profile.clinic_id));
       toast.success("Doctor profile saved!");
       refetch();
     } catch (err: any) { toast.error(err.message); }
@@ -290,7 +287,6 @@ export default function Settings() {
       }
       // Update profile name for all roles
       await supabase.from("profiles").update({ full_name: editName }).eq("user_id", editMember.user_id);
-      clientCache.deletePattern(CACHE_KEYS.clinicDoctors(profile.clinic_id));
       toast.success("Updated successfully");
       setEditOpen(false);
       fetchTeam();
@@ -310,7 +306,6 @@ export default function Settings() {
       const { error } = await supabase.storage.from("clinic-assets").upload(path, file, { upsert: true });
       if (error) throw error;
       await supabase.from("clinics").update({ logo_url: path } as any).eq("id", profile.clinic_id);
-      clientCache.delete(CACHE_KEYS.clinicSettings(profile.clinic_id));
       const { data } = supabase.storage.from("clinic-assets").getPublicUrl(path);
       setLogoPreview(data.publicUrl);
       toast.success("Logo uploaded");
@@ -329,7 +324,6 @@ export default function Settings() {
       const { error: uploadError } = await supabase.storage.from("signatures").upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
       await supabase.from("doctors").update({ signature_url: path }).eq("id", doctor.id);
-      if (profile?.clinic_id) clientCache.deletePattern(CACHE_KEYS.clinicDoctors(profile.clinic_id));
       const { data } = await supabase.storage.from("signatures").createSignedUrl(path, 3600);
       setSignatureUrl(data?.signedUrl || "");
       toast.success("Signature uploaded successfully");
@@ -345,7 +339,6 @@ export default function Settings() {
         await supabase.storage.from("signatures").remove([doctor.signature_url]);
       }
       await supabase.from("doctors").update({ signature_url: null }).eq("id", doctor.id);
-      if (profile?.clinic_id) clientCache.deletePattern(CACHE_KEYS.clinicDoctors(profile.clinic_id));
       setSignatureUrl("");
       toast.success("Signature removed");
       refetch();

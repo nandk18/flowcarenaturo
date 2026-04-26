@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { clientCache, CACHE_KEYS, CACHE_TTL } from "@/lib/clientCache";
 
 type Template = {
   id: string;
@@ -26,17 +25,11 @@ export default function TemplateSelector({ clinicId, doctorId, doctorDefaultTemp
 
   useEffect(() => {
     const fetchTemplates = async () => {
-      const cacheKey = CACHE_KEYS.clinicTemplates(clinicId);
-      let data = clientCache.get<any[]>(cacheKey);
-      if (!data) {
-        const res = await supabase
-          .from("note_templates")
-          .select("id, name, description, sections")
-          .or(`is_system.eq.true,clinic_id.eq.${clinicId}`)
-          .order("name");
-        data = res.data || null;
-        if (data) clientCache.set(cacheKey, data, CACHE_TTL.templates);
-      }
+      const { data } = await supabase
+        .from("note_templates")
+        .select("id, name, description, sections")
+        .or(`is_system.eq.true,clinic_id.eq.${clinicId}`)
+        .order("name");
       if (data) {
         const allTemplates = data.map((t: any) => ({
           ...t,
