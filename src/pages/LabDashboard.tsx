@@ -109,7 +109,7 @@ export default function LabDashboard() {
               <FlaskConical className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="font-display font-bold text-foreground">{labName}</h1>
+              <h1 className="font-display font-bold text-foreground">{labName || "StethoScribe Lab Portal"}</h1>
               <p className="text-xs text-muted-foreground">Lab Portal · {profile?.full_name}</p>
             </div>
           </div>

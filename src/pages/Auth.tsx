@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Stethoscope, ArrowLeft, AlertCircle } from "lucide-react";
 import { supabase as sb } from "@/integrations/supabase/client";
+import SeoHead from "@/components/SeoHead";
 
 // Best-effort audit log for login (no useAuditLog hook because profile isn't yet loaded into context)
 async function logLoginAudit(userId: string, userEmail: string | null) {
@@ -119,6 +120,11 @@ export default function Auth() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4 relative">
+      <SeoHead
+        title="Sign in to StethoScribe — AI Practice Management"
+        description="Log in to your StethoScribe clinic account to manage patients, consultations, and prescriptions with AI voice notes."
+        path="/auth"
+      />
       <Link to="/" className="absolute top-4 left-4 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
         <ArrowLeft className="h-4 w-4" /> Back
       </Link>
@@ -127,7 +133,7 @@ export default function Auth() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary shadow-elevated">
             <Stethoscope className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="font-display text-3xl font-bold text-foreground">StethoScribe</h1>
+          <h1 className="font-display text-3xl font-bold text-foreground">Sign in to StethoScribe</h1>
           <p className="mt-2 text-muted-foreground">AI-Powered Practice Management</p>
         </div>
 

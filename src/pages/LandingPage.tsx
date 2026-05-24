@@ -4,6 +4,7 @@ import { Menu, X, Mic, FileText, MessageSquare, ClipboardList, Calendar, BarChar
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { motion, useInView, useSpring, useMotionValue, useTransform } from "framer-motion";
+import SeoHead from "@/components/SeoHead";
 
 // --- Animated counter component ---
 function CountUp({ value, suffix = "" }: { value: string; suffix?: string }) {
@@ -132,6 +133,11 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white" style={{ scrollBehavior: "smooth" }}>
+      <SeoHead
+        title="StethoScribe — AI Clinic Management for Indian Doctors"
+        description="AI-powered clinic management and e-prescription platform. Voice to notes in any Indian language. WhatsApp prescription sharing. Built for Indian doctors."
+        path="/"
+      />
       {/* NAVBAR */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/80 backdrop-blur-lg shadow-sm" : "bg-transparent"}`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 h-16">

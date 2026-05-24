@@ -152,6 +152,7 @@ export default function PatientsPage() {
                     <button
                       onClick={e => { e.stopPropagation(); setDeleteTarget(p); }}
                       className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+                      aria-label={`Delete patient ${p.name}`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
