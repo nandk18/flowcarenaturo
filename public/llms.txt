@@ -1,0 +1,18 @@
+# StethoScribe
+
+> AI-powered clinic management and e-prescription platform built for Indian doctors. Voice-to-notes in any Indian language, WhatsApp prescription sharing, and integrated lab workflows.
+
+StethoScribe helps clinics run their practice end-to-end — patient registration, appointments, doctor consultations with AI voice transcription, prescription generation and sharing, and connected diagnostic lab ordering and results.
+
+## Pages
+
+- [Home](/): Product overview, features, and pricing.
+- [Labs Directory](/labs): Browse diagnostic labs registered on StethoScribe.
+- [Register Your Lab](/register-lab): Onboarding for diagnostic labs joining the network.
+
+## Legal
+
+- [Privacy Policy](/privacy): How we handle patient and clinic data under the DPDP Act 2023.
+- [Terms of Service](/terms): Terms governing use of the StethoScribe platform.
+- [Data Processing Agreement](/dpa): DPA terms for clinics as data controllers.
+- [Security](/security): Security measures, incident response, and vulnerability reporting.
