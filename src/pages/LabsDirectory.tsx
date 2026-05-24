@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { CheckCircle, Loader2, MapPin, Phone, Search } from "lucide-react";
 import PublicNavbar from "@/components/PublicNavbar";
+import SeoHead from "@/components/SeoHead";
 
 const TEST_CATEGORIES = [
   "Blood Tests",

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle, Loader2, FlaskConical } from "lucide-react";
 import PublicNavbar from "@/components/PublicNavbar";
+import SeoHead from "@/components/SeoHead";
 
 const TEST_CATEGORIES = [
   "Blood Tests",

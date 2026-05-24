@@ -1,8 +1,14 @@
 import PublicNavbar from "@/components/PublicNavbar";
+import SeoHead from "@/components/SeoHead";
 
 export default function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-background">
+      <SeoHead
+        title="Privacy Policy — StethoScribe"
+        description="How StethoScribe collects, processes, and protects clinic and patient data under India's DPDP Act 2023."
+        path="/privacy"
+      />
       <PublicNavbar backTo="/" backLabel="Home" />
       <div className="max-w-3xl mx-auto px-4 py-10">
         <h1 className="font-display text-3xl font-bold text-foreground mb-1">Privacy Policy</h1>

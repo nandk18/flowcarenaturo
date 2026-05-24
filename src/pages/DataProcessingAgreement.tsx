@@ -1,3 +1,4 @@
+import SeoHead from "@/components/SeoHead";
 import PublicNavbar from "@/components/PublicNavbar";
 
 export default function DataProcessingAgreement() {
