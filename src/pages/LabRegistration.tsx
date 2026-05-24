@@ -91,6 +91,11 @@ export default function LabRegistration() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SeoHead
+        title="Register Your Lab — Join StethoScribe Network"
+        description="Onboard your diagnostic lab onto StethoScribe. Receive digital lab orders from clinics and deliver results to doctors instantly."
+        path="/register-lab"
+      />
       <PublicNavbar backTo="/labs" backLabel="Lab Directory" />
       <div className="max-w-2xl mx-auto p-4 py-10">
         <div className="text-center mb-8">

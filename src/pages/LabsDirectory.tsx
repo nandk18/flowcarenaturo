@@ -89,6 +89,11 @@ export default function LabsDirectory() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SeoHead
+        title="Lab Directory — Diagnostic Labs on StethoScribe"
+        description="Browse and connect with verified diagnostic labs across India. Find labs by location, test type, and turnaround time."
+        path="/labs"
+      />
       <PublicNavbar backTo="/" backLabel="Home" />
       <div className="bg-primary text-primary-foreground py-12 px-4">
         <div className="max-w-4xl mx-auto text-center">
