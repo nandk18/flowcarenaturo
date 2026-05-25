@@ -30,6 +30,9 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import DataProcessingAgreement from "./pages/DataProcessingAgreement";
 import SecurityPage from "./pages/SecurityPage";
+import BillingPage from "./pages/BillingPage";
+import InvoiceDetailPage from "./pages/InvoiceDetailPage";
+import PublicInvoiceViewer from "./pages/PublicInvoiceViewer";
 import NotFound from "./pages/NotFound";
 import CookieConsent from "./components/CookieConsent";
 import { useEffect, useState } from "react";
@@ -51,7 +54,8 @@ function AppRoutes() {
     path === "/privacy" ||
     path === "/terms" ||
     path === "/dpa" ||
-    path === "/security"
+    path === "/security" ||
+    path.startsWith("/invoice/")
   ) {
     return (
       <Routes>
@@ -61,6 +65,7 @@ function AppRoutes() {
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/dpa" element={<DataProcessingAgreement />} />
         <Route path="/security" element={<SecurityPage />} />
+        <Route path="/invoice/:invoiceId" element={<PublicInvoiceViewer />} />
       </Routes>
     );
   }
@@ -188,6 +193,8 @@ function AppRoutes() {
         role === "admin" || role === "receptionist" ? <AppointmentsPage /> : <Navigate to="/dashboard" replace />
       } />
       <Route path="/dashboard/settings" element={<Settings />} />
+      <Route path="/dashboard/billing" element={<BillingPage />} />
+      <Route path="/dashboard/billing/:invoiceId" element={<InvoiceDetailPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/labs" element={<LabsDirectory />} />
       <Route path="/register-lab" element={<LabRegistration />} />
