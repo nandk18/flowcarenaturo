@@ -13,16 +13,17 @@ export default function PublicInvoiceViewer() {
   useEffect(() => {
     if (!invoiceId) return;
     (async () => {
-      const { data, error } = await supabase.functions.invoke("get-public-invoice", {
-        body: null,
-        method: "GET",
-        // pass via query string
-        // @ts-ignore - supabase-js supports query option
-        query: { id: invoiceId },
-      } as any);
-      if (error || !data?.invoice) return;
-      setInvoice({ ...data.invoice, patients: data.patient, doctors: data.doctor });
-      setClinic(data.clinic);
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-public-invoice?id=${encodeURIComponent(invoiceId)}`;
+      try {
+        const res = await fetch(url, {
+          headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data?.invoice) return;
+        setInvoice({ ...data.invoice, patients: data.patient, doctors: data.doctor });
+        setClinic(data.clinic);
+      } catch {}
     })();
   }, [invoiceId]);
 
