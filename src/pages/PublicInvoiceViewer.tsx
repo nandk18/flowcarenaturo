@@ -13,16 +13,16 @@ export default function PublicInvoiceViewer() {
   useEffect(() => {
     if (!invoiceId) return;
     (async () => {
-      const { data } = await supabase.from("invoices")
-        .select(`*,patients(name,healthcare_id,phone),doctors(name)`)
-        .eq("id", invoiceId).maybeSingle();
-      setInvoice(data);
-      if (data?.clinic_id) {
-        const { data: c } = await supabase.from("clinics")
-          .select("id,name,address,phone,logo_url,gst_number")
-          .eq("id", data.clinic_id).maybeSingle();
-        setClinic(c);
-      }
+      const { data, error } = await supabase.functions.invoke("get-public-invoice", {
+        body: null,
+        method: "GET",
+        // pass via query string
+        // @ts-ignore - supabase-js supports query option
+        query: { id: invoiceId },
+      } as any);
+      if (error || !data?.invoice) return;
+      setInvoice({ ...data.invoice, patients: data.patient, doctors: data.doctor });
+      setClinic(data.clinic);
     })();
   }, [invoiceId]);
 
