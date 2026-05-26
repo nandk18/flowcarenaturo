@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload, Code2, ClipboardList, ChevronDown, ChevronUp, Database, AlertTriangle, Download } from "lucide-react";
 import LabsManagement from "@/components/settings/LabsManagement";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
+import { clientCache, CACHE_KEYS } from "@/lib/clientCache";
+import { Receipt } from "lucide-react";
 
 const LANGUAGES = [
   "Tamil","Hindi","Telugu","Kannada","Malayalam","Marathi",
@@ -44,6 +46,12 @@ export default function Settings() {
   const [clinicAddress, setClinicAddress] = useState("");
   const [clinicPhone, setClinicPhone] = useState("");
   const [regionalLanguage, setRegionalLanguage] = useState("Tamil");
+
+  // Billing settings
+  const [gstNumber, setGstNumber] = useState("");
+  const [gstPercentage, setGstPercentage] = useState<number>(0);
+  const [invoicePrefix, setInvoicePrefix] = useState("INV");
+  const [savingBilling, setSavingBilling] = useState(false);
 
   const [doctorName, setDoctorName] = useState("");
   const [qualification, setQualification] = useState("");
@@ -103,6 +111,9 @@ export default function Settings() {
       setClinicAddress(clinic.address || "");
       setClinicPhone(clinic.phone || "");
       setRegionalLanguage((clinic as any).regional_language || "Tamil");
+      setGstNumber((clinic as any).gst_number || "");
+      setGstPercentage(Number((clinic as any).gst_percentage) || 0);
+      setInvoicePrefix((clinic as any).invoice_prefix || "INV");
     }
   }, [clinic]);
 
@@ -182,6 +193,23 @@ export default function Settings() {
       refetch();
     } catch (err: any) { toast.error(err.message); }
     finally { setSaving(false); }
+  };
+
+  const handleSaveBillingSettings = async () => {
+    if (!profile?.clinic_id) return;
+    setSavingBilling(true);
+    try {
+      const { error } = await supabase.from("clinics").update({
+        gst_number: gstNumber || null,
+        gst_percentage: gstPercentage,
+        invoice_prefix: invoicePrefix || "INV",
+      } as any).eq("id", profile.clinic_id);
+      if (error) throw error;
+      clientCache.delete(CACHE_KEYS.clinicSettings(profile.clinic_id));
+      toast.success("Billing settings saved");
+      refetch();
+    } catch (err: any) { toast.error(err.message); }
+    finally { setSavingBilling(false); }
   };
 
   const handleSaveDoctor = async () => {
@@ -562,6 +590,59 @@ export default function Settings() {
             </div>
             <Button onClick={handleSaveClinic} disabled={saving} className="rounded-lg">
               <Save className="mr-2 h-4 w-4" /> Save Clinic Details
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Billing Settings */}
+        <Card className="rounded-2xl border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-display">
+              <Receipt className="h-5 w-5 text-primary" /> Billing Settings
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Configure invoicing for your clinic. Leave GST blank if your clinic is GST exempt (most healthcare providers are exempt).
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>GST Number (optional)</Label>
+              <Input
+                value={gstNumber}
+                onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
+                placeholder="e.g. 33AAAAA0000A1ZX"
+                maxLength={15}
+                className="rounded-lg"
+              />
+              <p className="text-xs text-muted-foreground">15-character GSTIN number</p>
+            </div>
+            <div className="space-y-2">
+              <Label>GST on Consultations</Label>
+              <Select value={String(gstPercentage)} onValueChange={(v) => setGstPercentage(Number(v))}>
+                <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0% — GST Exempt (recommended for clinics)</SelectItem>
+                  <SelectItem value="5">5% GST</SelectItem>
+                  <SelectItem value="12">12% GST</SelectItem>
+                  <SelectItem value="18">18% GST</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Invoice Number Prefix</Label>
+              <Input
+                value={invoicePrefix}
+                onChange={(e) => setInvoicePrefix(e.target.value.toUpperCase())}
+                placeholder="INV"
+                maxLength={6}
+                className="rounded-lg"
+              />
+              <p className="text-xs text-muted-foreground">
+                Invoices will be numbered: {invoicePrefix || "INV"}-{new Date().getFullYear()}-0001
+              </p>
+            </div>
+            <Button onClick={handleSaveBillingSettings} disabled={savingBilling} className="rounded-lg">
+              <Save className="mr-2 h-4 w-4" /> {savingBilling ? "Saving..." : "Save Billing Settings"}
             </Button>
           </CardContent>
         </Card>

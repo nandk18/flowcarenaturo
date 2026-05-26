@@ -5,8 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useClinic } from "@/hooks/useClinic";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { openWhatsApp, buildPaymentReceiptMessage } from "@/lib/whatsapp";
 
 const PAYMENT_METHODS = [
   { value: "cash", label: "💵 Cash" },
@@ -25,6 +27,7 @@ interface Props {
 
 export default function RecordPaymentModal({ open, onClose, onRecorded, invoice }: Props) {
   const { user } = useAuth();
+  const { clinic } = useClinic();
   const [amount, setAmount] = useState(0);
   const [method, setMethod] = useState<string>("cash");
   const [reference, setReference] = useState("");
@@ -70,6 +73,22 @@ export default function RecordPaymentModal({ open, onClose, onRecorded, invoice 
     toast.success("Payment recorded");
     onRecorded?.();
     onClose();
+    // Auto-open WhatsApp with receipt (small delay so modal closes first)
+    setTimeout(() => {
+      if (invoice.patients?.phone) {
+        const message = buildPaymentReceiptMessage(
+          invoice.patients?.name || "Patient",
+          invoice.invoice_number,
+          Number(amount),
+          method,
+          Number(invoice.total_amount),
+          Math.max(0, newOutstanding),
+          clinic?.name || "the clinic",
+          invoice.id
+        );
+        openWhatsApp(invoice.patients.phone, message);
+      }
+    }, 500);
   };
 
   return (

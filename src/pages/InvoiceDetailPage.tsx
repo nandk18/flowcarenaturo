@@ -10,6 +10,8 @@ import StatusBadge from "@/components/billing/StatusBadge";
 import RecordPaymentModal from "@/components/billing/RecordPaymentModal";
 import { Printer, Share2, Plus, XCircle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { openWhatsApp, buildInvoiceMessage } from "@/lib/whatsapp";
+import { printInvoice, buildInvoiceHtml } from "@/lib/invoiceUtils";
 
 export default function InvoiceDetailPage() {
   const { invoiceId } = useParams();
@@ -45,12 +47,19 @@ export default function InvoiceDetailPage() {
   const share = () => {
     if (!invoice) return;
     const url = `${window.location.origin}/invoice/${invoice.id}`;
-    const msg = encodeURIComponent(
-      `Dear ${invoice.patients?.name},\n\nYour invoice ${invoice.invoice_number} from ${clinic?.name || ""} is ready.\nAmount: ₹${Number(invoice.total_amount).toLocaleString("en-IN")}\nView: ${url}`
-    );
     const phone = invoice.patients?.phone?.replace(/\D/g, "");
     if (!phone) { navigator.clipboard.writeText(url); toast.success("Link copied"); return; }
-    window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+    openWhatsApp(
+      invoice.patients?.phone,
+      buildInvoiceMessage(
+        invoice.patients?.name,
+        invoice.invoice_number,
+        Number(invoice.total_amount),
+        invoice.status,
+        invoice.id,
+        clinic?.name || ""
+      )
+    );
   };
 
   if (!invoice) return <DashboardLayout><div className="p-8 text-sm text-muted-foreground">Loading…</div></DashboardLayout>;
@@ -154,7 +163,7 @@ export default function InvoiceDetailPage() {
             <Button onClick={() => setPayOpen(true)}><Plus className="w-4 h-4 mr-1" /> Record Payment</Button>
           )}
           <Button variant="outline" onClick={share}><Share2 className="w-4 h-4 mr-1" /> Share</Button>
-          <Button variant="outline" onClick={() => window.print()}><Printer className="w-4 h-4 mr-1" /> Print</Button>
+          <Button variant="outline" onClick={() => printInvoice(buildInvoiceHtml(invoice, clinic))}><Printer className="w-4 h-4 mr-1" /> Print</Button>
           {role === "admin" && invoice.status !== "cancelled" && (
             <Button variant="destructive" onClick={handleCancel}><XCircle className="w-4 h-4 mr-1" /> Cancel Invoice</Button>
           )}

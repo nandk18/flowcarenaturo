@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 // Always use the /rx/ viewer URL — never raw storage URL
 export const getPrescriptionViewerUrl = (prescriptionId: string) =>
@@ -75,7 +76,5 @@ export const shareViaWhatsApp = (
   const intro = clinicName
     ? `Dear ${patientName}, your prescription from ${clinicName} is ready.`
     : `Dear ${patientName}, your prescription is ready.`;
-  const msg = encodeURIComponent(`${intro}\n\nView here: ${url}`);
-  const phoneClean = phone?.replace(/\D/g, "") || "";
-  window.open(`https://wa.me/${phoneClean}?text=${msg}`, "_blank");
+  openWhatsApp(phone || "", `${intro}\n\nView here: ${url}`);
 };

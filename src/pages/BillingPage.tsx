@@ -14,6 +14,7 @@ import CreateInvoiceModal from "@/components/billing/CreateInvoiceModal";
 import RecordPaymentModal from "@/components/billing/RecordPaymentModal";
 import { Eye, Plus, Share2, Receipt, Download } from "lucide-react";
 import { toast } from "sonner";
+import { openWhatsApp, buildInvoiceMessage } from "@/lib/whatsapp";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
@@ -111,16 +112,23 @@ export default function BillingPage() {
 
   const shareInvoice = (invoice: any) => {
     const url = `${window.location.origin}/invoice/${invoice.id}`;
-    const msg = encodeURIComponent(
-      `Dear ${invoice.patients?.name},\n\nYour invoice ${invoice.invoice_number} from ${clinic?.name || "the clinic"} is ready.\n\nAmount: ₹${Number(invoice.total_amount).toLocaleString("en-IN")}\nStatus: ${String(invoice.status).toUpperCase()}\n\nView invoice: ${url}`
-    );
     const phone = invoice.patients?.phone?.replace(/\D/g, "");
     if (!phone) {
       navigator.clipboard.writeText(url);
       toast.success("Invoice link copied");
       return;
     }
-    window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+    openWhatsApp(
+      invoice.patients?.phone,
+      buildInvoiceMessage(
+        invoice.patients?.name,
+        invoice.invoice_number,
+        Number(invoice.total_amount),
+        invoice.status,
+        invoice.id,
+        clinic?.name || "the clinic"
+      )
+    );
   };
 
   const exportBillingReport = () => {
