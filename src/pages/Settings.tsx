@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload, Code2, ClipboardList, ChevronDown, ChevronUp, Database, AlertTriangle, Download } from "lucide-react";
 import LabsManagement from "@/components/settings/LabsManagement";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
+import { clientCache, CACHE_KEYS } from "@/lib/clientCache";
+import { Receipt } from "lucide-react";
 
 const LANGUAGES = [
   "Tamil","Hindi","Telugu","Kannada","Malayalam","Marathi",
@@ -44,6 +46,12 @@ export default function Settings() {
   const [clinicAddress, setClinicAddress] = useState("");
   const [clinicPhone, setClinicPhone] = useState("");
   const [regionalLanguage, setRegionalLanguage] = useState("Tamil");
+
+  // Billing settings
+  const [gstNumber, setGstNumber] = useState("");
+  const [gstPercentage, setGstPercentage] = useState<number>(0);
+  const [invoicePrefix, setInvoicePrefix] = useState("INV");
+  const [savingBilling, setSavingBilling] = useState(false);
 
   const [doctorName, setDoctorName] = useState("");
   const [qualification, setQualification] = useState("");
@@ -103,6 +111,9 @@ export default function Settings() {
       setClinicAddress(clinic.address || "");
       setClinicPhone(clinic.phone || "");
       setRegionalLanguage((clinic as any).regional_language || "Tamil");
+      setGstNumber((clinic as any).gst_number || "");
+      setGstPercentage(Number((clinic as any).gst_percentage) || 0);
+      setInvoicePrefix((clinic as any).invoice_prefix || "INV");
     }
   }, [clinic]);
 
