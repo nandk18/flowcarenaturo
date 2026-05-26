@@ -150,7 +150,7 @@ export default function LabResultsInbox() {
     if (!result.patient?.phone) { toast.error("Patient has no phone number"); return; }
     const summary = result.ai_summary?.one_line_summary || "Your lab result is ready.";
     const text = `Hello ${result.patient.name}, your ${result.order?.test_name || "lab"} result is ready. ${summary}`;
-    window.open(`https://wa.me/${result.patient.phone.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`, "_blank");
+    window.location.href = `https://wa.me/${result.patient.phone.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
   };
 
   const handleActOnResult = (result: LabResult) => {

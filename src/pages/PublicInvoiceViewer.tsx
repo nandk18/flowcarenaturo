@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import StatusBadge from "@/components/billing/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
+import { printInvoice, buildInvoiceHtml } from "@/lib/invoiceUtils";
 
 export default function PublicInvoiceViewer() {
   const { invoiceId } = useParams();
@@ -83,7 +84,7 @@ export default function PublicInvoiceViewer() {
           </div>
         </div>
         <div className="flex justify-end gap-2 mt-6 print:hidden">
-          <Button variant="outline" onClick={() => window.print()}><Printer className="w-4 h-4 mr-1" /> Print</Button>
+          <Button variant="outline" onClick={() => printInvoice(buildInvoiceHtml(invoice, clinic))}><Printer className="w-4 h-4 mr-1" /> Print</Button>
           <Button disabled title="Online payments coming soon">Pay Now</Button>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import EMRExportButtons from "@/components/doctor/EMRExportButtons";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 type Props = {
   open: boolean;
@@ -48,11 +49,10 @@ export default function PrescriptionShareModal({ open, onClose, prescriptionPdfU
 
   const handleWhatsApp = () => {
     if (!patient?.phone || !viewerUrl) return;
-    const phone = patient.phone.replace(/\D/g, "");
-    const message = encodeURIComponent(
+    openWhatsApp(
+      patient.phone,
       `Dear ${patient.name}, your prescription from ${clinicName} is ready.\n\nView & Download: ${viewerUrl}\n\nThe prescription will open in your browser.`
     );
-    window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
     if (prescriptionId) {
       auditLog(AUDIT_ACTIONS.PRESCRIPTION_SHARED, "prescription", prescriptionId, patient?.name, { via: "whatsapp" });
       supabase.from("document_shares").insert({ prescription_id: prescriptionId, shared_via: "whatsapp", recipient: patient.phone }).then(() => {});
