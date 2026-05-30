@@ -23,7 +23,9 @@ const FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
 const HAS_ENV = !!SUPABASE_URL && !!SERVICE_ROLE;
 
 // Created lazily inside the test so a missing env doesn't crash module load.
-let admin: ReturnType<typeof createClient>;
+// Typed as `any` — without a generated Database type the client returns `never`.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let admin: any;
 
 const runId = crypto.randomUUID().slice(0, 8);
 const tag = `e2e-${runId}`;
