@@ -35,6 +35,7 @@ import InvoiceDetailPage from "./pages/InvoiceDetailPage";
 import PublicInvoiceViewer from "./pages/PublicInvoiceViewer";
 import NotFound from "./pages/NotFound";
 import CookieConsent from "./components/CookieConsent";
+import TestWhatsApp from "./pages/__TestWhatsApp";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
@@ -48,6 +49,14 @@ function AppRoutes() {
   // Always render these pages regardless of auth state
   // Must be BEFORE any auth checks
   const path = window.location.pathname;
+  // Dev-only Playwright harness — bypasses every auth/onboarding gate.
+  if (import.meta.env.DEV && path === "/__test/whatsapp") {
+    return (
+      <Routes>
+        <Route path="/__test/whatsapp" element={<TestWhatsApp />} />
+      </Routes>
+    );
+  }
   if (
     path === "/accept-invite" ||
     path === "/reset-password" ||
