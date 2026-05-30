@@ -132,6 +132,10 @@ export default function BillingPage() {
   };
 
   const exportBillingReport = () => {
+    if (filteredBySearch.length === 0) {
+      toast.error("No invoices to export");
+      return;
+    }
     const rows = [
       ["Invoice #", "Date", "Patient", "Healthcare ID", "Doctor", "Total", "Paid", "Outstanding", "Status"].join(","),
       ...filteredBySearch.map((inv) =>
@@ -150,12 +154,18 @@ export default function BillingPage() {
           .join(",")
       ),
     ].join("\n");
-    const blob = new Blob([rows], { type: "text/csv" });
+    const blob = new Blob(["\uFEFF" + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `billing-report-${dateFrom || "all"}-to-${dateTo || "all"}.csv`;
+    a.href = url;
+    a.download = `billing-${new Date().toLocaleDateString("en-IN").replace(/\//g, "-")}.csv`;
+    document.body.appendChild(a);
     a.click();
-    toast.success("Report exported");
+    setTimeout(() => {
+      if (a.parentNode) document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+    toast.success(`Exported ${filteredBySearch.length} invoices`);
   };
 
   const summaryCards = [
