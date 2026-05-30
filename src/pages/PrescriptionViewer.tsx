@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Printer } from "lucide-react";
-import { printPrescription } from "@/lib/prescriptionUtils";
+import { toast } from "sonner";
 
 export default function PrescriptionViewer() {
   const { prescriptionId } = useParams<{ prescriptionId: string }>();
@@ -50,15 +50,33 @@ export default function PrescriptionViewer() {
     load();
   }, [prescriptionId]);
 
-  const handlePrint = () => {
-    if (prescriptionId) printPrescription(prescriptionId);
-  };
-
   // Strip any inline print buttons embedded in the prescription HTML so we
   // never end up with two competing print buttons.
   const cleanHtml = htmlContent
     .replace(/<button[^>]*onclick=["']window\.print\(\)["'][\s\S]*?<\/button>/gi, "")
     .replace(/<div class=["']no-print["'][\s\S]*?<\/div>/gi, "");
+
+  const handlePrint = () => {
+    if (!htmlContent) {
+      toast.error("Prescription not loaded yet");
+      return;
+    }
+    const printHtml = `<!doctype html><html><head><meta charset="utf-8"/><title>Prescription</title><style>@page{size:A4;margin:16mm 14mm;}body{margin:0;padding:0;background:white;-webkit-print-color-adjust:exact;print-color-adjust:exact;}@media print{.no-print{display:none !important;}}</style></head><body>${cleanHtml}</body></html>`;
+    const blob = new Blob([printHtml], { type: "text/html;charset=utf-8" });
+    const blobUrl = URL.createObjectURL(blob);
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+    iframe.src = blobUrl;
+    document.body.appendChild(iframe);
+    iframe.onload = () => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        if (iframe.parentNode) document.body.removeChild(iframe);
+        URL.revokeObjectURL(blobUrl);
+      }, 2000);
+    };
+  };
 
   if (loading) {
     return (
