@@ -204,7 +204,7 @@ Deno.test("billing E2E: invoice lifecycle + public link + CSV/print HTML", async
         .eq("invoice_id", ids.invoiceId)
         .order("amount", { ascending: true });
       assertEquals(pays?.length, 2);
-      const methods = pays!.map((p) => p.payment_method).sort();
+      const methods = pays!.map((p: any) => p.payment_method).sort();
       assertEquals(methods, ["cash", "upi"]);
     });
 
