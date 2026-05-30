@@ -1,8 +1,15 @@
 export const openWhatsApp = (phone: string | null | undefined, message: string) => {
   const phoneClean = phone?.replace(/\D/g, "") || "";
   const encoded = encodeURIComponent(message);
-  // Use location.href — works on Safari iOS, Android, desktop
-  window.location.href = `https://wa.me/${phoneClean}?text=${encoded}`;
+  const url = `https://wa.me/${phoneClean}?text=${encoded}`;
+  // On mobile: same-tab nav opens the WhatsApp app and back returns to us.
+  // On desktop: open WhatsApp Web in a new tab so the app stays open.
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    window.location.href = url;
+  } else {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 };
 
 export const buildInvoiceMessage = (
