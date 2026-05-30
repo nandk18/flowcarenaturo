@@ -7,7 +7,11 @@ export const getPrescriptionViewerUrl = (prescriptionId: string) =>
 
 // Open prescription in new tab via viewer
 export const openPrescription = (prescriptionId: string) => {
-  window.open(getPrescriptionViewerUrl(prescriptionId), "_blank");
+  const url = getPrescriptionViewerUrl(prescriptionId);
+  const w = window.open(url, "_blank", "noopener,noreferrer");
+  if (!w || w.closed || typeof w.closed === "undefined") {
+    window.location.href = url;
+  }
 };
 
 // Copy prescription link to clipboard
@@ -20,48 +24,12 @@ export const copyPrescriptionLink = async (prescriptionId: string) => {
 // Print prescription via hidden iframe using a blob URL
 // (load event fires reliably for iframe.src=blobUrl, unlike document.write)
 export const printPrescription = async (prescriptionId: string) => {
-  try {
-    const { data } = await supabase
-      .from("prescriptions")
-      .select("pdf_url")
-      .eq("id", prescriptionId)
-      .single();
-
-    if (!data?.pdf_url) {
-      window.open(getPrescriptionViewerUrl(prescriptionId), "_blank");
-      return;
-    }
-
-    const { data: signedData } = await supabase.storage
-      .from("prescriptions")
-      .createSignedUrl(data.pdf_url, 3600);
-
-    if (!signedData?.signedUrl) {
-      window.open(getPrescriptionViewerUrl(prescriptionId), "_blank");
-      return;
-    }
-
-    const res = await fetch(signedData.signedUrl);
-    const html = await res.text();
-
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const blobUrl = URL.createObjectURL(blob);
-
-    const iframe = document.createElement("iframe");
-    iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
-    iframe.src = blobUrl;
-    document.body.appendChild(iframe);
-
-    iframe.onload = () => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-      setTimeout(() => {
-        if (iframe.parentNode) document.body.removeChild(iframe);
-        URL.revokeObjectURL(blobUrl);
-      }, 2000);
-    };
-  } catch {
-    window.open(getPrescriptionViewerUrl(prescriptionId), "_blank");
+  // Open the viewer page in a new tab — it has its own working print button
+  // and doesn't require the caller to be authenticated against storage.
+  const url = getPrescriptionViewerUrl(prescriptionId);
+  const w = window.open(url, "_blank", "noopener,noreferrer");
+  if (!w || w.closed || typeof w.closed === "undefined") {
+    window.location.href = url;
   }
 };
 
