@@ -115,7 +115,7 @@ describe("openWhatsApp — URL & encoding", () => {
   beforeEach(() => setUA(UA_WINDOWS_CHROME));
 
   it("strips all non-digits from the phone number", () => {
-    openWhatsApp("+91 (987) 654-3210 ext.0", "x");
+    openWhatsApp("+91 (987) 654-3210 ext.x", "x");
     const [url] = captures.openSpy.mock.calls[0];
     expect(url).toBe("https://wa.me/919876543210?text=x");
   });
