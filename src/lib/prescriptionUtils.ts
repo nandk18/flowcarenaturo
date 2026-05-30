@@ -1,4 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
 import { openWhatsApp } from "@/lib/whatsapp";
 
 // Always use the /rx/ viewer URL — never raw storage URL
