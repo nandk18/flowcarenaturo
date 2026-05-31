@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
@@ -53,9 +53,9 @@ function AppRoutes() {
   const { session, profile, loading } = useAuth();
   const [clinicReady, setClinicReady] = useState<boolean | null>(null);
 
-  // Always render these pages regardless of auth state
-  // Must be BEFORE any auth checks
-  const path = window.location.pathname;
+  // Use react-router's location so this re-renders on client-side navigation
+  // (window.location.pathname is not reactive to <Link> clicks).
+  const path = useLocation().pathname;
   // Dev-only Playwright harness — bypasses every auth/onboarding gate.
   if (import.meta.env.DEV && path === "/__test/whatsapp") {
     return (
