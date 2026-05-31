@@ -18,28 +18,34 @@ export default function PrescriptionViewer() {
           return;
         }
 
-        const { data: prescription, error: pErr } = await supabase
-          .from("prescriptions")
-          .select("pdf_url")
-          .eq("id", prescriptionId)
-          .single();
+        const tryFetch = async (): Promise<string | null> => {
+          const { data: prescription } = await supabase
+            .from("prescriptions")
+            .select("pdf_url")
+            .eq("id", prescriptionId)
+            .single();
+          if (!prescription?.pdf_url) return null;
+          const { data: signedData } = await supabase.storage
+            .from("prescriptions")
+            .createSignedUrl(prescription.pdf_url, 604800);
+          if (!signedData?.signedUrl) return null;
+          const res = await fetch(signedData.signedUrl);
+          if (!res.ok) return null;
+          return await res.text();
+        };
 
-        if (pErr || !prescription?.pdf_url) {
-          setError("Prescription not found or link has expired.");
+        let html = await tryFetch();
+        if (!html) {
+          // Self-heal: regenerate the stored HTML, then retry once.
+          await supabase.functions.invoke("generate-prescription-pdf", {
+            body: { prescription_id: prescriptionId },
+          });
+          html = await tryFetch();
+        }
+        if (!html) {
+          setError("Could not load prescription. Please contact your clinic.");
           return;
         }
-
-        const { data: signedData, error: signErr } = await supabase.storage
-          .from("prescriptions")
-          .createSignedUrl(prescription.pdf_url, 604800);
-
-        if (signErr || !signedData?.signedUrl) {
-          setError("Could not load prescription. The link may have expired.");
-          return;
-        }
-
-        const res = await fetch(signedData.signedUrl);
-        const html = await res.text();
         setHtmlContent(html);
       } catch {
         setError("Failed to load prescription.");
