@@ -426,6 +426,11 @@ ${prescription.follow_up_date ? `
   <span>${new Date().toLocaleString("en-IN")}</span>
 </div>
 
+<div style="margin-top:14px;padding:10px 12px;border:1px dashed #14b8a6;border-radius:8px;background:#f0fdfa;text-align:center;font-size:10px;color:#0f766e;">
+  <div style="font-weight:600;">📱 View your health records anytime at ${(Deno.env.get("SITE_URL") || "https://medicarescribe.lovable.app").replace(/\/$/, "")}/patient-portal</div>
+  <div style="margin-top:3px;color:#0f766e99;">Login with your registered mobile number and date of birth</div>
+</div>
+
 </body>
 </html>`
 
