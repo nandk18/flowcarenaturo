@@ -2,7 +2,10 @@ import { usePatientPortal } from "@/hooks/usePatientPortal";
 
 export default function PortalProfile() {
   const { session } = usePatientPortal();
-  const patient = session!.primaryPatient;
+  if (!session?.primaryPatient) {
+    return <div className="py-20 text-center text-sm text-gray-500">Loading…</div>;
+  }
+  const patient = session.primaryPatient;
 
   const fields = [
     { label: "Full Name", value: patient.name },
