@@ -18,29 +18,30 @@ export default function PrescriptionViewer() {
           return;
         }
 
-        const tryFetch = async (): Promise<string | null> => {
+        const tryFetch = async (): Promise<{ html: string | null; visitId: string | null }> => {
           const { data: prescription } = await supabase
             .from("prescriptions")
-            .select("pdf_url")
+            .select("pdf_url, visit_id")
             .eq("id", prescriptionId)
             .single();
-          if (!prescription?.pdf_url) return null;
+          const visitId = prescription?.visit_id ?? null;
+          if (!prescription?.pdf_url) return { html: null, visitId };
           const { data: signedData } = await supabase.storage
             .from("prescriptions")
             .createSignedUrl(prescription.pdf_url, 604800);
-          if (!signedData?.signedUrl) return null;
+          if (!signedData?.signedUrl) return { html: null, visitId };
           const res = await fetch(signedData.signedUrl);
-          if (!res.ok) return null;
-          return await res.text();
+          if (!res.ok) return { html: null, visitId };
+          return { html: await res.text(), visitId };
         };
 
-        let html = await tryFetch();
-        if (!html) {
+        let { html, visitId } = await tryFetch();
+        if (!html && visitId) {
           // Self-heal: regenerate the stored HTML, then retry once.
           await supabase.functions.invoke("generate-prescription-pdf", {
-            body: { prescription_id: prescriptionId },
+            body: { prescription_id: prescriptionId, visit_id: visitId },
           });
-          html = await tryFetch();
+          html = (await tryFetch()).html;
         }
         if (!html) {
           setError("Could not load prescription. Please contact your clinic.");
