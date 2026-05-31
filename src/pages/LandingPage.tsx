@@ -154,6 +154,7 @@ export default function LandingPage() {
           </div>
           <div className="hidden md:flex items-center gap-3">
             <Link to="/labs"><Button variant="ghost" size="sm">Labs Directory</Button></Link>
+            <Link to="/patient-portal"><Button variant="ghost" size="sm">Patient Portal</Button></Link>
             <Link to="/auth"><Button variant="ghost" size="sm">Login</Button></Link>
             <Link to="/auth"><Button size="sm">Start Free Trial <ChevronRight className="h-4 w-4" /></Button></Link>
           </div>
@@ -169,6 +170,7 @@ export default function LandingPage() {
               </button>
             ))}
             <Link to="/labs" className="block"><Button variant="ghost" className="w-full" size="sm">Labs Directory</Button></Link>
+            <Link to="/patient-portal" className="block"><Button variant="ghost" className="w-full" size="sm">Patient Portal</Button></Link>
             <Link to="/auth" className="block"><Button variant="outline" className="w-full" size="sm">Login</Button></Link>
             <Link to="/auth" className="block"><Button className="w-full" size="sm">Start Free Trial</Button></Link>
           </div>
