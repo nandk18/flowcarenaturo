@@ -40,8 +40,12 @@ export const shareViaWhatsApp = (
   clinicName?: string,
 ) => {
   const url = getPrescriptionViewerUrl(prescriptionId);
+  const portalUrl = `${window.location.origin}/patient-portal`;
   const intro = clinicName
     ? `Dear ${patientName}, your prescription from ${clinicName} is ready.`
     : `Dear ${patientName}, your prescription is ready.`;
-  openWhatsApp(phone || "", `${intro}\n\nView here: ${url}`);
+  openWhatsApp(
+    phone || "",
+    `${intro}\n\nView prescription: ${url}\n\nView all your health records: ${portalUrl}`,
+  );
 };
