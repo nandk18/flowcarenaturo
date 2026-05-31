@@ -436,10 +436,19 @@ ${prescription.follow_up_date ? `
 
     const path = `${visit.clinic_id}/${new Date().getFullYear()}/${prescription_id}.html`
     const bytes = new TextEncoder().encode(html)
-    await supabaseAdmin.storage.from("prescriptions")
+    const { error: uploadErr } = await supabaseAdmin.storage
+      .from("prescriptions")
       .upload(path, bytes, { contentType: "text/html;charset=utf-8", upsert: true })
-    await supabaseAdmin.from("prescriptions")
+    if (uploadErr) {
+      console.error("Prescription HTML upload failed:", uploadErr)
+      throw new Error(`Storage upload failed: ${uploadErr.message}`)
+    }
+    const { error: updateErr } = await supabaseAdmin.from("prescriptions")
       .update({ pdf_url: path }).eq("id", prescription_id)
+    if (updateErr) {
+      console.error("Prescription pdf_url update failed:", updateErr)
+      throw new Error(`DB update failed: ${updateErr.message}`)
+    }
 
     return new Response(JSON.stringify({ success: true, path }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
