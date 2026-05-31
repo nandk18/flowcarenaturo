@@ -69,7 +69,14 @@ export default function PortalDashboard() {
     setClinics(uniqueClinics);
   };
 
-  const patient = session!.primaryPatient;
+  if (!session?.primaryPatient) {
+    return (
+      <div className="flex items-center justify-center py-20 text-sm text-gray-500">
+        Loading…
+      </div>
+    );
+  }
+  const patient = session.primaryPatient;
 
   return (
     <div className="space-y-4">
