@@ -36,6 +36,13 @@ import PublicInvoiceViewer from "./pages/PublicInvoiceViewer";
 import NotFound from "./pages/NotFound";
 import CookieConsent from "./components/CookieConsent";
 import TestWhatsApp from "./pages/__TestWhatsApp";
+import PatientPortalLogin from "./pages/PatientPortal/PatientPortalLogin";
+import PatientPortalLayout from "./pages/PatientPortal/PatientPortalLayout";
+import PortalDashboard from "./pages/PatientPortal/PortalDashboard";
+import PortalPrescriptions from "./pages/PatientPortal/PortalPrescriptions";
+import PortalLabReports from "./pages/PatientPortal/PortalLabReports";
+import PortalAppointments from "./pages/PatientPortal/PortalAppointments";
+import PortalProfile from "./pages/PatientPortal/PortalProfile";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
@@ -64,7 +71,8 @@ function AppRoutes() {
     path === "/terms" ||
     path === "/dpa" ||
     path === "/security" ||
-    path.startsWith("/invoice/")
+    path.startsWith("/invoice/") ||
+    path.startsWith("/patient-portal")
   ) {
     return (
       <Routes>
@@ -75,6 +83,15 @@ function AppRoutes() {
         <Route path="/dpa" element={<DataProcessingAgreement />} />
         <Route path="/security" element={<SecurityPage />} />
         <Route path="/invoice/:invoiceId" element={<PublicInvoiceViewer />} />
+        <Route path="/patient-portal" element={<Navigate to="/patient-portal/login" replace />} />
+        <Route path="/patient-portal/login" element={<PatientPortalLogin />} />
+        <Route path="/patient-portal" element={<PatientPortalLayout />}>
+          <Route path="dashboard" element={<PortalDashboard />} />
+          <Route path="prescriptions" element={<PortalPrescriptions />} />
+          <Route path="labs" element={<PortalLabReports />} />
+          <Route path="appointments" element={<PortalAppointments />} />
+          <Route path="profile" element={<PortalProfile />} />
+        </Route>
       </Routes>
     );
   }
