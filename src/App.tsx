@@ -83,9 +83,9 @@ function AppRoutes() {
         <Route path="/dpa" element={<DataProcessingAgreement />} />
         <Route path="/security" element={<SecurityPage />} />
         <Route path="/invoice/:invoiceId" element={<PublicInvoiceViewer />} />
-        <Route path="/patient-portal" element={<Navigate to="/patient-portal/login" replace />} />
         <Route path="/patient-portal/login" element={<PatientPortalLogin />} />
         <Route path="/patient-portal" element={<PatientPortalLayout />}>
+          <Route index element={<Navigate to="/patient-portal/dashboard" replace />} />
           <Route path="dashboard" element={<PortalDashboard />} />
           <Route path="prescriptions" element={<PortalPrescriptions />} />
           <Route path="labs" element={<PortalLabReports />} />
