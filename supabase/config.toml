@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.get-public-invoice]
 verify_jwt = false
+
+[functions.patient-portal]
+verify_jwt = false

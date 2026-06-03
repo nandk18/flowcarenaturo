@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { usePatientPortal } from "@/hooks/usePatientPortal";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function PortalAppointments() {
-  const { session } = usePatientPortal();
+  const { session, callPortal } = usePatientPortal();
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState<string | null>(null);
@@ -18,26 +17,18 @@ export default function PortalAppointments() {
   }, [session]);
 
   const fetchAppointments = async () => {
-    const { data } = await supabase
-      .from("appointments")
-      .select(
-        `id, appointment_date, appointment_time, status, reason,
-         doctors(name, qualification),
-         clinics(name, address, phone)`,
-      )
-      .in("patient_id", session!.patientIds)
-      .order("appointment_date", { ascending: false });
-    setAppointments(data || []);
+    const data = await callPortal<{ appointments: any[] }>("appointments");
+    setAppointments(data?.appointments ?? []);
     setLoading(false);
   };
 
   const handleCancel = async (id: string) => {
     setCancelling(id);
-    const { error } = await supabase
-      .from("appointments")
-      .update({ status: "cancelled" })
-      .eq("id", id);
-    if (error) {
+    const res = await callPortal<{ success?: boolean; error?: string }>(
+      "cancel_appointment",
+      { appointment_id: id },
+    );
+    if (!res?.success) {
       toast.error("Could not cancel appointment");
     } else {
       setAppointments((prev) =>
