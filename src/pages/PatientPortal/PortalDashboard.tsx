@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { usePatientPortal } from "@/hooks/usePatientPortal";
 import { ChevronRight } from "lucide-react";
 
 export default function PortalDashboard() {
   const navigate = useNavigate();
-  const { session } = usePatientPortal();
+  const { session, callPortal } = usePatientPortal();
   const [stats, setStats] = useState({ prescriptions: 0, labs: 0, appointments: 0 });
   const [recentVisit, setRecentVisit] = useState<any>(null);
   const [clinics, setClinics] = useState<any[]>([]);
@@ -18,54 +17,21 @@ export default function PortalDashboard() {
   }, [session]);
 
   const fetchStats = async () => {
-    const ids = session!.patientIds;
-    const visitsForCount = await supabase.from("visits").select("id").in("patient_id", ids);
-    const visitIds = visitsForCount.data?.map((v) => v.id) || [];
-
-    const [prescriptionsRes, labsRes, appointmentsRes, visitsRes, clinicsRes] =
-      await Promise.all([
-        visitIds.length
-          ? supabase
-              .from("prescriptions")
-              .select("id", { count: "exact", head: true })
-              .in("visit_id", visitIds)
-          : Promise.resolve({ count: 0 } as any),
-        supabase
-          .from("lab_results")
-          .select("id", { count: "exact", head: true })
-          .in("patient_id", ids),
-        supabase
-          .from("appointments")
-          .select("id", { count: "exact", head: true })
-          .in("patient_id", ids)
-          .gte("appointment_date", new Date().toISOString().split("T")[0])
-          .eq("status", "scheduled"),
-        supabase
-          .from("visits")
-          .select(
-            "id, visit_date, chief_complaint, status, clinic_id, doctors(name), clinics(name)",
-          )
-          .in("patient_id", ids)
-          .order("visit_date", { ascending: false })
-          .limit(1),
-        supabase
-          .from("patients")
-          .select("clinic_id, clinics(id, name, address)")
-          .in("id", ids),
-      ]);
-
-    setStats({
-      prescriptions: prescriptionsRes.count || 0,
-      labs: labsRes.count || 0,
-      appointments: appointmentsRes.count || 0,
-    });
-    if (visitsRes.data?.[0]) setRecentVisit(visitsRes.data[0]);
+    const data = await callPortal<{
+      stats: { prescriptions: number; labs: number; appointments: number };
+      recentVisit: any;
+      clinics: any[];
+    }>("dashboard");
+    if (!data) return;
+    setStats(data.stats);
+    setRecentVisit(data.recentVisit);
     const uniqueClinics =
-      clinicsRes.data
-        ?.map((p: any) => p.clinics)
-        .filter((c: any, i: number, arr: any[]) =>
-          c && arr.findIndex((x: any) => x?.id === c.id) === i,
-        ) || [];
+      (data.clinics || [])
+        .map((p: any) => p.clinics)
+        .filter(
+          (c: any, i: number, arr: any[]) =>
+            c && arr.findIndex((x: any) => x?.id === c.id) === i,
+        );
     setClinics(uniqueClinics);
   };
 
