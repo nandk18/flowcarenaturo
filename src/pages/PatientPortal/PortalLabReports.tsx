@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { usePatientPortal } from "@/hooks/usePatientPortal";
 import { Loader2, ExternalLink } from "lucide-react";
 
 export default function PortalLabReports() {
-  const { session } = usePatientPortal();
+  const { session, callPortal } = usePatientPortal();
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -15,30 +14,20 @@ export default function PortalLabReports() {
   }, [session]);
 
   const fetchLabResults = async () => {
-    const { data } = await supabase
-      .from("lab_results")
-      .select(
-        `id, file_name, file_url, file_type, ai_summary, status, uploaded_at,
-         lab_orders(test_name, test_category, urgency,
-           labs(name), visits(visit_date, chief_complaint))`,
-      )
-      .in("patient_id", session!.patientIds)
-      .order("uploaded_at", { ascending: false });
-    setResults(data || []);
+    const data = await callPortal<{ results: any[] }>("lab_results");
+    setResults(data?.results ?? []);
     setLoading(false);
   };
 
-  const openLabResult = async (result: any) => {
+  const openLabResult = (result: any) => {
     if (!result.file_url) return;
-    // file_url may be a full URL or a storage path
     if (/^https?:\/\//i.test(result.file_url)) {
       window.open(result.file_url, "_blank", "noopener,noreferrer");
       return;
     }
-    const { data } = await supabase.storage
-      .from("lab-results")
-      .createSignedUrl(result.file_url, 3600);
-    if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    if (result.signed_url) {
+      window.open(result.signed_url, "_blank", "noopener,noreferrer");
+    }
   };
 
   const statusColor = (status: string) =>
