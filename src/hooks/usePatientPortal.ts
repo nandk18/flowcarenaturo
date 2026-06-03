@@ -5,6 +5,7 @@ const SESSION_KEY = "stethoscribe_patient_session";
 const SESSION_TTL = 24 * 60 * 60 * 1000;
 
 export interface PatientSession {
+  token: string;
   patientIds: string[];
   primaryPatient: {
     id: string;
@@ -19,6 +20,8 @@ export interface PatientSession {
   };
   allPatients: any[];
   loginTime: number;
+  phone: string;
+  dob: string;
 }
 
 export function usePatientPortal() {
@@ -30,7 +33,7 @@ export function usePatientPortal() {
     if (stored) {
       try {
         const parsed = JSON.parse(stored) as PatientSession;
-        if (Date.now() - parsed.loginTime < SESSION_TTL) {
+        if (parsed.token && Date.now() - parsed.loginTime < SESSION_TTL) {
           setSession(parsed);
         } else {
           localStorage.removeItem(SESSION_KEY);
@@ -46,62 +49,61 @@ export function usePatientPortal() {
     phone: string,
     dob: string,
   ): Promise<{ success: boolean; error?: string; multipleProfiles?: any[] }> => {
-    const cleanPhone = phone.replace(/\D/g, "");
-
-    const { data: patients, error } = await supabase
-      .from("patients")
-      .select(
-        `id, name, healthcare_id, phone, dob, gender, blood_group,
-         allergies, chronic_conditions, clinic_id, clinics(name)`,
-      )
-      .or(`phone.eq.${cleanPhone},phone.eq.+91${cleanPhone},phone.eq.0${cleanPhone}`);
-
-    if (error) return { success: false, error: "Verification failed. Please try again." };
-    if (!patients || patients.length === 0) {
-      return { success: false, error: "No records found for this phone number." };
-    }
-
-    const dobMatches = patients.filter((p) => {
-      if (!p.dob) return false;
-      const patientDob = new Date(p.dob).toISOString().split("T")[0];
-      const inputDob = new Date(dob).toISOString().split("T")[0];
-      return patientDob === inputDob;
+    const { data, error } = await supabase.functions.invoke("patient-portal", {
+      body: { action: "login", phone, dob },
     });
-
-    if (dobMatches.length === 0) {
-      return {
-        success: false,
-        error: "Date of birth does not match our records. Please check and try again.",
-      };
+    if (error) {
+      const msg =
+        (error as any)?.context?.body || error.message || "Verification failed.";
+      try {
+        const parsed = typeof msg === "string" ? JSON.parse(msg) : msg;
+        if (parsed?.multipleProfiles)
+          return { success: false, multipleProfiles: parsed.multipleProfiles };
+        return { success: false, error: parsed?.error || "Verification failed." };
+      } catch {
+        return { success: false, error: typeof msg === "string" ? msg : "Verification failed." };
+      }
     }
-
-    const uniqueNames = [...new Set(dobMatches.map((p) => p.name))];
-    if (uniqueNames.length > 1) {
-      return { success: false, multipleProfiles: dobMatches };
+    if (data?.multipleProfiles) {
+      // Stash phone/dob temporarily for selectProfile
+      sessionStorage.setItem(
+        "stethoscribe_portal_pending",
+        JSON.stringify({ phone, dob }),
+      );
+      return { success: false, multipleProfiles: data.multipleProfiles };
     }
-
-    const patientIds = dobMatches.map((p) => p.id);
-    const primaryPatient = dobMatches[0] as any;
-
+    if (!data?.token) return { success: false, error: data?.error || "Verification failed." };
     const newSession: PatientSession = {
-      patientIds,
-      primaryPatient,
-      allPatients: dobMatches,
+      token: data.token,
+      patientIds: data.patientIds,
+      primaryPatient: data.primaryPatient,
+      allPatients: data.allPatients,
       loginTime: Date.now(),
+      phone,
+      dob,
     };
-
     localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
     setSession(newSession);
     return { success: true };
   };
 
-  const selectProfile = (patient: any, allMatches: any[]) => {
-    const filtered = allMatches.filter((p) => p.name === patient.name);
+  const selectProfile = async (patient: any, _allMatches: any[]) => {
+    const pending = sessionStorage.getItem("stethoscribe_portal_pending");
+    if (!pending) return;
+    const { phone, dob } = JSON.parse(pending);
+    const { data, error } = await supabase.functions.invoke("patient-portal", {
+      body: { action: "select_profile", phone, dob, patient_id: patient.id },
+    });
+    if (error || !data?.token) return;
+    sessionStorage.removeItem("stethoscribe_portal_pending");
     const newSession: PatientSession = {
-      patientIds: filtered.map((p) => p.id),
-      primaryPatient: patient,
-      allPatients: filtered,
+      token: data.token,
+      patientIds: data.patientIds,
+      primaryPatient: data.primaryPatient,
+      allPatients: data.allPatients,
       loginTime: Date.now(),
+      phone,
+      dob,
     };
     localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
     setSession(newSession);
@@ -112,5 +114,20 @@ export function usePatientPortal() {
     setSession(null);
   };
 
-  return { session, loading, login, logout, selectProfile };
+  const callPortal = async <T = any>(action: string, extra: Record<string, any> = {}): Promise<T | null> => {
+    if (!session?.token) return null;
+    const { data, error } = await supabase.functions.invoke("patient-portal", {
+      body: { action, token: session.token, ...extra },
+    });
+    if (error) {
+      // Token invalid/expired
+      if ((error as any)?.context?.status === 401) {
+        logout();
+      }
+      return null;
+    }
+    return data as T;
+  };
+
+  return { session, loading, login, logout, selectProfile, callPortal };
 }
