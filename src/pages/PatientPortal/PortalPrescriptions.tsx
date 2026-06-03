@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { usePatientPortal } from "@/hooks/usePatientPortal";
 import { openPrescription } from "@/lib/prescriptionUtils";
 import { Eye, Loader2 } from "lucide-react";
 
 export default function PortalPrescriptions() {
-  const { session } = usePatientPortal();
+  const { session, callPortal } = usePatientPortal();
   const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -16,29 +15,8 @@ export default function PortalPrescriptions() {
   }, [session]);
 
   const fetchPrescriptions = async () => {
-    const ids = session!.patientIds;
-    const { data: visits } = await supabase
-      .from("visits")
-      .select("id, visit_date, chief_complaint, clinics(name), doctors(name)")
-      .in("patient_id", ids)
-      .order("visit_date", { ascending: false });
-
-    if (!visits || visits.length === 0) {
-      setLoading(false);
-      return;
-    }
-    const visitIds = visits.map((v) => v.id);
-    const { data: prescriptionData } = await supabase
-      .from("prescriptions")
-      .select("id, medications, follow_up_date, created_at, visit_id")
-      .in("visit_id", visitIds)
-      .order("created_at", { ascending: false });
-
-    const merged = (prescriptionData || []).map((p) => ({
-      ...p,
-      visit: visits.find((v) => v.id === p.visit_id),
-    }));
-    setPrescriptions(merged);
+    const data = await callPortal<{ prescriptions: any[] }>("prescriptions");
+    setPrescriptions(data?.prescriptions ?? []);
     setLoading(false);
   };
 
