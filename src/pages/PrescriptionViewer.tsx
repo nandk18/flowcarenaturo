@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Printer, Download } from "lucide-react";
+import { Loader2, Printer } from "lucide-react";
 import { toast } from "sonner";
 
 export default function PrescriptionViewer() {
@@ -18,32 +18,35 @@ export default function PrescriptionViewer() {
           return;
         }
 
-        const { data: prescription, error: pErr } = await supabase
-          .from("prescriptions")
-          .select("pdf_url")
-          .eq("id", prescriptionId)
-          .single();
+        const tryFetch = async (): Promise<string | null> => {
+          const { data: prescription } = await supabase
+            .from("prescriptions")
+            .select("pdf_url")
+            .eq("id", prescriptionId)
+            .single();
+          if (!prescription?.pdf_url) return null;
+          const { data: signedData } = await supabase.storage
+            .from("prescriptions")
+            .createSignedUrl(prescription.pdf_url, 604800);
+          if (!signedData?.signedUrl) return null;
+          const res = await fetch(signedData.signedUrl);
+          if (!res.ok) return null;
+          return await res.text();
+        };
 
-        if (pErr || !prescription?.pdf_url) {
-          setError("Prescription not found or link has expired.");
+        let html = await tryFetch();
+        if (!html) {
+          // Self-heal: regenerate the stored HTML, then retry once.
+          await supabase.functions.invoke("generate-prescription-pdf", {
+            body: { prescription_id: prescriptionId },
+          });
+          html = await tryFetch();
+        }
+        if (!html) {
+          setError("Could not load prescription. Please contact your clinic.");
           return;
         }
-
-        const { data: publicUrlData } = supabase.storage
-          .from("prescriptions")
-          .getPublicUrl(prescription.pdf_url);
-
-        if (!publicUrlData?.publicUrl) {
-          setError("Could not load prescription.");
-          return;
-        }
-
-        const res = await fetch(publicUrlData.publicUrl);
-        if (!res.ok) {
-          setError("Could not load prescription. Please try again.");
-          return;
-        }
-        setHtmlContent(await res.text());
+        setHtmlContent(html);
       } catch {
         setError("Failed to load prescription.");
       } finally {
@@ -81,24 +84,6 @@ export default function PrescriptionViewer() {
     };
   };
 
-  const handleDownload = () => {
-    if (!htmlContent) {
-      toast.error("Prescription not loaded yet");
-      return;
-    }
-    const blob = new Blob([cleanHtml], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `prescription-${prescriptionId}.html`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      if (a.parentNode) document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 100);
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -131,22 +116,13 @@ export default function PrescriptionViewer() {
           <span>🩺</span>
           <span>StethoScribe Prescription</span>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleDownload}
-            className="bg-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-white/30 transition-colors"
-          >
-            <Download className="h-3.5 w-3.5" />
-            Download
-          </button>
-          <button
-            onClick={handlePrint}
-            className="bg-white text-teal-700 text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-teal-50 transition-colors"
-          >
-            <Printer className="h-3.5 w-3.5" />
-            Print
-          </button>
-        </div>
+        <button
+          onClick={handlePrint}
+          className="bg-white text-teal-700 text-xs font-semibold px-4 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-teal-50 transition-colors"
+        >
+          <Printer className="h-3.5 w-3.5" />
+          Print / Save PDF
+        </button>
       </div>
 
       {/* Render the prescription HTML (with any embedded print buttons stripped) */}
