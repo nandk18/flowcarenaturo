@@ -50,8 +50,8 @@ export default function PatientPortalLogin() {
               return (
                 <button
                   key={name as string}
-                  onClick={() => {
-                    selectProfile(patient, multipleProfiles);
+                  onClick={async () => {
+                    await selectProfile(patient, multipleProfiles);
                     navigate("/patient-portal/dashboard");
                   }}
                   className="w-full flex items-center gap-3 p-4 border border-gray-200 rounded-xl hover:border-teal-300 hover:bg-teal-50 transition-all text-left"
