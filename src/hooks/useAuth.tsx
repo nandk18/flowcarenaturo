@@ -67,12 +67,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from("profiles")
         .select("*")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      setProfile(data as UserProfile);
+      if (data) {
+        setProfile(data as UserProfile);
+        return;
+      }
+
+      const { data: ensuredProfile, error: ensureError } = await (supabase as any).rpc(
+        "ensure_current_user_profile"
+      );
+      if (ensureError) throw ensureError;
+      setProfile(ensuredProfile as UserProfile);
     } catch (err) {
       console.error("Error fetching profile:", err);
+      setProfile(null);
     } finally {
       setLoading(false);
     }
