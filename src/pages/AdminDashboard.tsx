@@ -9,10 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { CalendarDays, Stethoscope, UserPlus, Clock, AlertTriangle, ArrowRight, TrendingUp, HeartPulse, Sparkles } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { CalendarDays, Stethoscope, UserPlus, Clock, AlertTriangle, ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import TodayAppointmentsWidget from "@/components/appointments/TodayAppointmentsWidget";
-import { cn } from "@/lib/utils";
 
 type Visit = {
   id: string;
@@ -163,139 +162,14 @@ function AdminQueueView() {
   );
 }
 
-type SectionKey = "sales" | "consult" | "treatment";
-
-const SECTIONS: {
-  key: SectionKey;
-  icon: typeof TrendingUp;
-  label: string;
-  title: string;
-  description: string;
-  badge: string;
-  badgeVariant: "default" | "secondary";
-  theme: { border: string; bg: string; iconBg: string; iconText: string; ring: string };
-}[] = [
-  {
-    key: "sales",
-    icon: TrendingUp,
-    label: "Sales",
-    title: "Revenue & Growth",
-    description: "Track revenue, leads, conversions and clinic growth",
-    badge: "Coming Soon",
-    badgeVariant: "secondary",
-    theme: {
-      border: "border-blue-500/30",
-      bg: "hover:bg-blue-500/5",
-      iconBg: "bg-blue-500/10",
-      iconText: "text-blue-500",
-      ring: "ring-2 ring-blue-500 border-blue-500",
-    },
-  },
-  {
-    key: "consult",
-    icon: Stethoscope,
-    label: "Consult",
-    title: "Clinical Dashboard",
-    description: "Appointments, diagnoses, prescriptions and performance",
-    badge: "Active",
-    badgeVariant: "default",
-    theme: {
-      border: "border-green-500/30",
-      bg: "hover:bg-green-500/5",
-      iconBg: "bg-green-500/10",
-      iconText: "text-green-600",
-      ring: "ring-2 ring-green-500 border-green-500",
-    },
-  },
-  {
-    key: "treatment",
-    icon: HeartPulse,
-    label: "Treatment",
-    title: "Care Plans",
-    description: "Treatment plans, patient journeys and follow-ups",
-    badge: "Coming Soon",
-    badgeVariant: "secondary",
-    theme: {
-      border: "border-purple-500/30",
-      bg: "hover:bg-purple-500/5",
-      iconBg: "bg-purple-500/10",
-      iconText: "text-purple-500",
-      ring: "ring-2 ring-purple-500 border-purple-500",
-    },
-  },
-];
-
-function ComingSoonPanel({ title }: { title: string }) {
-  return (
-    <Card className="shadow-card">
-      <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-          <Sparkles className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h3 className="font-display text-xl font-semibold text-foreground">{title}</h3>
-        <p className="mt-2 max-w-md text-sm text-muted-foreground">
-          This section is coming soon. We're working hard to bring it to you.
-        </p>
-        <Badge variant="secondary" className="mt-4">Coming Soon</Badge>
-      </CardContent>
-    </Card>
-  );
-}
-
 export default function AdminDashboard() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const sectionParam = searchParams.get("section") as SectionKey | null;
-  const active: SectionKey =
-    sectionParam === "sales" || sectionParam === "treatment" || sectionParam === "consult"
-      ? sectionParam
-      : "consult";
-
-  const handleSelect = (key: SectionKey) => {
-    setSearchParams({ section: key }, { replace: true });
-  };
-
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-foreground">Admin Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Manage your clinic operations</p>
+        <h1 className="font-display text-2xl font-bold text-foreground">Clinical Dashboard</h1>
+        <p className="text-sm text-muted-foreground">Today's queue and consultations</p>
       </div>
-
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-        {SECTIONS.map((s) => {
-          const Icon = s.icon;
-          const isActive = active === s.key;
-          return (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => handleSelect(s.key)}
-              className={cn(
-                "group text-left rounded-xl border bg-card p-5 shadow-card transition-all hover:shadow-elevated",
-                s.theme.border,
-                s.theme.bg,
-                isActive && s.theme.ring,
-              )}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className={cn("flex h-11 w-11 items-center justify-center rounded-lg", s.theme.iconBg)}>
-                  <Icon className={cn("h-5 w-5", s.theme.iconText)} />
-                </div>
-                <Badge variant={s.badgeVariant} className="text-[10px]">{s.badge}</Badge>
-              </div>
-              <div className="mt-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.label}</p>
-                <h3 className="mt-1 font-display text-lg font-semibold text-foreground">{s.title}</h3>
-                <p className="mt-1 text-xs text-muted-foreground">{s.description}</p>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      {active === "consult" && <AdminQueueView />}
-      {active === "sales" && <ComingSoonPanel title="Revenue & Growth" />}
-      {active === "treatment" && <ComingSoonPanel title="Care Plans" />}
+      <AdminQueueView />
     </DashboardLayout>
   );
 }
