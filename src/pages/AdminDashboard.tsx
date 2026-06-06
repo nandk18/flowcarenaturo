@@ -209,7 +209,7 @@ const SECTIONS: {
   },
   {
     key: "treatment",
-    icon: ClipboardHeart,
+    icon: HeartPulse,
     label: "Treatment",
     title: "Care Plans",
     description: "Treatment plans, patient journeys and follow-ups",
