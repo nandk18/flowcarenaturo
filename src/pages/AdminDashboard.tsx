@@ -84,8 +84,8 @@ function AdminQueueView() {
       <TodayAppointmentsWidget />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <TabsList className="w-full sm:w-auto overflow-x-auto">
-          <TabsTrigger value="reception"><CalendarDays className="mr-2 h-4 w-4" /> Reception View</TabsTrigger>
-          <TabsTrigger value="doctor"><Stethoscope className="mr-2 h-4 w-4" /> Doctor View</TabsTrigger>
+          <TabsTrigger value="reception"><CalendarDays className="mr-2 h-4 w-4" /> Reception</TabsTrigger>
+          <TabsTrigger value="doctor"><Stethoscope className="mr-2 h-4 w-4" /> Consultation</TabsTrigger>
         </TabsList>
         <Dialog open={addPatientOpen} onOpenChange={setAddPatientOpen}>
           <DialogTrigger asChild>

@@ -4,15 +4,13 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Stethoscope, ArrowLeft, AlertCircle } from "lucide-react";
+import { Stethoscope, AlertCircle } from "lucide-react";
 import { supabase as sb } from "@/integrations/supabase/client";
 import SeoHead from "@/components/SeoHead";
 
-// Best-effort audit log for login (no useAuditLog hook because profile isn't yet loaded into context)
 async function logLoginAudit(userId: string, userEmail: string | null) {
   try {
     const { data: prof } = await sb.from("profiles")
@@ -41,7 +39,6 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [selectedRole, setSelectedRole] = useState<string>("admin");
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [searchParams] = useSearchParams();
   const sessionExpired = searchParams.get("reason") === "session_expired";
@@ -54,7 +51,6 @@ export default function Auth() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) { toast.error(error.message); setLoading(false); return; }
 
-      // Validate role matches
       const { data: profile, error: profileErr } = await supabase
         .from("profiles")
         .select("role")
@@ -68,30 +64,14 @@ export default function Auth() {
         return;
       }
 
-      // Super admin: always allow login regardless of selected role
-      if (profile.role === "super_admin") {
-        // App.tsx will redirect to /super-admin
-        return;
-      }
-
-      if (profile.role !== selectedRole) {
-        const roleLabels: Record<string, string> = {
-          admin: "Admin",
-          doctor: "Doctor",
-          receptionist: "Receptionist",
-          lab: "Lab",
-        };
-        const actualLabel = roleLabels[profile.role] || profile.role;
-        toast.error(
-          `This account is registered as "${actualLabel}". Please select "${actualLabel}" from the role dropdown and try again.`
-        );
+      if (profile.role !== "admin" && profile.role !== "super_admin") {
+        toast.error("This account does not have access. Please contact your administrator.");
         await supabase.auth.signOut();
         setLoading(false);
         return;
       }
-      // Log successful login (fire-and-forget)
+
       logLoginAudit(data.user.id, data.user.email ?? null);
-      // Auth state change listener in useAuth will handle the redirect
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -121,19 +101,16 @@ export default function Auth() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4 relative">
       <SeoHead
-        title="Sign in to StethoScribe — AI Practice Management"
-        description="Log in to your StethoScribe clinic account to manage patients, consultations, and prescriptions with AI voice notes."
+        title="Sign in to FlowCare — AI Practice Management"
+        description="Log in to your FlowCare clinic account to manage patients, consultations, and prescriptions with AI voice notes."
         path="/auth"
       />
-      <Link to="/" className="absolute top-4 left-4 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Back
-      </Link>
       <div className="w-full max-w-md animate-fade-in">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary shadow-elevated">
             <Stethoscope className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="font-display text-3xl font-bold text-foreground">Sign in to StethoScribe</h1>
+          <h1 className="font-display text-3xl font-bold text-foreground">Sign in to FlowCare</h1>
           <p className="mt-2 text-muted-foreground">AI-Powered Practice Management</p>
         </div>
 
@@ -150,8 +127,7 @@ export default function Auth() {
             <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
             <p className="text-sm text-foreground">
               Your account deletion request has been received. Your data will be permanently
-              deleted within 30 days. To cancel this request contact{" "}
-              <a href="mailto:privacy@stethoscribe.app" className="underline text-primary">privacy@stethoscribe.app</a>
+              deleted within 30 days.
             </p>
           </div>
         )}
@@ -169,22 +145,8 @@ export default function Auth() {
               <TabsContent value="login" className="mt-0">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-role">Login As</Label>
-                    <Select value={selectedRole} onValueChange={setSelectedRole}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="doctor">Doctor</SelectItem>
-                        <SelectItem value="receptionist">Receptionist</SelectItem>
-                        <SelectItem value="lab">Lab</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
-                    <Input id="login-email" type="email" placeholder="doctor@clinic.com" value={email} onChange={e => setEmail(e.target.value)} required />
+                    <Input id="login-email" type="email" placeholder="admin@clinic.com" value={email} onChange={e => setEmail(e.target.value)} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Password</Label>
@@ -209,7 +171,7 @@ export default function Auth() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
-                    <Input id="signup-email" type="email" placeholder="doctor@clinic.com" value={email} onChange={e => setEmail(e.target.value)} required />
+                    <Input id="signup-email" type="email" placeholder="admin@clinic.com" value={email} onChange={e => setEmail(e.target.value)} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>

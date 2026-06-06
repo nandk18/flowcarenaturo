@@ -5,14 +5,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Auth from "./pages/Auth";
-import Index from "./pages/Index";
 import AcceptInvite from "./pages/AcceptInvite";
 import PrescriptionViewer from "./pages/PrescriptionViewer";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
-import ReceptionistDashboard from "./pages/ReceptionistDashboard";
-import DoctorDashboard from "./pages/DoctorDashboard";
 import DoctorConsultationPage from "./pages/DoctorConsultationPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import PatientsPage from "./pages/PatientsPage";
@@ -21,10 +18,7 @@ import Settings from "./pages/Settings";
 import TemplatesPage from "./pages/TemplatesPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AppointmentsPage from "./pages/AppointmentsPage";
-import LabDashboard from "./pages/LabDashboard";
 import LabResultsInbox from "./pages/LabResultsInbox";
-import LabRegistration from "./pages/LabRegistration";
-import LabsDirectory from "./pages/LabsDirectory";
 import SuperAdmin from "./pages/SuperAdmin";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
@@ -36,13 +30,6 @@ import PublicInvoiceViewer from "./pages/PublicInvoiceViewer";
 import NotFound from "./pages/NotFound";
 import CookieConsent from "./components/CookieConsent";
 import TestWhatsApp from "./pages/__TestWhatsApp";
-import PatientPortalLogin from "./pages/PatientPortal/PatientPortalLogin";
-import PatientPortalLayout from "./pages/PatientPortal/PatientPortalLayout";
-import PortalDashboard from "./pages/PatientPortal/PortalDashboard";
-import PortalPrescriptions from "./pages/PatientPortal/PortalPrescriptions";
-import PortalLabReports from "./pages/PatientPortal/PortalLabReports";
-import PortalAppointments from "./pages/PatientPortal/PortalAppointments";
-import PortalProfile from "./pages/PatientPortal/PortalProfile";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
@@ -53,10 +40,8 @@ function AppRoutes() {
   const { session, profile, loading } = useAuth();
   const [clinicReady, setClinicReady] = useState<boolean | null>(null);
 
-  // Use react-router's location so this re-renders on client-side navigation
-  // (window.location.pathname is not reactive to <Link> clicks).
   const path = useLocation().pathname;
-  // Dev-only Playwright harness — bypasses every auth/onboarding gate.
+
   if (import.meta.env.DEV && path === "/__test/whatsapp") {
     return (
       <Routes>
@@ -64,6 +49,8 @@ function AppRoutes() {
       </Routes>
     );
   }
+
+  // Public-only routes (no auth required, render outside the main gate)
   if (
     path === "/accept-invite" ||
     path === "/reset-password" ||
@@ -71,8 +58,7 @@ function AppRoutes() {
     path === "/terms" ||
     path === "/dpa" ||
     path === "/security" ||
-    path.startsWith("/invoice/") ||
-    path.startsWith("/patient-portal")
+    path.startsWith("/invoice/")
   ) {
     return (
       <Routes>
@@ -83,15 +69,6 @@ function AppRoutes() {
         <Route path="/dpa" element={<DataProcessingAgreement />} />
         <Route path="/security" element={<SecurityPage />} />
         <Route path="/invoice/:invoiceId" element={<PublicInvoiceViewer />} />
-        <Route path="/patient-portal/login" element={<PatientPortalLogin />} />
-        <Route path="/patient-portal" element={<PatientPortalLayout />}>
-          <Route index element={<Navigate to="/patient-portal/dashboard" replace />} />
-          <Route path="dashboard" element={<PortalDashboard />} />
-          <Route path="prescriptions" element={<PortalPrescriptions />} />
-          <Route path="labs" element={<PortalLabReports />} />
-          <Route path="appointments" element={<PortalAppointments />} />
-          <Route path="profile" element={<PortalProfile />} />
-        </Route>
       </Routes>
     );
   }
@@ -107,24 +84,14 @@ function AppRoutes() {
   if (!session) {
     return (
       <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/rx/:prescriptionId" element={<PrescriptionViewer />} />
         <Route path="/auth" element={<Auth />} />
-        <Route path="/accept-invite" element={<AcceptInvite />} />
+        <Route path="/rx/:prescriptionId" element={<PrescriptionViewer />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/register-lab" element={<LabRegistration />} />
-        <Route path="/labs" element={<LabsDirectory />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/terms" element={<TermsOfService />} />
-        <Route path="/dpa" element={<DataProcessingAgreement />} />
-        <Route path="/security" element={<SecurityPage />} />
         <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>
     );
   }
 
-  // Wait for profile to load before making any role/password decisions
   if (!profile) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -133,7 +100,6 @@ function AppRoutes() {
     );
   }
 
-  // Force password setup before anything else
   if (profile.password_set === false) {
     return (
       <Routes>
@@ -144,24 +110,20 @@ function AppRoutes() {
     );
   }
 
-  // Super admin: skip clinic/onboarding checks, route directly to platform dashboard
   if (profile.role === "super_admin") {
     return (
       <Routes>
         <Route path="/super-admin" element={<SuperAdmin />} />
-        <Route path="/labs" element={<LabsDirectory />} />
         <Route path="*" element={<Navigate to="/super-admin" replace />} />
       </Routes>
     );
   }
 
-  // Lab role: skip clinic/onboarding checks, route directly to lab dashboard
-  if (profile.role === "lab") {
+  // Anyone other than admin/super_admin is rejected — only those two roles are supported.
+  if (profile.role !== "admin") {
     return (
       <Routes>
-        <Route path="/lab" element={<LabDashboard />} />
-        <Route path="/rx/:prescriptionId" element={<PrescriptionViewer />} />
-        <Route path="*" element={<Navigate to="/lab" replace />} />
+        <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>
     );
   }
@@ -192,38 +154,21 @@ function AppRoutes() {
     );
   }
 
-  const role = profile?.role;
-
-  const DashboardComponent =
-    role === "receptionist" ? ReceptionistDashboard :
-    role === "doctor" ? DoctorDashboard :
-    AdminDashboard;
-
   return (
     <Routes>
       <Route path="/rx/:prescriptionId" element={<PrescriptionViewer />} />
-      <Route path="/dashboard" element={<DashboardComponent />} />
-      <Route path="/dashboard/lab-results" element={
-        role === "doctor" || role === "admin" ? <LabResultsInbox /> : <Navigate to="/dashboard" replace />
-      } />
-      <Route path="/dashboard/consultation/:visitId" element={
-        role === "doctor" || role === "admin" ? <DoctorConsultationPage /> : <Navigate to="/dashboard" replace />
-      } />
+      <Route path="/dashboard" element={<AdminDashboard />} />
+      <Route path="/dashboard/lab-results" element={<LabResultsInbox />} />
+      <Route path="/dashboard/consultation/:visitId" element={<DoctorConsultationPage />} />
       <Route path="/dashboard/patients" element={<PatientsPage />} />
       <Route path="/dashboard/patients/:patientId" element={<PatientDetailPage />} />
       <Route path="/dashboard/templates" element={<TemplatesPage />} />
-      <Route path="/dashboard/analytics" element={
-        role === "admin" ? <AnalyticsPage /> : <Navigate to="/dashboard" replace />
-      } />
-      <Route path="/dashboard/appointments" element={
-        role === "admin" || role === "receptionist" ? <AppointmentsPage /> : <Navigate to="/dashboard" replace />
-      } />
+      <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
+      <Route path="/dashboard/appointments" element={<AppointmentsPage />} />
       <Route path="/dashboard/settings" element={<Settings />} />
       <Route path="/dashboard/billing" element={<BillingPage />} />
       <Route path="/dashboard/billing/:invoiceId" element={<InvoiceDetailPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/labs" element={<LabsDirectory />} />
-      <Route path="/register-lab" element={<LabRegistration />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
       <Route path="/onboarding" element={<Navigate to="/dashboard" replace />} />
