@@ -22,7 +22,7 @@ import AppointmentsPage from "./pages/AppointmentsPage";
 import Home from "./pages/Home";
 import Sales from "./pages/Sales";
 import Treatment from "./pages/Treatment";
-import LabResultsInbox from "./pages/LabResultsInbox";
+
 import SuperAdmin from "./pages/SuperAdmin";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
