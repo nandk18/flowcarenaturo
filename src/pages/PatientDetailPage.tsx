@@ -45,7 +45,7 @@ export default function PatientDetailPage() {
   const { log: auditLog } = useAuditLog();
 
   const isAdmin = profile?.role === "admin";
-  const canEdit = profile?.role === "doctor" || profile?.role === "admin";
+  const canEdit = profile?.role === "admin";
 
   const getAge = (dob: string | null) => {
     if (!dob) return null;

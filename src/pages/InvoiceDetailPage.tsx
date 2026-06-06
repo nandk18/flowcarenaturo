@@ -19,7 +19,7 @@ export default function InvoiceDetailPage() {
   const { profile } = useAuth();
   const { clinic } = useClinic();
   const role = profile?.role;
-  const canWrite = role === "admin" || role === "receptionist";
+  const canWrite = role === "admin";
   const [invoice, setInvoice] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [payOpen, setPayOpen] = useState(false);
