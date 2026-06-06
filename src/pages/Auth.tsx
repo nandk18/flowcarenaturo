@@ -107,10 +107,8 @@ export default function Auth() {
         path="/auth"
       />
       <div className="w-full max-w-md animate-fade-in">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary shadow-elevated">
-            <Stethoscope className="h-8 w-8 text-primary-foreground" />
-          </div>
+        <div className="mb-8 flex flex-col items-center text-center">
+          <Logo height={64} className="mb-4" />
           <h1 className="font-display text-3xl font-bold text-foreground">Sign in to FlowCare</h1>
           <p className="mt-2 text-muted-foreground">AI-Powered Practice Management</p>
         </div>
