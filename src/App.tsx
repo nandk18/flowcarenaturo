@@ -53,6 +53,7 @@ function AppRoutes() {
 
   // Public-only routes (no auth required, render outside the main gate)
   if (
+    path === "/auth/callback" ||
     path === "/accept-invite" ||
     path === "/reset-password" ||
     path === "/privacy" ||
