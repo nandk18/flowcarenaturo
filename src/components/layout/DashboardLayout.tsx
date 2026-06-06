@@ -48,11 +48,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const sidebarContent = (
     <>
-      <div className="flex h-16 items-center gap-3 px-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary/20">
-          <Stethoscope className="h-5 w-5 text-sidebar-primary" />
-        </div>
-        <span className="font-display text-lg font-bold text-sidebar-foreground">{clinic?.name || "FlowCare"}</span>
+      <div className="flex h-16 items-center gap-3 px-6 bg-sidebar-accent/40">
+        <Logo height={32} className="dark:invert-0 dark:mix-blend-normal" />
+        {clinic?.name && (
+          <span className="font-display text-sm font-semibold text-sidebar-foreground truncate">{clinic.name}</span>
+        )}
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-4">
