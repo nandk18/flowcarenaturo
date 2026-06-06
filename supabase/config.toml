@@ -1,1 +1,5 @@
 project_id = "amipgrjksrszocfzucxn"
+
+[auth]
+site_url = "https://flowcarenaturo.lovable.app"
+additional_redirect_urls = ["https://flowcarenaturo.lovable.app/auth/callback"]

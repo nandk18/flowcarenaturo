@@ -98,6 +98,7 @@ function AppRoutes() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, authSession) => {
       if (event === "SIGNED_IN" && authSession?.user) {
+        if (path === "/reset-password" || path === "/accept-invite") return;
         setTimeout(() => {
           redirectForSession(authSession.user.id).catch(() => navigate("/login?error=auth_failed", { replace: true }));
         }, 0);

@@ -96,6 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(ensuredProfile as UserProfile);
     } catch (err) {
       console.error("Error fetching profile:", err);
+      await supabase.auth.signOut();
+      setSession(null);
       setProfile(null);
     } finally {
       authResolvedRef.current = true;
