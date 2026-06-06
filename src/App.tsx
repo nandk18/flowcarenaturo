@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import AcceptInvite from "./pages/AcceptInvite";
 import PrescriptionViewer from "./pages/PrescriptionViewer";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -52,6 +53,7 @@ function AppRoutes() {
 
   // Public-only routes (no auth required, render outside the main gate)
   if (
+    path === "/auth/callback" ||
     path === "/accept-invite" ||
     path === "/reset-password" ||
     path === "/privacy" ||
@@ -62,6 +64,7 @@ function AppRoutes() {
   ) {
     return (
       <Routes>
+        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
