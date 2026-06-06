@@ -74,8 +74,7 @@ export default function Onboarding() {
         });
       if (error) throw error;
 
-      // Also add doctor role
-      await supabase.from("user_roles").insert({ user_id: user!.id, role: "doctor" as any });
+      // Admin-only app — no extra role insert needed.
 
       toast.success("Doctor profile saved!");
       setStep(2);

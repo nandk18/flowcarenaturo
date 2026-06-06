@@ -105,23 +105,16 @@ export default function AcceptInvite() {
 
       const userId = session.user.id;
       const meta = session.user.user_metadata || {};
-      const role = meta.invited_role || meta.role || "admin";
       const clinicId = meta.invited_clinic_id || meta.clinic_id || null;
-      const labId = meta.invited_lab_id || null;
 
-      const profileUpdate: any = { full_name: fullName, role, password_set: true };
+      const profileUpdate: any = { full_name: fullName, role: "admin", password_set: true };
       if (clinicId) profileUpdate.clinic_id = clinicId;
-      if (role === "lab" && labId) profileUpdate.lab_id = labId;
       await supabase.from("profiles").update(profileUpdate).eq("user_id", userId);
 
       setSuccess(true);
       toast.success("Account activated!");
 
-      // Stay logged in and route by role
-      setTimeout(() => {
-        if (role === "lab") navigate("/lab");
-        else navigate("/dashboard");
-      }, 1200);
+      setTimeout(() => navigate("/dashboard"), 1200);
     } catch (err: any) {
       setError(err.message || "Failed to activate account");
       toast.error(err.message || "Failed to activate account");

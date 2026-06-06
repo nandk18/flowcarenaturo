@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload, Code2, ClipboardList, ChevronDown, ChevronUp, Database, AlertTriangle, Download } from "lucide-react";
-import LabsManagement from "@/components/settings/LabsManagement";
+
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import { clientCache, CACHE_KEYS } from "@/lib/clientCache";
 import { Receipt } from "lucide-react";
@@ -59,7 +59,7 @@ export default function Settings() {
   const [specialty, setSpecialty] = useState("");
 
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<string>("receptionist");
+  const [inviteRole, setInviteRole] = useState<string>("admin");
   const [inviting, setInviting] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -648,7 +648,7 @@ export default function Settings() {
         </Card>
 
         {/* Doctor Profile (only for doctor/admin roles) */}
-        {(profile?.role === "doctor" || profile?.role === "admin") && (
+        {profile?.role === "admin" && (
           <Card className="rounded-2xl border-0 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-display">
@@ -725,21 +725,11 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Invite doctors and receptionists. They'll receive an email to activate their account.
+                Invite additional admins. They'll receive an email to activate their account.
               </p>
               <div className="space-y-2">
                 <Label>Email Address</Label>
-                <Input type="email" placeholder="staff@clinic.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} className="rounded-lg" />
-              </div>
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Select value={inviteRole} onValueChange={setInviteRole}>
-                  <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="doctor">Doctor</SelectItem>
-                    <SelectItem value="receptionist">Receptionist</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input type="email" placeholder="admin@clinic.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} className="rounded-lg" />
               </div>
               <Button onClick={handleInviteStaff} disabled={inviting || !inviteEmail.trim()} className="rounded-lg">
                 <Send className="mr-2 h-4 w-4" /> {inviting ? "Sending..." : "Send Invitation"}
@@ -808,12 +798,11 @@ export default function Settings() {
                   })}
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </CardContent>
+        </Card>
         )}
 
-        {/* Labs (Admin only) */}
-        {profile?.role === "admin" && <LabsManagement />}
+
 
         {/* Developer (Admin only) */}
         {profile?.role === "admin" && (
@@ -851,9 +840,7 @@ export default function Settings() {
                     >
                       <option value="">All Roles</option>
                       <option value="admin">Admin</option>
-                      <option value="doctor">Doctor</option>
-                      <option value="receptionist">Receptionist</option>
-                      <option value="lab">Lab</option>
+                      <option value="super_admin">Super Admin</option>
                     </select>
                     <select
                       value={auditFilter.action}

@@ -1,4 +1,4 @@
-import LandingPage from "./LandingPage";
+import { Navigate } from "react-router-dom";
 
-const Index = () => <LandingPage />;
+const Index = () => <Navigate to="/auth" replace />;
 export default Index;

@@ -27,7 +27,7 @@ export default function BillingPage() {
   const { clinic } = useClinic();
   const clinicId = profile?.clinic_id || "";
   const role = profile?.role;
-  const canWrite = role === "admin" || role === "receptionist";
+  const canWrite = role === "admin";
 
   const [invoices, setInvoices] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);

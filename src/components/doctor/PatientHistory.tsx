@@ -47,7 +47,7 @@ export default function PatientHistory({ patientId, currentVisitId }: Props) {
   const [loading, setLoading] = useState(true);
   const [editingVisit, setEditingVisit] = useState<any>(null);
 
-  const canEdit = profile?.role === "doctor" || profile?.role === "admin";
+  const canEdit = profile?.role === "admin";
 
   const fetchHistory = async () => {
     setLoading(true);

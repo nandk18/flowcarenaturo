@@ -1,4 +1,3 @@
-import PublicNavbar from "@/components/PublicNavbar";
 import SeoHead from "@/components/SeoHead";
 
 export default function TermsOfService() {
@@ -9,7 +8,6 @@ export default function TermsOfService() {
         description="Terms governing use of the StethoScribe clinic management platform by doctors, clinics, and diagnostic labs."
         path="/terms"
       />
-      <PublicNavbar backTo="/" backLabel="Home" />
       <div className="max-w-3xl mx-auto px-4 py-10">
         <h1 className="font-display text-3xl font-bold text-foreground mb-1">Terms of Service</h1>
         <p className="text-sm text-muted-foreground mb-8">Last updated: April 2026</p>

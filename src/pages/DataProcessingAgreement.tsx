@@ -1,5 +1,4 @@
 import SeoHead from "@/components/SeoHead";
-import PublicNavbar from "@/components/PublicNavbar";
 
 export default function DataProcessingAgreement() {
   return (
@@ -9,7 +8,6 @@ export default function DataProcessingAgreement() {
         description="DPA terms between StethoScribe (processor) and clinics (controllers) under India's DPDP Act 2023."
         path="/dpa"
       />
-      <PublicNavbar backTo="/" backLabel="Home" />
       <div className="max-w-3xl mx-auto px-4 py-10">
         <h1 className="font-display text-3xl font-bold text-foreground mb-1">Data Processing Agreement</h1>
         <p className="text-sm text-muted-foreground mb-8">Last updated: April 2026</p>

@@ -10,25 +10,8 @@ import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import SessionTimeoutWarning from "@/components/SessionTimeoutWarning";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import {
-  Stethoscope, Users, CalendarDays, Settings, LogOut, UserPlus, Menu, X, FileText, BarChart2, Calendar, FlaskConical, Receipt
+  Stethoscope, Users, CalendarDays, Settings, LogOut, Menu, X, FileText, BarChart2, Calendar, FlaskConical, Receipt
 } from "lucide-react";
-
-const receptionistLinks = [
-  { to: "/dashboard", icon: CalendarDays, label: "Today's Queue" },
-  { to: "/dashboard/appointments", icon: Calendar, label: "Appointments" },
-  { to: "/dashboard/patients", icon: UserPlus, label: "Patients" },
-  { to: "/dashboard/billing", icon: Receipt, label: "Billing" },
-  { to: "/dashboard/settings", icon: Settings, label: "Settings" },
-];
-
-const doctorLinks = [
-  { to: "/dashboard", icon: CalendarDays, label: "Queue & Consult" },
-  { to: "/dashboard/patients", icon: Users, label: "Patients" },
-  { to: "/dashboard/lab-results", icon: FlaskConical, label: "Lab Results", notifyKey: "lab" as const },
-  { to: "/dashboard/templates", icon: FileText, label: "Templates" },
-  { to: "/dashboard/billing", icon: Receipt, label: "Billing" },
-  { to: "/dashboard/settings", icon: Settings, label: "Settings" },
-];
 
 const adminLinks = [
   { to: "/dashboard", icon: CalendarDays, label: "Queue" },
@@ -52,13 +35,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { showWarning, timeLeft, stayLoggedIn, logoutNow } = useSessionTimeout(!!session);
   const { log } = useAuditLog();
 
-  const links = role === "receptionist" ? receptionistLinks :
-                role === "doctor" ? doctorLinks : adminLinks;
+  const links = adminLinks;
 
-  // Pending lab results badge + realtime + browser push
   useEffect(() => {
     if (!clinicId) return;
-    if (role !== "doctor" && role !== "admin") return;
 
     const fetchPendingCount = async () => {
       const { count } = await supabase
@@ -80,7 +60,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           fetchPendingCount();
           if (payload.eventType === "INSERT") {
             const newRow = payload.new;
-            // Look up the test name for a richer notification
             let testName = "Lab result";
             if (newRow?.lab_order_id) {
               const { data } = await supabase
@@ -102,14 +81,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [clinicId, role]);
+  }, [clinicId]);
 
-  // Ask for push permission once after login
   useEffect(() => {
-    if (role !== "doctor" && role !== "admin") return;
     const timer = setTimeout(() => { requestPushPermission(); }, 3000);
     return () => clearTimeout(timer);
-  }, [role]);
+  }, []);
 
   const handleSignOut = async () => {
     await log(AUDIT_ACTIONS.LOGOUT, "auth", user?.id, user?.email);
@@ -123,7 +100,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary/20">
           <Stethoscope className="h-5 w-5 text-sidebar-primary" />
         </div>
-        <span className="font-display text-lg font-bold text-sidebar-foreground">{clinic?.name || "StethoScribe"}</span>
+        <span className="font-display text-lg font-bold text-sidebar-foreground">{clinic?.name || "FlowCare"}</span>
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-4">
@@ -180,18 +157,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen w-full">
-      {/* Mobile header */}
       <div className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between gradient-sidebar px-4 md:hidden">
         <div className="flex items-center gap-2">
           <Stethoscope className="h-5 w-5 text-sidebar-primary" />
-          <span className="font-display text-sm font-bold text-sidebar-foreground">{clinic?.name || "StethoScribe"}</span>
+          <span className="font-display text-sm font-bold text-sidebar-foreground">{clinic?.name || "FlowCare"}</span>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setMobileOpen(!mobileOpen)} className="text-sidebar-foreground">
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
       </div>
 
-      {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
@@ -201,12 +176,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      {/* Desktop sidebar */}
       <aside className="hidden w-64 flex-col gradient-sidebar md:flex">
         {sidebarContent}
       </aside>
 
-      {/* Main content */}
       <main className="flex-1 overflow-auto pt-14 md:pt-0">
         <div className="p-4 sm:p-6 lg:p-8">
           {children}
