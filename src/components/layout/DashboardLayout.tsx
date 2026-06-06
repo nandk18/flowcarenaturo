@@ -10,14 +10,13 @@ import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import SessionTimeoutWarning from "@/components/SessionTimeoutWarning";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import {
-  Stethoscope, Users, CalendarDays, Settings, LogOut, Menu, X, FileText, BarChart2, Calendar, FlaskConical, Receipt
+  Stethoscope, Users, CalendarDays, Settings, LogOut, Menu, X, FileText, BarChart2, Calendar, Receipt, ArrowLeft
 } from "lucide-react";
 
 const adminLinks = [
   { to: "/dashboard", icon: CalendarDays, label: "Queue" },
   { to: "/dashboard/appointments", icon: Calendar, label: "Appointments" },
   { to: "/dashboard/patients", icon: Users, label: "Patients" },
-  { to: "/dashboard/lab-results", icon: FlaskConical, label: "Lab Results", notifyKey: "lab" as const },
   { to: "/dashboard/templates", icon: FileText, label: "Templates" },
   { to: "/dashboard/billing", icon: Receipt, label: "Billing" },
   { to: "/dashboard/analytics", icon: BarChart2, label: "Analytics" },
