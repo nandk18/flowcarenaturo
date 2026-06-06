@@ -155,7 +155,7 @@ export default function AcceptInvite() {
           <CardContent className="py-10 space-y-4">
             <h2 className="text-xl font-bold text-foreground">Invalid or Expired Link</h2>
             <p className="text-muted-foreground">{error || "This invitation link may have expired or already been used."}</p>
-            <Button onClick={() => navigate("/auth")}>Go to Login</Button>
+            <Button onClick={() => navigate("/login")}>Go to Login</Button>
           </CardContent>
         </Card>
       </div>
@@ -169,7 +169,7 @@ export default function AcceptInvite() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary shadow-elevated">
             <Stethoscope className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="font-display text-3xl font-bold text-foreground">Welcome to StethoScribe</h1>
+          <h1 className="font-display text-3xl font-bold text-foreground">Welcome to FlowCare</h1>
         </div>
 
         <Card className="shadow-elevated">
