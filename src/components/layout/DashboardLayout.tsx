@@ -43,7 +43,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const handleSignOut = async () => {
     await log(AUDIT_ACTIONS.LOGOUT, "auth", user?.id, user?.email);
     await signOut();
-    navigate("/auth");
+    navigate("/login");
   };
 
   const sidebarContent = (

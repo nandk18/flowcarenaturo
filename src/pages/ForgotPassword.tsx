@@ -50,7 +50,7 @@ export default function ForgotPassword() {
                 <p className="text-sm text-muted-foreground">
                   Check your inbox at <strong>{email}</strong>
                 </p>
-                <Link to="/auth">
+                <Link to="/login">
                   <Button variant="outline" className="mt-4">
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back to Login
                   </Button>
@@ -73,7 +73,7 @@ export default function ForgotPassword() {
                   {loading ? "Sending..." : "Send Reset Link"}
                 </Button>
                 <div className="text-center">
-                  <Link to="/auth" className="text-sm text-primary hover:underline">
+                  <Link to="/login" className="text-sm text-primary hover:underline">
                     <ArrowLeft className="inline h-3 w-3 mr-1" /> Back to Login
                   </Link>
                 </div>

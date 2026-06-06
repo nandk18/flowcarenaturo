@@ -1189,6 +1189,25 @@ export type Database = {
         }
         Returns: string
       }
+      ensure_current_user_profile: {
+        Args: never
+        Returns: {
+          clinic_id: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string
+          lab_id: string | null
+          password_set: boolean
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_user_clinic_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {

@@ -10,7 +10,7 @@ export default function TopBar() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/auth");
+    navigate("/login");
   };
 
   return (

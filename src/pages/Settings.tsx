@@ -509,7 +509,7 @@ export default function Settings() {
       toast.success("Deletion request submitted");
       setShowDeleteConfirm(false);
       await supabase.auth.signOut();
-      navigate("/auth?reason=deletion_requested");
+      navigate("/login?reason=deletion_requested");
     } catch (err: any) {
       toast.error("Failed to submit deletion request: " + err.message);
     } finally {

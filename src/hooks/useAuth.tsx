@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, createContext, ReactNode } from "react";
+import { useState, useEffect, useContext, createContext, ReactNode, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 
@@ -34,16 +34,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const authResolvedRef = useRef(false);
 
   useEffect(() => {
+    const fallbackTimer = window.setTimeout(() => {
+      if (!authResolvedRef.current) {
+        setSession(null);
+        setProfile(null);
+        setLoading(false);
+      }
+    }, 3000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         setSession(session);
         if (session?.user) {
           // Defer profile fetch to avoid deadlock
           setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
           setProfile(null);
+          authResolvedRef.current = true;
           setLoading(false);
         }
       }
@@ -54,11 +64,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         fetchProfile(session.user.id);
       } else {
+        authResolvedRef.current = true;
         setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      window.clearTimeout(fallbackTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchProfile = async (userId: string) => {
@@ -67,13 +81,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from("profiles")
         .select("*")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      setProfile(data as UserProfile);
+      if (data) {
+        setProfile(data as UserProfile);
+        return;
+      }
+
+      const { data: ensuredProfile, error: ensureError } = await (supabase as any).rpc(
+        "ensure_current_user_profile"
+      );
+      if (ensureError) throw ensureError;
+      setProfile(ensuredProfile as UserProfile);
     } catch (err) {
       console.error("Error fetching profile:", err);
+      await supabase.auth.signOut();
+      setSession(null);
+      setProfile(null);
     } finally {
+      authResolvedRef.current = true;
       setLoading(false);
     }
   };

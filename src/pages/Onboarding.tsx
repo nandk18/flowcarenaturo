@@ -101,8 +101,8 @@ export default function Onboarding() {
       if (prof?.clinic_id) {
         await supabase.from("clinics").update({ onboarding_complete: true }).eq("id", prof.clinic_id);
       }
-      toast.success("Setup complete! Welcome to MediScribe Pro.");
-      navigate("/dashboard");
+      toast.success("Setup complete! Welcome to FlowCare.");
+      navigate("/home");
       window.location.reload();
     } catch (err: any) {
       toast.error(err.message);

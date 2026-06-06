@@ -16,7 +16,7 @@ export default function SecurityPage() {
             <ArrowLeft className="w-4 h-4" /> Home
           </Link>
           <span className="font-bold text-primary text-sm">Security</span>
-          <Link to="/auth" className="text-xs border border-primary/30 text-primary rounded-lg px-3 py-1.5 font-medium hover:bg-primary/10">Login</Link>
+          <Link to="/login" className="text-xs border border-primary/30 text-primary rounded-lg px-3 py-1.5 font-medium hover:bg-primary/10">Login</Link>
         </div>
       </header>
 

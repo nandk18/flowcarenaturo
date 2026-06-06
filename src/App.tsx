@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
@@ -36,15 +36,84 @@ import CookieConsent from "./components/CookieConsent";
 import TestWhatsApp from "./pages/__TestWhatsApp";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureProfileAndGetPostAuthRoute } from "@/lib/authRedirect";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
+
+const isPublicRoute = (path: string) =>
+  path === "/auth/callback" ||
+  path === "/auth" ||
+  path === "/login" ||
+  path === "/accept-invite" ||
+  path === "/reset-password" ||
+  path === "/forgot-password" ||
+  path === "/privacy" ||
+  path === "/terms" ||
+  path === "/dpa" ||
+  path === "/security" ||
+  path.startsWith("/invoice/") ||
+  path.startsWith("/rx/");
+
+const isAuthEntryRoute = (path: string) => path === "/" || path === "/auth" || path === "/login";
 
 function AppRoutes() {
   const { session, profile, loading } = useAuth();
   const [clinicReady, setClinicReady] = useState<boolean | null>(null);
 
-  const path = useLocation().pathname;
+  const location = useLocation();
+  const navigate = useNavigate();
+  const path = location.pathname;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const redirectForSession = async (userId: string) => {
+      const nextRoute = await ensureProfileAndGetPostAuthRoute(userId);
+      if (!cancelled) navigate(nextRoute, { replace: true });
+    };
+
+    const checkInitialSession = async () => {
+      const result = await Promise.race([
+        supabase.auth.getSession(),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+      ]);
+
+      if (cancelled) return;
+
+      const currentSession = result?.data.session ?? null;
+      if (currentSession) {
+        if (isAuthEntryRoute(path)) {
+          await redirectForSession(currentSession.user.id);
+        }
+        return;
+      }
+
+      if (!isPublicRoute(path)) {
+        navigate("/login", { replace: true });
+      }
+    };
+
+    checkInitialSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, authSession) => {
+      if (event === "SIGNED_IN" && authSession?.user) {
+        if (path === "/reset-password" || path === "/accept-invite") return;
+        setTimeout(() => {
+          redirectForSession(authSession.user.id).catch(() => navigate("/login?error=auth_failed", { replace: true }));
+        }, 0);
+      }
+
+      if (event === "SIGNED_OUT" && !isPublicRoute(window.location.pathname)) {
+        navigate("/login", { replace: true });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [navigate, path]);
 
   if (import.meta.env.DEV && path === "/__test/whatsapp") {
     return (
@@ -91,18 +160,19 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/auth" element={<Auth />} />
+        <Route path="/login" element={<Auth />} />
         <Route path="/rx/:prescriptionId" element={<PrescriptionViewer />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="*" element={<Navigate to="/auth" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
   }
 
   if (!profile) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <Routes>
+        <Route path="*" element={<Navigate to="/login?error=auth_failed" replace />} />
+      </Routes>
     );
   }
 
@@ -129,20 +199,24 @@ function AppRoutes() {
   if (profile.role !== "admin") {
     return (
       <Routes>
-        <Route path="*" element={<Navigate to="/auth" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
   }
 
   if (profile?.clinic_id && clinicReady === null) {
-    supabase
-      .from("clinics")
-      .select("onboarding_complete")
-      .eq("id", profile.clinic_id)
-      .single()
-      .then(({ data }) => {
-        setClinicReady(data?.onboarding_complete ?? false);
-      });
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("clinics")
+          .select("onboarding_complete")
+          .eq("id", profile.clinic_id)
+          .single();
+        setClinicReady(error ? false : data?.onboarding_complete ?? false);
+      } catch {
+        setClinicReady(false);
+      }
+    })();
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -180,6 +254,7 @@ function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/" element={<Navigate to="/home" replace />} />
       <Route path="/auth" element={<Navigate to="/home" replace />} />
+      <Route path="/login" element={<Navigate to="/home" replace />} />
       <Route path="/onboarding" element={<Navigate to="/home" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

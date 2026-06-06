@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureProfileAndGetPostAuthRoute } from "@/lib/authRedirect";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,33 +14,27 @@ export default function AuthCallback() {
 
     const run = async () => {
       try {
-        // Supabase JS auto-detects the token in the URL hash/query and creates a session.
-        // Give it a tick, then poll briefly for the session.
-        const start = Date.now();
-        let session = null;
-        while (Date.now() - start < 8000) {
-          const { data } = await supabase.auth.getSession();
-          if (data.session) {
-            session = data.session;
-            break;
-          }
-          await new Promise((r) => setTimeout(r, 200));
-        }
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+        ]);
+        const session = sessionResult?.data.session ?? null;
 
         if (cancelled) return;
 
         if (!session) {
           toast.error("Email verification link is invalid or expired.");
-          navigate("/auth", { replace: true });
+          navigate("/login?error=auth_failed", { replace: true });
           return;
         }
 
         setMessage("Signed in! Redirecting...");
-        navigate("/", { replace: true });
+        const nextRoute = await ensureProfileAndGetPostAuthRoute(session.user.id);
+        if (!cancelled) navigate(nextRoute, { replace: true });
       } catch (err: any) {
         if (cancelled) return;
         toast.error(err?.message || "Authentication failed");
-        navigate("/auth", { replace: true });
+        navigate("/login?error=auth_failed", { replace: true });
       }
     };
 

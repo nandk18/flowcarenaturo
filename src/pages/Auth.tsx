@@ -44,6 +44,7 @@ export default function Auth() {
   const [searchParams] = useSearchParams();
   const sessionExpired = searchParams.get("reason") === "session_expired";
   const deletionRequested = searchParams.get("reason") === "deletion_requested";
+  const authError = searchParams.get("error");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +92,7 @@ export default function Auth() {
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     if (error) toast.error(error.message);
@@ -127,6 +128,14 @@ export default function Auth() {
             <p className="text-sm text-foreground">
               Your account deletion request has been received. Your data will be permanently
               deleted within 30 days.
+            </p>
+          </div>
+        )}
+        {authError && (
+          <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-foreground">
+              We couldn't verify your session. Please log in again.
             </p>
           </div>
         )}
