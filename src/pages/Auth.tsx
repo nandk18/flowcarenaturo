@@ -105,16 +105,37 @@ export default function Auth() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: window.location.origin,
-      },
-    });
-    if (error) toast.error(error.message);
-    else toast.success("Check your email to verify your account!");
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName },
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      if (error) {
+        toast.error(error.message);
+        setLoading(false);
+        return;
+      }
+
+      // With email confirmation disabled, signUp returns a session directly.
+      // If for some reason no session is returned, sign in explicitly.
+      if (!data.session) {
+        const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInErr) {
+          toast.error(signInErr.message);
+          setLoading(false);
+          return;
+        }
+      }
+
+      toast.success("Account created! Welcome.");
+      // onAuthStateChange in useAuth will pick up the session and AppRoutes will redirect.
+    } catch (err: any) {
+      toast.error(err.message ?? "Signup failed");
+    }
     setLoading(false);
   };
 
