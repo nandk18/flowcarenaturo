@@ -163,8 +163,11 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/rx/:prescriptionId" element={<PrescriptionViewer />} />
+      <Route path="/home" element={<Home />} />
+      <Route path="/sales" element={<Sales />} />
+      <Route path="/treatment" element={<Treatment />} />
+      <Route path="/consult" element={<Navigate to="/dashboard" replace />} />
       <Route path="/dashboard" element={<AdminDashboard />} />
-      <Route path="/dashboard/lab-results" element={<LabResultsInbox />} />
       <Route path="/dashboard/consultation/:visitId" element={<DoctorConsultationPage />} />
       <Route path="/dashboard/patients" element={<PatientsPage />} />
       <Route path="/dashboard/patients/:patientId" element={<PatientDetailPage />} />
@@ -175,9 +178,9 @@ function AppRoutes() {
       <Route path="/dashboard/billing" element={<BillingPage />} />
       <Route path="/dashboard/billing/:invoiceId" element={<InvoiceDetailPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/onboarding" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Navigate to="/home" replace />} />
+      <Route path="/auth" element={<Navigate to="/home" replace />} />
+      <Route path="/onboarding" element={<Navigate to="/home" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
