@@ -68,6 +68,13 @@ function AppRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
+    return (
+      <Routes>
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/accept-invite" element={<AcceptInvite />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
         <Route path="/dpa" element={<DataProcessingAgreement />} />
         <Route path="/security" element={<SecurityPage />} />
         <Route path="/invoice/:invoiceId" element={<PublicInvoiceViewer />} />
