@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import Logo from "@/components/Logo";
 import { useAuth } from "@/hooks/useAuth";
 import TopBar from "@/components/layout/TopBar";
 import { Badge } from "@/components/ui/badge";
