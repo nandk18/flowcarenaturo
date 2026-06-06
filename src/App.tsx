@@ -204,21 +204,18 @@ function AppRoutes() {
   }
 
   if (profile?.clinic_id && clinicReady === null) {
-    supabase
-      .from("clinics")
-      .select("onboarding_complete")
-      .eq("id", profile.clinic_id)
-      .single()
-      .then(({ data, error }) => {
-        if (error) {
-          setClinicReady(false);
-          return;
-        }
-        setClinicReady(data?.onboarding_complete ?? false);
-      })
-      .catch(() => {
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("clinics")
+          .select("onboarding_complete")
+          .eq("id", profile.clinic_id)
+          .single();
+        setClinicReady(error ? false : data?.onboarding_complete ?? false);
+      } catch {
         setClinicReady(false);
-      });
+      }
+    })();
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
