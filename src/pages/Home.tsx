@@ -62,7 +62,7 @@ const SECTIONS: Section[] = [
   },
   {
     key: "treatment",
-    icon: ClipboardHeart,
+    icon: HeartPulse,
     tag: "Treatment",
     title: "Care Plans",
     description: "Patient journeys, plans and follow-ups",
