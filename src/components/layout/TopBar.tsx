@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Stethoscope, Settings as SettingsIcon, LogOut } from "lucide-react";
+import { Settings as SettingsIcon, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import Logo from "@/components/Logo";
 
 export default function TopBar() {
   const navigate = useNavigate();
@@ -17,12 +18,10 @@ export default function TopBar() {
       <button
         type="button"
         onClick={() => navigate("/home")}
-        className="flex items-center gap-2"
+        aria-label="FlowCare home"
+        className="flex items-center"
       >
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15">
-          <Stethoscope className="h-5 w-5 text-primary" />
-        </div>
-        <span className="font-display text-lg font-bold text-foreground">FlowCare</span>
+        <Logo height={38} />
       </button>
       <div className="flex items-center gap-1">
         <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/settings")} aria-label="Settings">
