@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import TopBar from "@/components/layout/TopBar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { TrendingUp, Stethoscope, ClipboardHeart, LucideIcon } from "lucide-react";
+import { TrendingUp, Stethoscope, HeartPulse, LucideIcon } from "lucide-react";
 
 type SectionKey = "sales" | "consult" | "treatment";
 
