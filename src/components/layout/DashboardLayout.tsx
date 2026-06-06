@@ -55,33 +55,27 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {links.map(link => {
-          const showBadge = (link as any).notifyKey === "lab" && pendingLabCount > 0;
-          return (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.to === "/dashboard"}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-              activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
-              onClick={() => setMobileOpen(false)}
-            >
-              <link.icon className="h-4 w-4" />
-              <span className="flex-1">{link.label}</span>
-              {showBadge && (
-                <span className="flex items-center gap-1.5">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
-                  </span>
-                  <span className="rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold px-1.5 py-0.5 min-w-[18px] text-center">
-                    {pendingLabCount > 99 ? "99+" : pendingLabCount}
-                  </span>
-                </span>
-              )}
-            </NavLink>
-          );
-        })}
+        <button
+          type="button"
+          onClick={() => { setMobileOpen(false); navigate("/home"); }}
+          className="mb-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to home</span>
+        </button>
+        {links.map(link => (
+          <NavLink
+            key={link.to}
+            to={link.to}
+            end={link.to === "/dashboard"}
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
+            onClick={() => setMobileOpen(false)}
+          >
+            <link.icon className="h-4 w-4" />
+            <span className="flex-1">{link.label}</span>
+          </NavLink>
+        ))}
       </nav>
 
       <div className="border-t border-sidebar-border p-4">
