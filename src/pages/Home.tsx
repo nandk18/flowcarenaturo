@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import Logo from "@/components/Logo";
 import { useAuth } from "@/hooks/useAuth";
 import TopBar from "@/components/layout/TopBar";
 import { Badge } from "@/components/ui/badge";
@@ -95,7 +96,8 @@ export default function Home() {
     <div className="flex min-h-screen flex-col bg-background">
       <TopBar />
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 py-12 sm:px-6">
-        <div className="mb-10 text-center">
+        <div className="mb-10 flex flex-col items-center text-center">
+          <Logo height={96} className="mb-6" />
           <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
             {getGreeting()}, {firstName}
           </h1>

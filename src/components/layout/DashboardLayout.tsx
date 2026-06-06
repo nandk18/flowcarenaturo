@@ -10,8 +10,9 @@ import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import SessionTimeoutWarning from "@/components/SessionTimeoutWarning";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import {
-  Stethoscope, Users, CalendarDays, Settings, LogOut, Menu, X, FileText, BarChart2, Calendar, Receipt, ArrowLeft
+  Users, CalendarDays, Settings, LogOut, Menu, X, FileText, BarChart2, Calendar, Receipt, ArrowLeft
 } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const adminLinks = [
   { to: "/dashboard", icon: CalendarDays, label: "Queue" },
@@ -47,11 +48,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const sidebarContent = (
     <>
-      <div className="flex h-16 items-center gap-3 px-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary/20">
-          <Stethoscope className="h-5 w-5 text-sidebar-primary" />
-        </div>
-        <span className="font-display text-lg font-bold text-sidebar-foreground">{clinic?.name || "FlowCare"}</span>
+      <div className="flex h-16 items-center gap-3 px-6 bg-sidebar-accent/40">
+        <Logo height={32} className="dark:invert-0 dark:mix-blend-normal" />
+        {clinic?.name && (
+          <span className="font-display text-sm font-semibold text-sidebar-foreground truncate">{clinic.name}</span>
+        )}
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-4">
@@ -104,8 +105,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen w-full">
       <div className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between gradient-sidebar px-4 md:hidden">
         <div className="flex items-center gap-2">
-          <Stethoscope className="h-5 w-5 text-sidebar-primary" />
-          <span className="font-display text-sm font-bold text-sidebar-foreground">{clinic?.name || "FlowCare"}</span>
+          <Logo height={26} />
+          {clinic?.name && (
+            <span className="font-display text-sm font-semibold text-sidebar-foreground truncate">{clinic.name}</span>
+          )}
         </div>
         <Button variant="ghost" size="sm" onClick={() => setMobileOpen(!mobileOpen)} className="text-sidebar-foreground">
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
