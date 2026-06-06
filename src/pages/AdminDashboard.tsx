@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { CalendarDays, Stethoscope, UserPlus, Clock, AlertTriangle, ArrowRight, TrendingUp, ClipboardHeart, Sparkles } from "lucide-react";
+import { CalendarDays, Stethoscope, UserPlus, Clock, AlertTriangle, ArrowRight, TrendingUp, HeartPulse, Sparkles } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import TodayAppointmentsWidget from "@/components/appointments/TodayAppointmentsWidget";
 import { cn } from "@/lib/utils";
