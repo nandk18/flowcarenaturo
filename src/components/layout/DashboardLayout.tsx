@@ -10,8 +10,9 @@ import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import SessionTimeoutWarning from "@/components/SessionTimeoutWarning";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import {
-  Stethoscope, Users, CalendarDays, Settings, LogOut, Menu, X, FileText, BarChart2, Calendar, Receipt, ArrowLeft
+  Users, CalendarDays, Settings, LogOut, Menu, X, FileText, BarChart2, Calendar, Receipt, ArrowLeft
 } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const adminLinks = [
   { to: "/dashboard", icon: CalendarDays, label: "Queue" },
