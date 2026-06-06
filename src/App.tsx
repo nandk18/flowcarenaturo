@@ -97,7 +97,7 @@ function AppRoutes() {
     checkInitialSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, authSession) => {
-      if ((event === "SIGNED_IN" || event === "USER_UPDATED") && authSession?.user) {
+      if (event === "SIGNED_IN" && authSession?.user) {
         setTimeout(() => {
           redirectForSession(authSession.user.id).catch(() => navigate("/login?error=auth_failed", { replace: true }));
         }, 0);
