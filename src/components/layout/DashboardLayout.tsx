@@ -105,8 +105,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen w-full">
       <div className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between gradient-sidebar px-4 md:hidden">
         <div className="flex items-center gap-2">
-          <Stethoscope className="h-5 w-5 text-sidebar-primary" />
-          <span className="font-display text-sm font-bold text-sidebar-foreground">{clinic?.name || "FlowCare"}</span>
+          <Logo height={26} />
+          {clinic?.name && (
+            <span className="font-display text-sm font-semibold text-sidebar-foreground truncate">{clinic.name}</span>
+          )}
         </div>
         <Button variant="ghost" size="sm" onClick={() => setMobileOpen(!mobileOpen)} className="text-sidebar-foreground">
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
