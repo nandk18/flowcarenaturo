@@ -28,59 +28,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { clinic } = useClinic();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [pendingLabCount, setPendingLabCount] = useState(0);
   const role = profile?.role ?? "admin";
-  const clinicId = profile?.clinic_id;
   const { showWarning, timeLeft, stayLoggedIn, logoutNow } = useSessionTimeout(!!session);
   const { log } = useAuditLog();
 
   const links = adminLinks;
-
-  useEffect(() => {
-    if (!clinicId) return;
-
-    const fetchPendingCount = async () => {
-      const { count } = await supabase
-        .from("lab_results")
-        .select("id", { count: "exact", head: true })
-        .eq("clinic_id", clinicId)
-        .eq("status", "pending_review");
-      setPendingLabCount(count || 0);
-    };
-
-    fetchPendingCount();
-
-    const channel = supabase
-      .channel(`lab-results-notify-${clinicId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "lab_results", filter: `clinic_id=eq.${clinicId}` },
-        async (payload: any) => {
-          fetchPendingCount();
-          if (payload.eventType === "INSERT") {
-            const newRow = payload.new;
-            let testName = "Lab result";
-            if (newRow?.lab_order_id) {
-              const { data } = await supabase
-                .from("lab_orders")
-                .select("test_name")
-                .eq("id", newRow.lab_order_id)
-                .single();
-              if (data?.test_name) testName = data.test_name;
-            }
-            triggerPushNotification({
-              id: `lab-result-${newRow.id}`,
-              title: "New Lab Result",
-              body: `${testName} is ready for review`,
-              url: "/dashboard/lab-results",
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [clinicId]);
 
   useEffect(() => {
     const timer = setTimeout(() => { requestPushPermission(); }, 3000);
