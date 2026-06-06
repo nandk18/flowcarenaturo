@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, 3000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         setSession(session);
         if (session?.user) {
           // Defer profile fetch to avoid deadlock

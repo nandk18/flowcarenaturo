@@ -73,7 +73,7 @@ export default function SuperAdmin() {
           </div>
         </div>
         <button
-          onClick={async () => { await signOut(); navigate("/auth"); }}
+          onClick={async () => { await signOut(); navigate("/login"); }}
           className="text-xs text-slate-400 hover:text-white border border-slate-700 rounded-lg px-3 py-1.5"
         >
           Sign Out

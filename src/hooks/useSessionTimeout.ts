@@ -41,7 +41,7 @@ export function useSessionTimeout(isAuthenticated: boolean) {
 
     timeoutRef.current = setTimeout(async () => {
       await supabase.auth.signOut();
-      navigate("/auth?reason=session_expired");
+      navigate("/login?reason=session_expired");
     }, TIMEOUT_MS);
   }, [isAuthenticated, navigate]);
 
@@ -75,7 +75,7 @@ export function useSessionTimeout(isAuthenticated: boolean) {
     clearAll();
     setShowWarning(false);
     await supabase.auth.signOut();
-    navigate("/auth?reason=session_expired");
+    navigate("/login?reason=session_expired");
   };
 
   return { showWarning, timeLeft, stayLoggedIn, logoutNow };
