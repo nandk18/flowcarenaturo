@@ -29,7 +29,20 @@ import {
   Download,
   FileSpreadsheet,
   Search,
+  ChevronDown,
+  ChevronRight as ChevronRightIcon,
+  PhoneOff,
+  RotateCw,
+  XCircle,
+  CalendarCheck,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
