@@ -32,7 +32,7 @@ type Note = { id: string; note: string; created_at: string };
 export default function SalesPatientDetail() {
   const { patientId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState("");
@@ -57,7 +57,7 @@ export default function SalesPatientDetail() {
       patient_id: patient.id,
       clinic_id: patient.clinic_id,
       note: newNote.trim(),
-      created_by: user?.id ?? null,
+      created_by: profile?.id ?? null,
     });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
