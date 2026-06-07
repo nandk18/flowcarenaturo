@@ -32,7 +32,7 @@ type Note = { id: string; note: string; created_at: string };
 export default function SalesPatientDetail() {
   const { patientId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState("");
