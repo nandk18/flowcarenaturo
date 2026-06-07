@@ -111,7 +111,7 @@ type LeadFormProps = {
   onSaved: (patient: Patient) => void;
 };
 
-function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
+export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
   const [firstName, setFirstName] = useState(initial?.first_name ?? "");
   const [lastName, setLastName] = useState(initial?.last_name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "+91");
