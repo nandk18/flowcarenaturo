@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Users, Phone, UserPlus, Settings as SettingsIcon, Home as HomeIcon, LogOut } from "lucide-react";
 import Logo from "@/components/Logo";
 import { useClinic } from "@/hooks/useClinic";
-import { cn as cn } from "@/lib/utils";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
