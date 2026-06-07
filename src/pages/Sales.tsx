@@ -97,7 +97,7 @@ const STATUS_STYLES: Record<LeadStatus, string> = {
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 const GENDERS = ["Male", "Female", "Other"];
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 function normalizePhone(raw: string) {
   const trimmed = raw.trim();
