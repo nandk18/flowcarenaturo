@@ -111,6 +111,26 @@ export default function AppointmentsPage() {
 
   useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
 
+  // Prefill patient from URL (?patient_id=...) and open booking dialog on /new
+  useEffect(() => {
+    if (!profile?.clinic_id || !urlPatientId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("patients")
+        .select("id, name, healthcare_id, phone")
+        .eq("id", urlPatientId)
+        .eq("clinic_id", profile.clinic_id)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      setSelectedPatient(data as Patient);
+      setSearchQuery(data.name);
+      setPatientLocked(true);
+      if (isNewRoute) setBookOpen(true);
+    })();
+    return () => { cancelled = true; };
+  }, [profile?.clinic_id, urlPatientId, isNewRoute]);
+
   const searchPatients = async (q: string) => {
     setSearchQuery(q);
     if (q.length < 2 || !profile?.clinic_id) { setPatients([]); return; }
@@ -137,10 +157,27 @@ export default function AppointmentsPage() {
         created_by: profile.user_id || null,
       } as any);
       if (error) throw error;
+
+      // Promote lead to current patient
+      await supabase
+        .from("patients")
+        .update({ lead_status: "current" })
+        .eq("id", selectedPatient.id);
+
       toast.success("Appointment booked successfully");
       setBookOpen(false);
+      const bookedPatientId = selectedPatient.id;
+      const wasLocked = patientLocked;
       resetBookForm();
       fetchAppointments();
+
+      if (wasLocked) {
+        if (fromSales) {
+          navigate(`/sales/patient/${bookedPatientId}`);
+        } else if (isNewRoute) {
+          navigate("/consult/appointments");
+        }
+      }
     } catch (err: any) {
       toast.error(err.message);
     } finally { setBooking(false); }
@@ -148,6 +185,7 @@ export default function AppointmentsPage() {
 
   const resetBookForm = () => {
     setSelectedPatient(null); setSearchQuery(""); setPatients([]);
+    setPatientLocked(false);
     setBookDoctorId(""); setBookDate(format(new Date(), "yyyy-MM-dd"));
     setBookTime("09:00"); setBookDuration("15"); setBookReason("");
   };
