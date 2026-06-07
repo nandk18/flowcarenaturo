@@ -243,6 +243,8 @@ function AppRoutes() {
       <Route path="/sales/patient/:patientId" element={<SalesPatientDetail />} />
       <Route path="/treatment" element={<Treatment />} />
       <Route path="/consult" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/consult/appointments" element={<AppointmentsPage />} />
+      <Route path="/consult/appointments/new" element={<AppointmentsPage />} />
       <Route path="/dashboard" element={<AdminDashboard />} />
       <Route path="/dashboard/consultation/:visitId" element={<DoctorConsultationPage />} />
       <Route path="/dashboard/patients" element={<PatientsPage />} />

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +55,12 @@ const STATUS_COLORS: Record<string, string> = {
 export default function AppointmentsPage() {
   const { profile } = useAuth();
   const { clinic } = useClinic();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const urlPatientId = searchParams.get("patient_id");
+  const fromSales = searchParams.get("from") === "sales";
+  const isNewRoute = location.pathname.endsWith("/appointments/new");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +68,7 @@ export default function AppointmentsPage() {
   const [listDate, setListDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [bookOpen, setBookOpen] = useState(false);
   const [detailAppt, setDetailAppt] = useState<Appointment | null>(null);
+  const [patientLocked, setPatientLocked] = useState(false);
 
   // Book form state
   const [searchQuery, setSearchQuery] = useState("");
@@ -103,6 +111,26 @@ export default function AppointmentsPage() {
 
   useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
 
+  // Prefill patient from URL (?patient_id=...) and open booking dialog on /new
+  useEffect(() => {
+    if (!profile?.clinic_id || !urlPatientId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("patients")
+        .select("id, name, healthcare_id, phone")
+        .eq("id", urlPatientId)
+        .eq("clinic_id", profile.clinic_id)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      setSelectedPatient(data as Patient);
+      setSearchQuery(data.name);
+      setPatientLocked(true);
+      if (isNewRoute) setBookOpen(true);
+    })();
+    return () => { cancelled = true; };
+  }, [profile?.clinic_id, urlPatientId, isNewRoute]);
+
   const searchPatients = async (q: string) => {
     setSearchQuery(q);
     if (q.length < 2 || !profile?.clinic_id) { setPatients([]); return; }
@@ -129,10 +157,27 @@ export default function AppointmentsPage() {
         created_by: profile.user_id || null,
       } as any);
       if (error) throw error;
+
+      // Promote lead to current patient
+      await supabase
+        .from("patients")
+        .update({ lead_status: "current" })
+        .eq("id", selectedPatient.id);
+
       toast.success("Appointment booked successfully");
       setBookOpen(false);
+      const bookedPatientId = selectedPatient.id;
+      const wasLocked = patientLocked;
       resetBookForm();
       fetchAppointments();
+
+      if (wasLocked) {
+        if (fromSales) {
+          navigate(`/sales/patient/${bookedPatientId}`);
+        } else if (isNewRoute) {
+          navigate("/consult/appointments");
+        }
+      }
     } catch (err: any) {
       toast.error(err.message);
     } finally { setBooking(false); }
@@ -140,6 +185,7 @@ export default function AppointmentsPage() {
 
   const resetBookForm = () => {
     setSelectedPatient(null); setSearchQuery(""); setPatients([]);
+    setPatientLocked(false);
     setBookDoctorId(""); setBookDate(format(new Date(), "yyyy-MM-dd"));
     setBookTime("09:00"); setBookDuration("15"); setBookReason("");
   };
@@ -295,25 +341,44 @@ export default function AppointmentsPage() {
           <DialogHeader><DialogTitle>Book Appointment</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Search Patient</Label>
-              <Input placeholder="Name, ID, or phone..." value={searchQuery} onChange={e => searchPatients(e.target.value)} className="rounded-lg" />
-              {patients.length > 0 && !selectedPatient && (
-                <div className="border rounded-lg max-h-40 overflow-auto">
-                  {patients.map(p => (
-                    <button key={p.id} className="w-full text-left px-3 py-2 hover:bg-muted text-sm border-b last:border-0"
-                      onClick={() => { setSelectedPatient(p); setPatients([]); setSearchQuery(p.name); }}>
-                      <span className="font-medium">{p.name}</span>
-                      {p.healthcare_id && <span className="ml-2 text-xs text-primary font-mono">{p.healthcare_id}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {selectedPatient && (
+              <Label>Patient</Label>
+              {patientLocked && selectedPatient ? (
                 <div className="flex items-center gap-2 bg-primary/10 rounded-lg px-3 py-2">
                   <User className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium">{selectedPatient.name}</span>
-                  <button className="ml-auto text-xs text-destructive" onClick={() => { setSelectedPatient(null); setSearchQuery(""); }}>✕</button>
+                  {selectedPatient.healthcare_id && (
+                    <span className="text-xs text-primary font-mono">{selectedPatient.healthcare_id}</span>
+                  )}
+                  <button
+                    type="button"
+                    className="ml-auto text-xs text-primary underline hover:no-underline"
+                    onClick={() => { setPatientLocked(false); setSelectedPatient(null); setSearchQuery(""); }}
+                  >
+                    change
+                  </button>
                 </div>
+              ) : (
+                <>
+                  <Input placeholder="Name, ID, or phone..." value={searchQuery} onChange={e => searchPatients(e.target.value)} className="rounded-lg" />
+                  {patients.length > 0 && !selectedPatient && (
+                    <div className="border rounded-lg max-h-40 overflow-auto">
+                      {patients.map(p => (
+                        <button key={p.id} className="w-full text-left px-3 py-2 hover:bg-muted text-sm border-b last:border-0"
+                          onClick={() => { setSelectedPatient(p); setPatients([]); setSearchQuery(p.name); }}>
+                          <span className="font-medium">{p.name}</span>
+                          {p.healthcare_id && <span className="ml-2 text-xs text-primary font-mono">{p.healthcare_id}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {selectedPatient && (
+                    <div className="flex items-center gap-2 bg-primary/10 rounded-lg px-3 py-2">
+                      <User className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">{selectedPatient.name}</span>
+                      <button className="ml-auto text-xs text-destructive" onClick={() => { setSelectedPatient(null); setSearchQuery(""); }}>✕</button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 

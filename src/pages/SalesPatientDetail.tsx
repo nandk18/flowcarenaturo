@@ -240,7 +240,7 @@ export default function SalesPatientDetail() {
             )}
             <Button
               className="bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={() => navigate(`/consult/appointments/new?patient_id=${patient.id}`)}
+              onClick={() => navigate(`/consult/appointments/new?patient_id=${patient.id}&from=sales`)}
             >
               <CalendarPlus className="mr-1.5 h-4 w-4" /> Add Appointment
             </Button>
