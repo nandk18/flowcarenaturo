@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import TopBar from "@/components/layout/TopBar";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Users, Phone, UserPlus, Settings as SettingsIcon, Home as HomeIcon, LogOut } from "lucide-react";
+import Logo from "@/components/Logo";
+import { useClinic } from "@/hooks/useClinic";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
 import {
   Table,
   TableHeader,
@@ -849,63 +852,140 @@ function CallTask({ clinicId }: { clinicId: string }) {
 }
 
 // ---------- Page ----------
+type SalesSection = "leads" | "call-task" | "add-lead";
+
+const SIDEBAR_ITEMS: { id: SalesSection; label: string; icon: typeof Users; path: string }[] = [
+  { id: "leads", label: "Lead List", icon: Users, path: "/sales/leads" },
+  { id: "call-task", label: "Call Task", icon: Phone, path: "/sales/call-task" },
+  { id: "add-lead", label: "Add a Lead", icon: UserPlus, path: "/sales/add-lead" },
+];
+
 export default function Sales() {
   const navigate = useNavigate();
-  const { profile } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tab = (searchParams.get("tab") as "leads" | "calls" | "add") || "leads";
+  const location = useLocation();
+  const { profile, signOut } = useAuth();
+  const { clinic } = useClinic();
   const [editing, setEditing] = useState<Patient | null>(null);
 
   const clinicId = profile?.clinic_id;
 
-  const setTab = (next: string) => {
-    setEditing(null);
-    setSearchParams({ tab: next });
+  const active: SalesSection = location.pathname.includes("/call-task")
+    ? "call-task"
+    : location.pathname.includes("/add-lead")
+    ? "add-lead"
+    : "leads";
+
+  const goTo = (section: SalesSection) => {
+    if (section !== "add-lead") setEditing(null);
+    navigate(`/sales/${section}`);
   };
 
   const handleSaved = (p: Patient) => {
     if (editing) {
       setEditing(null);
-      setSearchParams({ tab: "leads" });
+      navigate("/sales/leads");
     } else {
       navigate(`/sales/patient/${p.id}`);
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login");
+  };
+
+  const sectionTitle = SIDEBAR_ITEMS.find((s) => s.id === active)?.label ?? "Sales";
+
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <TopBar />
-      <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/home")}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to home
-        </Button>
-      </div>
+    <div className="flex min-h-screen w-full bg-background">
+      <aside className="hidden w-64 flex-col gradient-sidebar md:flex">
+        <div className="flex h-16 items-center gap-3 px-6 bg-sidebar-accent/40">
+          <Logo height={32} className="dark:invert-0 dark:mix-blend-normal" />
+          {clinic?.name && (
+            <span className="font-display text-sm font-semibold text-sidebar-foreground truncate">
+              {clinic.name}
+            </span>
+          )}
+        </div>
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
-        {!clinicId ? (
-          <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
-            Loading clinic...
+        <nav className="flex-1 space-y-1 px-3 py-4">
+          {SIDEBAR_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = active === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => goTo(item.id)}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-foreground font-medium"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                <span className="flex-1 text-left">{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="border-t border-sidebar-border p-3 space-y-1">
+          <button
+            type="button"
+            onClick={() => navigate("/dashboard/settings")}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          >
+            <SettingsIcon className="h-4 w-4" />
+            <span>Settings</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/home")}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          >
+            <HomeIcon className="h-4 w-4" />
+            <span>Back to Home</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur sm:px-6">
+          <div className="flex items-center gap-3">
+            <Logo height={32} className="md:hidden" />
+            <h1 className="font-display text-lg font-semibold">Sales · {sectionTitle}</h1>
           </div>
-        ) : (
-          <Tabs value={editing ? "add" : tab} onValueChange={setTab} className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-3">
-              <TabsTrigger value="leads">Lead List</TabsTrigger>
-              <TabsTrigger value="calls">Call Task</TabsTrigger>
-              <TabsTrigger value="add">{editing ? "Edit Patient" : "Add a Lead"}</TabsTrigger>
-            </TabsList>
+        </header>
 
-            <TabsContent value="leads" className="mt-6">
-              <LeadList clinicId={clinicId} onEdit={(p) => { setEditing(p); setSearchParams({ tab: "add" }); }} />
-            </TabsContent>
-            <TabsContent value="calls" className="mt-6">
-              <CallTask clinicId={clinicId} />
-            </TabsContent>
-            <TabsContent value="add" className="mt-6 max-w-3xl">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+          {!clinicId ? (
+            <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
+              Loading clinic...
+            </div>
+          ) : active === "leads" ? (
+            <LeadList
+              clinicId={clinicId}
+              onEdit={(p) => { setEditing(p); navigate("/sales/add-lead"); }}
+            />
+          ) : active === "call-task" ? (
+            <CallTask clinicId={clinicId} />
+          ) : (
+            <div className="max-w-3xl">
               <LeadForm clinicId={clinicId} initial={editing} onSaved={handleSaved} />
-            </TabsContent>
-          </Tabs>
-        )}
-      </main>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

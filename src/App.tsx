@@ -239,7 +239,10 @@ function AppRoutes() {
     <Routes>
       <Route path="/rx/:prescriptionId" element={<PrescriptionViewer />} />
       <Route path="/home" element={<Home />} />
-      <Route path="/sales" element={<Sales />} />
+      <Route path="/sales" element={<Navigate to="/sales/leads" replace />} />
+      <Route path="/sales/leads" element={<Sales />} />
+      <Route path="/sales/call-task" element={<Sales />} />
+      <Route path="/sales/add-lead" element={<Sales />} />
       <Route path="/sales/patient/:patientId" element={<SalesPatientDetail />} />
       <Route path="/treatment" element={<Treatment />} />
       <Route path="/consult" element={<Navigate to="/dashboard" replace />} />
