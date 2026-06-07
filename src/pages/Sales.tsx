@@ -292,6 +292,7 @@ function LeadList({ clinicId, onEdit }: LeadListProps) {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   useEffect(() => {
     let cancelled = false;
