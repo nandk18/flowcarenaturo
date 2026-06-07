@@ -29,7 +29,20 @@ import {
   Download,
   FileSpreadsheet,
   Search,
+  ChevronDown,
+  ChevronRight as ChevronRightIcon,
+  PhoneOff,
+  RotateCw,
+  XCircle,
+  CalendarCheck,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -501,81 +514,336 @@ function LeadList({ clinicId, onEdit }: LeadListProps) {
 }
 
 // ---------- Call Task ----------
+type CallOutcome = "no_answer" | "follow_up" | "not_interested" | "booked";
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+function addDaysISO(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+function diffDays(fromISO: string, toISO: string) {
+  const a = new Date(fromISO + "T00:00:00").getTime();
+  const b = new Date(toISO + "T00:00:00").getTime();
+  return Math.round((b - a) / 86400000);
+}
+
+function CallTaskRow({
+  patient,
+  onAction,
+}: {
+  patient: Patient;
+  onAction: (p: Patient, outcome: CallOutcome, note: string) => Promise<void>;
+}) {
+  const navigate = useNavigate();
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const today = todayISO();
+  const due = patient.call_due_date;
+  let sla: { label: string; cls: string } = { label: "—", cls: "text-muted-foreground" };
+  if (due) {
+    if (due < today) {
+      const days = diffDays(due, today);
+      sla = { label: `Overdue ${days} day${days === 1 ? "" : "s"}`, cls: "text-red-600 font-semibold" };
+    } else if (due === today) {
+      sla = { label: "Due Today", cls: "text-yellow-700 font-semibold" };
+    } else {
+      sla = { label: `Due ${due}`, cls: "text-blue-600 font-medium" };
+    }
+  }
+
+  const handle = async (outcome: CallOutcome) => {
+    setBusy(true);
+    try {
+      await onAction(patient, outcome, note.trim());
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border bg-card p-4 space-y-3">
+      <div className="flex flex-wrap items-center gap-3">
+        {statusBadge(patient.lead_status)}
+        <button
+          onClick={() => navigate(`/sales/patient/${patient.id}`)}
+          className="font-medium text-primary hover:underline"
+        >
+          {patient.name}
+        </button>
+        <span className={cn("ml-auto text-xs", sla.cls)}>{sla.label}</span>
+      </div>
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span>{patient.phone ?? "—"}</span>
+        {patient.phone && (
+          <Button variant="ghost" size="icon" asChild aria-label="WhatsApp" className="h-7 w-7">
+            <a
+              href={`https://wa.me/${patient.phone.replace(/[^\d]/g, "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <MessageCircle className="h-4 w-4 text-green-600" />
+            </a>
+          </Button>
+        )}
+      </div>
+      <Textarea
+        rows={2}
+        placeholder="Add a note..."
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+      />
+      <div className="flex justify-end">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" disabled={busy}>
+              Log Call <ChevronDown className="ml-1 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={() => handle("no_answer")}>
+              <PhoneOff className="mr-2 h-4 w-4" /> No Answer
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handle("follow_up")}>
+              <RotateCw className="mr-2 h-4 w-4" /> Follow Up
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handle("not_interested")}>
+              <XCircle className="mr-2 h-4 w-4" /> Not Interested
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handle("booked")}>
+              <CalendarCheck className="mr-2 h-4 w-4" /> Appointment Booked
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
+function CallSection({
+  title,
+  color,
+  rows,
+  onAction,
+  defaultOpen = true,
+}: {
+  title: string;
+  color: "red" | "yellow" | "blue";
+  rows: Patient[];
+  onAction: (p: Patient, outcome: CallOutcome, note: string) => Promise<void>;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const headerCls = {
+    red: "bg-red-50 text-red-700 border-red-200",
+    yellow: "bg-yellow-50 text-yellow-800 border-yellow-200",
+    blue: "bg-blue-50 text-blue-700 border-blue-200",
+  }[color];
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="rounded-xl border bg-card overflow-hidden">
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className={cn("flex w-full items-center gap-2 border-b px-4 py-3 text-left", headerCls)}
+        >
+          {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
+          <span className="font-semibold uppercase tracking-wide text-sm">{title}</span>
+          <span className="ml-2 inline-flex items-center justify-center rounded-full bg-background/70 px-2 py-0.5 text-xs font-semibold">
+            {rows.length}
+          </span>
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="space-y-3 p-4">
+          {rows.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground py-6">No leads in this group</p>
+          ) : (
+            rows.map((p) => <CallTaskRow key={p.id} patient={p} onAction={onAction} />)
+          )}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 function CallTask({ clinicId }: { clinicId: string }) {
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const [rows, setRows] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [doneToday, setDoneToday] = useState(0);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const today = new Date().toISOString().slice(0, 10);
-      const { data } = await supabase
+  const load = async () => {
+    setLoading(true);
+    const today = todayISO();
+    const [patientsRes, callsRes] = await Promise.all([
+      supabase
         .from("patients")
         .select("*")
         .eq("clinic_id", clinicId)
-        .in("lead_status", ["attempt1", "attempt2", "attempt3"])
-        .lte("call_due_date", today)
-        .order("call_due_date", { ascending: true });
-      if (!cancelled) {
-        setRows((data ?? []) as Patient[]);
-        setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
+        .in("lead_status", ["attempt1", "attempt2", "attempt3"]),
+      supabase
+        .from("call_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("clinic_id", clinicId)
+        .gte("called_at", today + "T00:00:00")
+        .lte("called_at", today + "T23:59:59"),
+    ]);
+    setRows((patientsRes.data ?? []) as Patient[]);
+    setDoneToday(callsRes.count ?? 0);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clinicId]);
 
-  return (
-    <div className="rounded-xl border bg-card">
-      <div className="border-b px-4 py-3">
-        <h2 className="font-display text-lg font-semibold">Today's call tasks</h2>
-        <p className="text-xs text-muted-foreground">Leads with a call due today or overdue</p>
+  const today = todayISO();
+  const { overdue, dueToday, upcoming } = useMemo(() => {
+    const overdue: Patient[] = [];
+    const dueToday: Patient[] = [];
+    const upcoming: Patient[] = [];
+    for (const p of rows) {
+      const d = p.call_due_date;
+      if (!d) continue;
+      if (d < today) overdue.push(p);
+      else if (d === today) dueToday.push(p);
+      else upcoming.push(p);
+    }
+    overdue.sort((a, b) => (b.sla_breach_days ?? 0) - (a.sla_breach_days ?? 0));
+    dueToday.sort((a, b) => (b.lead_status ?? "").localeCompare(a.lead_status ?? ""));
+    upcoming.sort((a, b) => (a.call_due_date ?? "").localeCompare(b.call_due_date ?? ""));
+    return { overdue, dueToday, upcoming };
+  }, [rows, today]);
+
+  const handleAction = async (p: Patient, outcome: CallOutcome, note: string) => {
+    const current = (p.lead_status ?? "attempt1") as LeadStatus;
+    let nextStatus: LeadStatus = current;
+    let nextDue: string | null = p.call_due_date;
+    let nextBreach: number = p.sla_breach_days ?? 0;
+    let removeFromQueue = false;
+    let navigateAfter: string | null = null;
+
+    if (outcome === "no_answer") {
+      if (current === "attempt3") {
+        nextStatus = "closed";
+        removeFromQueue = true;
+      } else {
+        nextDue = addDaysISO(1);
+        nextBreach = 0;
+      }
+    } else if (outcome === "follow_up") {
+      if (current === "attempt1") {
+        nextStatus = "attempt2";
+        nextDue = addDaysISO(2);
+      } else if (current === "attempt2") {
+        nextStatus = "attempt3";
+        nextDue = addDaysISO(3);
+      } else {
+        nextStatus = "attempt3";
+        nextDue = addDaysISO(3);
+      }
+      nextBreach = 0;
+    } else if (outcome === "not_interested") {
+      nextStatus = "closed";
+      removeFromQueue = true;
+    } else if (outcome === "booked") {
+      nextStatus = "current";
+      removeFromQueue = true;
+      navigateAfter = `/consult/appointments/new?patient_id=${p.id}`;
+    }
+
+    const { error: logError } = await supabase.from("call_logs").insert({
+      patient_id: p.id,
+      clinic_id: p.clinic_id,
+      outcome,
+      notes: note || null,
+      called_by: profile?.id ?? null,
+      called_at: new Date().toISOString(),
+    });
+    if (logError) {
+      toast.error(logError.message);
+      return;
+    }
+
+    if (note) {
+      await supabase.from("contact_notes").insert({
+        patient_id: p.id,
+        clinic_id: p.clinic_id,
+        note,
+        created_by: profile?.id ?? null,
+      });
+    }
+
+    const { error: updError } = await supabase
+      .from("patients")
+      .update({
+        lead_status: nextStatus,
+        call_due_date: nextDue,
+        sla_breach_days: nextBreach,
+      })
+      .eq("id", p.id);
+    if (updError) {
+      toast.error(updError.message);
+      return;
+    }
+
+    toast.success(
+      outcome === "no_answer"
+        ? "Logged: No answer"
+        : outcome === "follow_up"
+        ? "Logged: Follow up scheduled"
+        : outcome === "not_interested"
+        ? "Lead closed"
+        : "Appointment booked",
+    );
+
+    setDoneToday((n) => n + 1);
+    if (removeFromQueue) {
+      setRows((prev) => prev.filter((x) => x.id !== p.id));
+    } else {
+      setRows((prev) =>
+        prev.map((x) =>
+          x.id === p.id
+            ? { ...x, lead_status: nextStatus, call_due_date: nextDue, sla_breach_days: nextBreach }
+            : x,
+        ),
+      );
+    }
+    if (navigateAfter) navigate(navigateAfter);
+  };
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
+        Loading call tasks...
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Phone</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Call Due</TableHead>
-            <TableHead>SLA Breach</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {loading ? (
-            <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
-          ) : rows.length === 0 ? (
-            <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No pending calls 🎉</TableCell></TableRow>
-          ) : rows.map((p) => {
-            const breach = p.sla_breach_days ?? 0;
-            return (
-              <TableRow key={p.id}>
-                <TableCell>
-                  <button onClick={() => navigate(`/sales/patient/${p.id}`)} className="text-primary hover:underline font-medium">
-                    {p.name}
-                  </button>
-                </TableCell>
-                <TableCell className="text-sm">{p.phone ?? "—"}</TableCell>
-                <TableCell>{statusBadge(p.lead_status)}</TableCell>
-                <TableCell className="text-sm">{p.call_due_date ?? "—"}</TableCell>
-                <TableCell className={cn("text-sm", breach > 0 && "text-red-600 font-semibold")}>
-                  {breach > 0 ? `${breach}d` : "—"}
-                </TableCell>
-                <TableCell className="text-right">
-                  {p.phone && (
-                    <Button variant="ghost" size="icon" asChild aria-label="WhatsApp">
-                      <a href={`https://wa.me/${p.phone.replace(/[^\d]/g, "")}`} target="_blank" rel="noopener noreferrer">
-                        <MessageCircle className="h-4 w-4 text-green-600" />
-                      </a>
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+    );
+  }
+
+  const Pill = ({ icon, label, count, cls }: { icon: string; label: string; count: number; cls: string }) => (
+    <div className={cn("flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium", cls)}>
+      <span>{icon}</span>
+      <span>{label}:</span>
+      <span className="font-bold">{count}</span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap gap-2">
+        <Pill icon="🔴" label="Overdue" count={overdue.length} cls="bg-red-50 text-red-700 border-red-200" />
+        <Pill icon="🟡" label="Due Today" count={dueToday.length} cls="bg-yellow-50 text-yellow-800 border-yellow-200" />
+        <Pill icon="🔵" label="Upcoming" count={upcoming.length} cls="bg-blue-50 text-blue-700 border-blue-200" />
+        <Pill icon="✅" label="Done Today" count={doneToday} cls="bg-green-50 text-green-700 border-green-200" />
+      </div>
+
+      <CallSection title="Overdue" color="red" rows={overdue} onAction={handleAction} />
+      <CallSection title="Due Today" color="yellow" rows={dueToday} onAction={handleAction} />
+      <CallSection title="Upcoming" color="blue" rows={upcoming} onAction={handleAction} defaultOpen={false} />
     </div>
   );
 }
