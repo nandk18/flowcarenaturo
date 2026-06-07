@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import TopBar from "@/components/layout/TopBar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -11,6 +11,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +39,11 @@ import {
   Phone,
   Mail,
   MapPin,
+  Search,
+  FileText,
+  Receipt,
+  Calendar,
+  User,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -68,6 +87,34 @@ type AppointmentRow = {
   id: string;
   appointment_date: string;
   appointment_time: string | null;
+  status: string | null;
+  reason: string | null;
+  notes: string | null;
+  doctor_id: string | null;
+  doctor_name?: string | null;
+};
+
+type ClinicalNoteRow = {
+  id: string;
+  created_at: string;
+  visit_id: string | null;
+  doctor_id: string | null;
+  raw_transcript: string | null;
+  soap_notes: any;
+  audio_url: string | null;
+  doctor_name?: string | null;
+};
+
+type InvoiceRow = {
+  id: string;
+  invoice_number: string;
+  invoice_date: string;
+  total_amount: number;
+  paid_amount: number;
+  outstanding_amount: number;
+  status: string;
+  line_items: any;
+  notes: string | null;
 };
 
 const STATUS_STYLES: Record<LeadStatus, string> = {
@@ -86,18 +133,51 @@ const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
   { value: "closed", label: "Closed" },
 ];
 
+const INVOICE_STATUS_STYLES: Record<string, string> = {
+  paid: "bg-green-100 text-green-700 border-green-200",
+  unpaid: "bg-red-100 text-red-700 border-red-200",
+  partial: "bg-amber-100 text-amber-700 border-amber-200",
+  pending: "bg-amber-100 text-amber-700 border-amber-200",
+  cancelled: "bg-gray-100 text-gray-600 border-gray-200",
+};
+
+const APPT_STATUS_STYLES: Record<string, string> = {
+  scheduled: "bg-blue-100 text-blue-700 border-blue-200",
+  completed: "bg-green-100 text-green-700 border-green-200",
+  cancelled: "bg-gray-100 text-gray-600 border-gray-200",
+  "no-show": "bg-red-100 text-red-700 border-red-200",
+};
+
 function calcAge(dob: string | null) {
   if (!dob) return null;
   const d = new Date(dob);
   if (Number.isNaN(d.getTime())) return null;
   const diff = Date.now() - d.getTime();
-  const age = new Date(diff).getUTCFullYear() - 1970;
-  return age;
+  return new Date(diff).getUTCFullYear() - 1970;
 }
 
 function fmtDate(d?: string | null) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString();
+}
+
+function fmtDateShort(d?: string | null) {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function fmtCurrency(n: number) {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n || 0);
+}
+
+function notePreview(n: ClinicalNoteRow): string {
+  if (n.soap_notes && typeof n.soap_notes === "object") {
+    const s = n.soap_notes as any;
+    const txt = s.subjective || s.assessment || s.plan || s.objective || "";
+    if (txt) return String(txt).slice(0, 80);
+  }
+  if (n.raw_transcript) return n.raw_transcript.slice(0, 80);
+  return "Clinical note";
 }
 
 export default function SalesPatientDetail() {
@@ -107,6 +187,8 @@ export default function SalesPatientDetail() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
+  const [clinicalNotes, setClinicalNotes] = useState<ClinicalNoteRow[]>([]);
+  const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [addingNote, setAddingNote] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -143,16 +225,59 @@ export default function SalesPatientDetail() {
     if (!patientId) return;
     const { data } = await supabase
       .from("appointments")
-      .select("id, appointment_date, appointment_time")
+      .select("id, appointment_date, appointment_time, status, reason, notes, doctor_id")
       .eq("patient_id", patientId)
       .order("appointment_date", { ascending: false });
-    setAppointments((data ?? []) as AppointmentRow[]);
+    const rows = (data ?? []) as AppointmentRow[];
+    const docIds = Array.from(new Set(rows.map((r) => r.doctor_id).filter(Boolean))) as string[];
+    if (docIds.length) {
+      const { data: docs } = await supabase.from("doctors").select("id, name").in("id", docIds);
+      const map = new Map((docs ?? []).map((d: any) => [d.id, d.name]));
+      rows.forEach((r) => { r.doctor_name = r.doctor_id ? map.get(r.doctor_id) ?? null : null; });
+    }
+    setAppointments(rows);
+  };
+
+  const loadClinicalNotes = async () => {
+    if (!patientId) return;
+    // visits for this patient → clinical_notes
+    const { data: visits } = await supabase
+      .from("visits")
+      .select("id")
+      .eq("patient_id", patientId);
+    const visitIds = (visits ?? []).map((v: any) => v.id);
+    if (!visitIds.length) { setClinicalNotes([]); return; }
+    const { data: cn } = await supabase
+      .from("clinical_notes")
+      .select("id, created_at, visit_id, doctor_id, raw_transcript, soap_notes, audio_url")
+      .in("visit_id", visitIds)
+      .order("created_at", { ascending: false });
+    const rows = (cn ?? []) as ClinicalNoteRow[];
+    const docIds = Array.from(new Set(rows.map((r) => r.doctor_id).filter(Boolean))) as string[];
+    if (docIds.length) {
+      const { data: docs } = await supabase.from("doctors").select("id, name").in("id", docIds);
+      const map = new Map((docs ?? []).map((d: any) => [d.id, d.name]));
+      rows.forEach((r) => { r.doctor_name = r.doctor_id ? map.get(r.doctor_id) ?? null : null; });
+    }
+    setClinicalNotes(rows);
+  };
+
+  const loadInvoices = async () => {
+    if (!patientId) return;
+    const { data } = await supabase
+      .from("invoices")
+      .select("id, invoice_number, invoice_date, total_amount, paid_amount, outstanding_amount, status, line_items, notes")
+      .eq("patient_id", patientId)
+      .order("invoice_date", { ascending: false });
+    setInvoices((data ?? []) as InvoiceRow[]);
   };
 
   useEffect(() => {
     loadPatient();
     loadNotes();
     loadAppointments();
+    loadClinicalNotes();
+    loadInvoices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientId]);
 
@@ -252,159 +377,179 @@ export default function SalesPatientDetail() {
       </div>
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
-        <div className="grid gap-6 lg:grid-cols-10">
-          {/* LEFT COLUMN */}
-          <div className="space-y-6 lg:col-span-3">
-            {/* Patient Details */}
-            <section className="rounded-2xl border bg-card p-5 shadow-card">
-              <h2 className="font-display text-base font-semibold">Patient Details</h2>
-              <dl className="mt-4 space-y-3 text-sm">
-                <Field label="Full Name" value={patient.name} />
-                <Field
-                  label="Date of Birth"
-                  value={patient.dob ? `${fmtDate(patient.dob)}${age !== null ? ` (${age} yrs)` : ""}` : "—"}
-                />
-                <Field label="Gender" value={patient.gender ?? "—"} />
-                <Field label="Blood Group" value={patient.blood_group ?? "—"} />
-                <div>
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">Lead Status</dt>
-                  <dd className="mt-1">
-                    <Select
-                      value={patient.lead_status ?? undefined}
-                      onValueChange={(v) => updateStatus(v as LeadStatus)}
-                      disabled={statusSaving}
-                    >
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Select status" /></SelectTrigger>
-                      <SelectContent>
-                        {STATUS_OPTIONS.map((o) => (
-                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </dd>
-                </div>
-                <Field label="Lead Source" value={patient.lead_source ?? "—"} />
-                <Field label="Added On" value={fmtDate(patient.created_at)} />
-              </dl>
-            </section>
+        <Tabs defaultValue="general" className="w-full">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+            <TabsTrigger value="general"><User className="mr-1.5 h-3.5 w-3.5" /> General</TabsTrigger>
+            <TabsTrigger value="clinical"><FileText className="mr-1.5 h-3.5 w-3.5" /> Clinical Notes</TabsTrigger>
+            <TabsTrigger value="invoices"><Receipt className="mr-1.5 h-3.5 w-3.5" /> Invoices</TabsTrigger>
+            <TabsTrigger value="appointments"><Calendar className="mr-1.5 h-3.5 w-3.5" /> Appointments</TabsTrigger>
+          </TabsList>
 
-            {/* Contact Details */}
-            <section className="rounded-2xl border bg-card p-5 shadow-card">
-              <h2 className="font-display text-base font-semibold">Contact Details</h2>
-              <dl className="mt-4 space-y-3 text-sm">
-                <div>
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">Phone</dt>
-                  <dd className="mt-1 flex items-center gap-2">
-                    <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{patient.phone ?? "—"}</span>
-                    {patient.phone && (
-                      <a
-                        href={`https://wa.me/${phoneDigits}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center text-green-600 hover:underline text-xs"
-                      >
-                        <MessageCircle className="mr-1 h-3.5 w-3.5" /> WhatsApp
-                      </a>
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">Email</dt>
-                  <dd className="mt-1 flex items-center gap-2">
-                    <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{patient.email ?? "—"}</span>
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">Address</dt>
-                  <dd className="mt-1 flex items-start gap-2">
-                    <MapPin className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="whitespace-pre-wrap">{patient.address ?? "—"}</span>
-                  </dd>
-                </div>
-              </dl>
-            </section>
-
-            {/* Emergency Contact */}
-            <section className="rounded-2xl border bg-card p-5 shadow-card">
-              <h2 className="font-display text-base font-semibold">Emergency Contact</h2>
-              {patient.emergency_contact_name || patient.emergency_contact_phone || patient.emergency_contact_relation ? (
-                <dl className="mt-4 space-y-3 text-sm">
-                  <Field label="Name" value={patient.emergency_contact_name ?? "—"} />
-                  <Field label="Phone" value={patient.emergency_contact_phone ?? "—"} />
-                  <Field label="Relation" value={patient.emergency_contact_relation ?? "—"} />
-                </dl>
-              ) : (
-                <p className="mt-3 text-sm text-muted-foreground">Not provided</p>
-              )}
-            </section>
-          </div>
-
-          {/* RIGHT COLUMN */}
-          <div className="space-y-6 lg:col-span-7">
-            {/* Appointments Overview */}
-            <section className="rounded-2xl border bg-card p-5 shadow-card">
-              <h2 className="font-display text-base font-semibold">Appointments Overview</h2>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <StatBox label="Total Appointments" value={String(apptStats.total)} />
-                <StatBox label="Last Appointment" value={apptStats.last ? fmtDate(apptStats.last) : "None"} />
-                <StatBox label="Next Appointment" value={apptStats.next ? fmtDate(apptStats.next) : "None"} />
-              </div>
-            </section>
-
-            {/* Contact Notes */}
-            <section className="rounded-2xl border bg-card p-5 shadow-card">
-              <div className="flex items-center justify-between">
-                <h2 className="font-display text-base font-semibold">Contact Notes</h2>
-                {!addingNote && (
-                  <Button size="sm" onClick={() => setAddingNote(true)}>
-                    <Pencil className="mr-1.5 h-3.5 w-3.5" /> Add Note
-                  </Button>
-                )}
-              </div>
-
-              {addingNote && (
-                <div className="mt-4 space-y-2 rounded-lg border bg-background p-3">
-                  <Textarea
-                    value={newNote}
-                    onChange={(e) => setNewNote(e.target.value)}
-                    placeholder="Write a follow-up note..."
-                    rows={3}
-                    autoFocus
-                  />
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => { setAddingNote(false); setNewNote(""); }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button size="sm" onClick={saveNote} disabled={saving || !newNote.trim()}>
-                      {saving ? "Saving..." : "Save Note"}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-4 space-y-3">
-                {notes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No notes yet</p>
-                ) : (
-                  notes.map((n) => (
-                    <div key={n.id} className="rounded-lg border bg-background p-3">
-                      <p className="text-sm whitespace-pre-wrap">{n.note}</p>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        {n.author_name ?? "Unknown"} · {new Date(n.created_at).toLocaleString()}
-                      </p>
+          {/* ===== GENERAL ===== */}
+          <TabsContent value="general" className="mt-6">
+            <div className="grid gap-6 lg:grid-cols-10">
+              <div className="space-y-6 lg:col-span-3">
+                <section className="rounded-2xl border bg-card p-5 shadow-card">
+                  <h2 className="font-display text-base font-semibold">Patient Details</h2>
+                  <dl className="mt-4 space-y-3 text-sm">
+                    <Field label="Full Name" value={patient.name} />
+                    <Field
+                      label="Date of Birth"
+                      value={patient.dob ? `${fmtDate(patient.dob)}${age !== null ? ` (${age} yrs)` : ""}` : "—"}
+                    />
+                    <Field label="Gender" value={patient.gender ?? "—"} />
+                    <Field label="Blood Group" value={patient.blood_group ?? "—"} />
+                    <div>
+                      <dt className="text-xs uppercase tracking-wide text-muted-foreground">Lead Status</dt>
+                      <dd className="mt-1">
+                        <Select
+                          value={patient.lead_status ?? undefined}
+                          onValueChange={(v) => updateStatus(v as LeadStatus)}
+                          disabled={statusSaving}
+                        >
+                          <SelectTrigger className="h-9"><SelectValue placeholder="Select status" /></SelectTrigger>
+                          <SelectContent>
+                            {STATUS_OPTIONS.map((o) => (
+                              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </dd>
                     </div>
-                  ))
-                )}
+                    <Field label="Lead Source" value={patient.lead_source ?? "—"} />
+                    <Field label="Added On" value={fmtDate(patient.created_at)} />
+                  </dl>
+                </section>
+
+                <section className="rounded-2xl border bg-card p-5 shadow-card">
+                  <h2 className="font-display text-base font-semibold">Contact Details</h2>
+                  <dl className="mt-4 space-y-3 text-sm">
+                    <div>
+                      <dt className="text-xs uppercase tracking-wide text-muted-foreground">Phone</dt>
+                      <dd className="mt-1 flex items-center gap-2">
+                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>{patient.phone ?? "—"}</span>
+                        {patient.phone && (
+                          <a
+                            href={`https://wa.me/${phoneDigits}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-green-600 hover:underline text-xs"
+                          >
+                            <MessageCircle className="mr-1 h-3.5 w-3.5" /> WhatsApp
+                          </a>
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase tracking-wide text-muted-foreground">Email</dt>
+                      <dd className="mt-1 flex items-center gap-2">
+                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>{patient.email ?? "—"}</span>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase tracking-wide text-muted-foreground">Address</dt>
+                      <dd className="mt-1 flex items-start gap-2">
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="whitespace-pre-wrap">{patient.address ?? "—"}</span>
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section className="rounded-2xl border bg-card p-5 shadow-card">
+                  <h2 className="font-display text-base font-semibold">Emergency Contact</h2>
+                  {patient.emergency_contact_name || patient.emergency_contact_phone || patient.emergency_contact_relation ? (
+                    <dl className="mt-4 space-y-3 text-sm">
+                      <Field label="Name" value={patient.emergency_contact_name ?? "—"} />
+                      <Field label="Phone" value={patient.emergency_contact_phone ?? "—"} />
+                      <Field label="Relation" value={patient.emergency_contact_relation ?? "—"} />
+                    </dl>
+                  ) : (
+                    <p className="mt-3 text-sm text-muted-foreground">Not provided</p>
+                  )}
+                </section>
               </div>
-            </section>
-          </div>
-        </div>
+
+              <div className="space-y-6 lg:col-span-7">
+                <section className="rounded-2xl border bg-card p-5 shadow-card">
+                  <h2 className="font-display text-base font-semibold">Appointments Overview</h2>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <StatBox label="Total Appointments" value={String(apptStats.total)} />
+                    <StatBox label="Last Appointment" value={apptStats.last ? fmtDate(apptStats.last) : "None"} />
+                    <StatBox label="Next Appointment" value={apptStats.next ? fmtDate(apptStats.next) : "None"} />
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border bg-card p-5 shadow-card">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-display text-base font-semibold">Contact Notes</h2>
+                    {!addingNote && (
+                      <Button size="sm" onClick={() => setAddingNote(true)}>
+                        <Pencil className="mr-1.5 h-3.5 w-3.5" /> Add Note
+                      </Button>
+                    )}
+                  </div>
+
+                  {addingNote && (
+                    <div className="mt-4 space-y-2 rounded-lg border bg-background p-3">
+                      <Textarea
+                        value={newNote}
+                        onChange={(e) => setNewNote(e.target.value)}
+                        placeholder="Write a follow-up note..."
+                        rows={3}
+                        autoFocus
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => { setAddingNote(false); setNewNote(""); }}>
+                          Cancel
+                        </Button>
+                        <Button size="sm" onClick={saveNote} disabled={saving || !newNote.trim()}>
+                          {saving ? "Saving..." : "Save Note"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-4 space-y-3">
+                    {notes.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No notes yet</p>
+                    ) : (
+                      notes.map((n) => (
+                        <div key={n.id} className="rounded-lg border bg-background p-3">
+                          <p className="text-sm whitespace-pre-wrap">{n.note}</p>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            {n.author_name ?? "Unknown"} · {new Date(n.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </section>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ===== CLINICAL NOTES ===== */}
+          <TabsContent value="clinical" className="mt-6">
+            <ClinicalNotesTab patientName={patient.name} notes={clinicalNotes} />
+          </TabsContent>
+
+          {/* ===== INVOICES ===== */}
+          <TabsContent value="invoices" className="mt-6">
+            <InvoicesTab patientName={patient.name} invoices={invoices} />
+          </TabsContent>
+
+          {/* ===== APPOINTMENTS ===== */}
+          <TabsContent value="appointments" className="mt-6">
+            <AppointmentsTab
+              patientId={patient.id}
+              appointments={appointments}
+              onAdd={() => navigate(`/consult/appointments/new?patient_id=${patient.id}&from=sales`)}
+            />
+          </TabsContent>
+        </Tabs>
       </main>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -441,6 +586,398 @@ function StatBox({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl border bg-background p-4">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-2 font-display text-2xl font-semibold">{value}</p>
+    </div>
+  );
+}
+
+// ============ CLINICAL NOTES TAB ============
+
+function ClinicalNotesTab({ patientName, notes }: { patientName: string; notes: ClinicalNoteRow[] }) {
+  const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(notes[0]?.id ?? null);
+
+  useEffect(() => {
+    if (!selectedId && notes.length) setSelectedId(notes[0].id);
+  }, [notes, selectedId]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return notes;
+    return notes.filter((n) => {
+      const dateStr = fmtDateShort(n.created_at).toLowerCase();
+      const txt = (n.raw_transcript ?? "") + " " + JSON.stringify(n.soap_notes ?? {});
+      return dateStr.includes(q) || txt.toLowerCase().includes(q);
+    });
+  }, [notes, search]);
+
+  const selected = notes.find((n) => n.id === selectedId) ?? null;
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-10">
+      <aside className="lg:col-span-3 rounded-2xl border bg-card p-4 shadow-card">
+        <div className="flex items-center gap-2 mb-3">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <h3 className="font-display text-sm font-semibold">Search & Filter</h3>
+        </div>
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by date or content"
+          className="mb-3"
+        />
+        <div className="space-y-2 max-h-[600px] overflow-y-auto">
+          {filtered.length === 0 ? (
+            <p className="text-sm text-muted-foreground p-3 text-center">No clinical notes</p>
+          ) : (
+            filtered.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => setSelectedId(n.id)}
+                className={cn(
+                  "w-full text-left rounded-lg border p-3 transition hover:bg-accent",
+                  selectedId === n.id && "border-primary bg-accent"
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-primary">Note</span>
+                  <Pencil className="h-3 w-3 text-muted-foreground" />
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{fmtDateShort(n.created_at)}</p>
+                <p className="mt-1 text-sm line-clamp-2">{notePreview(n)}</p>
+              </button>
+            ))
+          )}
+        </div>
+      </aside>
+
+      <section className="lg:col-span-7 rounded-2xl border bg-card p-6 shadow-card">
+        {!selected ? (
+          <div className="flex h-64 items-center justify-center text-muted-foreground text-sm">
+            Select a note to view
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="border-b pb-3">
+              <h2 className="font-display text-xl font-semibold">{patientName}</h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                {selected.doctor_name ?? "Practitioner"} · {new Date(selected.created_at).toLocaleString()}
+              </p>
+            </div>
+
+            {selected.soap_notes && typeof selected.soap_notes === "object" ? (
+              <div className="space-y-4">
+                {(["subjective", "objective", "assessment", "plan"] as const).map((k) => {
+                  const v = (selected.soap_notes as any)[k];
+                  if (!v) return null;
+                  return (
+                    <div key={k}>
+                      <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">{k}</h4>
+                      <p className="text-sm whitespace-pre-wrap">{String(v)}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : selected.raw_transcript ? (
+              <div>
+                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">Transcript</h4>
+                <p className="text-sm whitespace-pre-wrap">{selected.raw_transcript}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No content</p>
+            )}
+
+            {selected.audio_url && (
+              <div className="border-t pt-3">
+                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">Attached audio</h4>
+                <audio src={selected.audio_url} controls className="w-full" />
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+// ============ INVOICES TAB ============
+
+function InvoicesTab({ patientName, invoices }: { patientName: string; invoices: InvoiceRow[] }) {
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedId, setSelectedId] = useState<string | null>(invoices[0]?.id ?? null);
+
+  useEffect(() => {
+    if (!selectedId && invoices.length) setSelectedId(invoices[0].id);
+  }, [invoices, selectedId]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return invoices.filter((i) => {
+      if (statusFilter !== "all" && i.status !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        i.invoice_number.toLowerCase().includes(q) ||
+        i.invoice_date.includes(q) ||
+        i.status.toLowerCase().includes(q)
+      );
+    });
+  }, [invoices, search, statusFilter]);
+
+  const selected = invoices.find((i) => i.id === selectedId) ?? null;
+  const lineItems: any[] = Array.isArray(selected?.line_items) ? (selected!.line_items as any[]) : [];
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-10">
+      <aside className="lg:col-span-3 rounded-2xl border bg-card p-4 shadow-card">
+        <div className="flex items-center gap-2 mb-3">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <h3 className="font-display text-sm font-semibold">Search & Filter</h3>
+        </div>
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Number, date, status"
+          className="mb-2"
+        />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="mb-3 h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="paid">Paid</SelectItem>
+            <SelectItem value="partial">Partial</SelectItem>
+            <SelectItem value="unpaid">Unpaid</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="space-y-2 max-h-[600px] overflow-y-auto">
+          {filtered.length === 0 ? (
+            <p className="text-sm text-muted-foreground p-3 text-center">No invoices</p>
+          ) : (
+            filtered.map((i) => (
+              <button
+                key={i.id}
+                onClick={() => setSelectedId(i.id)}
+                className={cn(
+                  "w-full text-left rounded-lg border p-3 transition hover:bg-accent",
+                  selectedId === i.id && "border-primary bg-accent"
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold">{i.invoice_number}</span>
+                  <span className={cn(
+                    "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
+                    INVOICE_STATUS_STYLES[i.status] ?? INVOICE_STATUS_STYLES.unpaid
+                  )}>{i.status}</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{fmtDateShort(i.invoice_date)}</p>
+                <p className="mt-1 text-sm font-medium">{fmtCurrency(Number(i.total_amount))}</p>
+              </button>
+            ))
+          )}
+        </div>
+      </aside>
+
+      <section className="lg:col-span-7 rounded-2xl border bg-card p-6 shadow-card">
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Coming Soon — invoice actions (download, share, payment) will be configured later.
+        </div>
+        {!selected ? (
+          <div className="flex h-64 items-center justify-center text-muted-foreground text-sm">
+            Select an invoice to view
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-start justify-between border-b pb-3">
+              <div>
+                <h2 className="font-display text-xl font-semibold">{patientName}</h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Invoice <span className="font-medium">{selected.invoice_number}</span> · {fmtDateShort(selected.invoice_date)}
+                </p>
+              </div>
+              <span className={cn(
+                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase",
+                INVOICE_STATUS_STYLES[selected.status] ?? INVOICE_STATUS_STYLES.unpaid
+              )}>{selected.status}</span>
+            </div>
+
+            <div className="rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead className="text-right">Qty</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {lineItems.length === 0 ? (
+                    <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">No line items</TableCell></TableRow>
+                  ) : lineItems.map((it, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="text-sm">{it.description ?? it.name ?? "Item"}</TableCell>
+                      <TableCell className="text-sm text-right">{it.quantity ?? 1}</TableCell>
+                      <TableCell className="text-sm text-right">{fmtCurrency(Number(it.price ?? it.unit_price ?? 0))}</TableCell>
+                      <TableCell className="text-sm text-right">{fmtCurrency(Number(it.amount ?? (it.quantity ?? 1) * (it.price ?? it.unit_price ?? 0)))}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-3 text-sm">
+              <div className="rounded-lg border bg-background p-3">
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="font-display text-lg font-semibold">{fmtCurrency(Number(selected.total_amount))}</p>
+              </div>
+              <div className="rounded-lg border bg-background p-3">
+                <p className="text-xs text-muted-foreground">Paid</p>
+                <p className="font-display text-lg font-semibold">{fmtCurrency(Number(selected.paid_amount))}</p>
+              </div>
+              <div className="rounded-lg border bg-background p-3">
+                <p className="text-xs text-muted-foreground">Outstanding</p>
+                <p className="font-display text-lg font-semibold">{fmtCurrency(Number(selected.outstanding_amount))}</p>
+              </div>
+            </div>
+
+            {selected.notes && (
+              <div>
+                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">Notes</h4>
+                <p className="text-sm whitespace-pre-wrap">{selected.notes}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+// ============ APPOINTMENTS TAB ============
+
+function AppointmentsTab({
+  patientId,
+  appointments,
+  onAdd,
+}: {
+  patientId: string;
+  appointments: AppointmentRow[];
+  onAdd: () => void;
+}) {
+  const [filter, setFilter] = useState<"all" | "upcoming" | "past" | "cancelled">("all");
+  const [pageSize, setPageSize] = useState(10);
+  const [page, setPage] = useState(1);
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const sorted = useMemo(() => {
+    const upcoming = appointments
+      .filter((a) => a.appointment_date >= today && a.status !== "cancelled")
+      .sort((a, b) => a.appointment_date.localeCompare(b.appointment_date));
+    const past = appointments
+      .filter((a) => a.appointment_date < today && a.status !== "cancelled")
+      .sort((a, b) => b.appointment_date.localeCompare(a.appointment_date));
+    const cancelled = appointments.filter((a) => a.status === "cancelled");
+
+    switch (filter) {
+      case "upcoming": return upcoming;
+      case "past": return past;
+      case "cancelled": return cancelled;
+      default: return [...upcoming, ...past, ...cancelled];
+    }
+  }, [appointments, filter, today]);
+
+  useEffect(() => { setPage(1); }, [filter, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const pageRows = sorted.slice((page - 1) * pageSize, page * pageSize);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1 rounded-lg border bg-card p-1">
+          {(["all", "upcoming", "past", "cancelled"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium rounded-md capitalize transition",
+                filter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
+              )}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+        <Button onClick={onAdd} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <CalendarPlus className="mr-1.5 h-4 w-4" /> Add Appointment
+        </Button>
+      </div>
+
+      <div className="rounded-2xl border bg-card shadow-card overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date & Time</TableHead>
+              <TableHead>Doctor</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Notes</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pageRows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
+                  No appointments found for this patient
+                </TableCell>
+              </TableRow>
+            ) : pageRows.map((a) => (
+              <TableRow key={a.id}>
+                <TableCell className="text-sm">
+                  {fmtDateShort(a.appointment_date)}
+                  {a.appointment_time && <span className="text-muted-foreground"> · {a.appointment_time.slice(0, 5)}</span>}
+                </TableCell>
+                <TableCell className="text-sm">{a.doctor_name ?? "—"}</TableCell>
+                <TableCell className="text-sm">{a.reason ?? "Consultation"}</TableCell>
+                <TableCell>
+                  <span className={cn(
+                    "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
+                    APPT_STATUS_STYLES[a.status ?? "scheduled"] ?? APPT_STATUS_STYLES.scheduled
+                  )}>{a.status ?? "scheduled"}</span>
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground max-w-[280px] truncate">
+                  {a.notes ? a.notes.slice(0, 60) + (a.notes.length > 60 ? "..." : "") : "—"}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-xs">Rows per page</span>
+          <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+            <SelectTrigger className="w-[80px] h-8"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {[10, 20, 50].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <span className="text-muted-foreground ml-2">
+            {sorted.length === 0
+              ? "0 results"
+              : `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, sorted.length)} of ${sorted.length}`}
+          </span>
+        </div>
+        {totalPages > 1 && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>Prev</Button>
+            <span className="px-2 py-1">Page {page} of {totalPages}</span>
+            <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage(page + 1)}>Next</Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
