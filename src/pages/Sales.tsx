@@ -753,7 +753,7 @@ function CallTask({ clinicId }: { clinicId: string }) {
     } else if (outcome === "booked") {
       nextStatus = "current";
       removeFromQueue = true;
-      navigateAfter = `/consult/appointments/new?patient_id=${p.id}`;
+      navigateAfter = `/consult/appointments/new?patient_id=${p.id}&from=sales`;
     }
 
     const { error: logError } = await supabase.from("call_logs").insert({
