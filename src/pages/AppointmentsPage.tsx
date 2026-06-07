@@ -341,25 +341,44 @@ export default function AppointmentsPage() {
           <DialogHeader><DialogTitle>Book Appointment</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Search Patient</Label>
-              <Input placeholder="Name, ID, or phone..." value={searchQuery} onChange={e => searchPatients(e.target.value)} className="rounded-lg" />
-              {patients.length > 0 && !selectedPatient && (
-                <div className="border rounded-lg max-h-40 overflow-auto">
-                  {patients.map(p => (
-                    <button key={p.id} className="w-full text-left px-3 py-2 hover:bg-muted text-sm border-b last:border-0"
-                      onClick={() => { setSelectedPatient(p); setPatients([]); setSearchQuery(p.name); }}>
-                      <span className="font-medium">{p.name}</span>
-                      {p.healthcare_id && <span className="ml-2 text-xs text-primary font-mono">{p.healthcare_id}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {selectedPatient && (
+              <Label>Patient</Label>
+              {patientLocked && selectedPatient ? (
                 <div className="flex items-center gap-2 bg-primary/10 rounded-lg px-3 py-2">
                   <User className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium">{selectedPatient.name}</span>
-                  <button className="ml-auto text-xs text-destructive" onClick={() => { setSelectedPatient(null); setSearchQuery(""); }}>✕</button>
+                  {selectedPatient.healthcare_id && (
+                    <span className="text-xs text-primary font-mono">{selectedPatient.healthcare_id}</span>
+                  )}
+                  <button
+                    type="button"
+                    className="ml-auto text-xs text-primary underline hover:no-underline"
+                    onClick={() => { setPatientLocked(false); setSelectedPatient(null); setSearchQuery(""); }}
+                  >
+                    change
+                  </button>
                 </div>
+              ) : (
+                <>
+                  <Input placeholder="Name, ID, or phone..." value={searchQuery} onChange={e => searchPatients(e.target.value)} className="rounded-lg" />
+                  {patients.length > 0 && !selectedPatient && (
+                    <div className="border rounded-lg max-h-40 overflow-auto">
+                      {patients.map(p => (
+                        <button key={p.id} className="w-full text-left px-3 py-2 hover:bg-muted text-sm border-b last:border-0"
+                          onClick={() => { setSelectedPatient(p); setPatients([]); setSearchQuery(p.name); }}>
+                          <span className="font-medium">{p.name}</span>
+                          {p.healthcare_id && <span className="ml-2 text-xs text-primary font-mono">{p.healthcare_id}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {selectedPatient && (
+                    <div className="flex items-center gap-2 bg-primary/10 rounded-lg px-3 py-2">
+                      <User className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">{selectedPatient.name}</span>
+                      <button className="ml-auto text-xs text-destructive" onClick={() => { setSelectedPatient(null); setSearchQuery(""); }}>✕</button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
