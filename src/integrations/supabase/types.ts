@@ -187,6 +187,58 @@ export type Database = {
           },
         ]
       }
+      call_logs: {
+        Row: {
+          called_at: string | null
+          called_by: string | null
+          clinic_id: string | null
+          id: string
+          notes: string | null
+          outcome: string
+          patient_id: string | null
+        }
+        Insert: {
+          called_at?: string | null
+          called_by?: string | null
+          clinic_id?: string | null
+          id?: string
+          notes?: string | null
+          outcome: string
+          patient_id?: string | null
+        }
+        Update: {
+          called_at?: string | null
+          called_by?: string | null
+          clinic_id?: string | null
+          id?: string
+          notes?: string | null
+          outcome?: string
+          patient_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_logs_called_by_fkey"
+            columns: ["called_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_labs: {
         Row: {
           added_at: string | null
@@ -327,6 +379,55 @@ export type Database = {
           regional_language?: string | null
         }
         Relationships: []
+      }
+      contact_notes: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          note: string
+          patient_id: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          note: string
+          patient_id?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          note?: string
+          patient_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_notes_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_notes_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       doctors: {
         Row: {
@@ -872,7 +973,9 @@ export type Database = {
       patients: {
         Row: {
           allergies: Json | null
+          assigned_to: string | null
           blood_group: string | null
+          call_due_date: string | null
           chronic_conditions: Json | null
           clinic_id: string
           created_at: string | null
@@ -883,12 +986,17 @@ export type Database = {
           healthcare_id: string | null
           id: string
           last_name: string | null
+          lead_source: string | null
+          lead_status: string | null
           name: string
           phone: string | null
+          sla_breach_days: number | null
         }
         Insert: {
           allergies?: Json | null
+          assigned_to?: string | null
           blood_group?: string | null
+          call_due_date?: string | null
           chronic_conditions?: Json | null
           clinic_id: string
           created_at?: string | null
@@ -899,12 +1007,17 @@ export type Database = {
           healthcare_id?: string | null
           id?: string
           last_name?: string | null
+          lead_source?: string | null
+          lead_status?: string | null
           name: string
           phone?: string | null
+          sla_breach_days?: number | null
         }
         Update: {
           allergies?: Json | null
+          assigned_to?: string | null
           blood_group?: string | null
+          call_due_date?: string | null
           chronic_conditions?: Json | null
           clinic_id?: string
           created_at?: string | null
@@ -915,10 +1028,20 @@ export type Database = {
           healthcare_id?: string | null
           id?: string
           last_name?: string | null
+          lead_source?: string | null
+          lead_status?: string | null
           name?: string
           phone?: string | null
+          sla_breach_days?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "patients_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "patients_clinic_id_fkey"
             columns: ["clinic_id"]
@@ -1219,6 +1342,7 @@ export type Database = {
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      update_sla_breach_days: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "doctor" | "receptionist" | "lab" | "super_admin"
