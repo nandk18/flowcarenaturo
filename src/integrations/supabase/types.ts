@@ -972,6 +972,7 @@ export type Database = {
       }
       patients: {
         Row: {
+          address: string | null
           allergies: Json | null
           assigned_to: string | null
           blood_group: string | null
@@ -981,6 +982,9 @@ export type Database = {
           created_at: string | null
           dob: string | null
           email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relation: string | null
           first_name: string | null
           gender: string | null
           healthcare_id: string | null
@@ -993,6 +997,7 @@ export type Database = {
           sla_breach_days: number | null
         }
         Insert: {
+          address?: string | null
           allergies?: Json | null
           assigned_to?: string | null
           blood_group?: string | null
@@ -1002,6 +1007,9 @@ export type Database = {
           created_at?: string | null
           dob?: string | null
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
           first_name?: string | null
           gender?: string | null
           healthcare_id?: string | null
@@ -1014,6 +1022,7 @@ export type Database = {
           sla_breach_days?: number | null
         }
         Update: {
+          address?: string | null
           allergies?: Json | null
           assigned_to?: string | null
           blood_group?: string | null
@@ -1023,6 +1032,9 @@ export type Database = {
           created_at?: string | null
           dob?: string | null
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
           first_name?: string | null
           gender?: string | null
           healthcare_id?: string | null
