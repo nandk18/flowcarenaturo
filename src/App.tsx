@@ -21,6 +21,7 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import AppointmentsPage from "./pages/AppointmentsPage";
 import Home from "./pages/Home";
 import Sales from "./pages/Sales";
+import SalesPatientDetail from "./pages/SalesPatientDetail";
 import Treatment from "./pages/Treatment";
 
 import SuperAdmin from "./pages/SuperAdmin";
@@ -239,6 +240,7 @@ function AppRoutes() {
       <Route path="/rx/:prescriptionId" element={<PrescriptionViewer />} />
       <Route path="/home" element={<Home />} />
       <Route path="/sales" element={<Sales />} />
+      <Route path="/sales/patient/:patientId" element={<SalesPatientDetail />} />
       <Route path="/treatment" element={<Treatment />} />
       <Route path="/consult" element={<Navigate to="/dashboard" replace />} />
       <Route path="/dashboard" element={<AdminDashboard />} />
