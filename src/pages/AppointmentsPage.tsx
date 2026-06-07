@@ -55,6 +55,12 @@ const STATUS_COLORS: Record<string, string> = {
 export default function AppointmentsPage() {
   const { profile } = useAuth();
   const { clinic } = useClinic();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const urlPatientId = searchParams.get("patient_id");
+  const fromSales = searchParams.get("from") === "sales";
+  const isNewRoute = location.pathname.endsWith("/appointments/new");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +68,7 @@ export default function AppointmentsPage() {
   const [listDate, setListDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [bookOpen, setBookOpen] = useState(false);
   const [detailAppt, setDetailAppt] = useState<Appointment | null>(null);
+  const [patientLocked, setPatientLocked] = useState(false);
 
   // Book form state
   const [searchQuery, setSearchQuery] = useState("");
