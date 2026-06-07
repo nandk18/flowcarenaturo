@@ -57,7 +57,7 @@ export default function SalesPatientDetail() {
       patient_id: patient.id,
       clinic_id: patient.clinic_id,
       note: newNote.trim(),
-      created_by: user?.id ?? null,
+      created_by: profile?.id ?? null,
     });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
