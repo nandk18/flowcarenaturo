@@ -343,9 +343,10 @@ export default function SalesPatientDetail() {
   const phoneDigits = patient.phone ? patient.phone.replace(/[^\d]/g, "") : "";
   const age = calcAge(patient.dob);
 
-  const headerBar = (
-    <div className="border-b bg-card">
-      <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
+  const content = (
+    <>
+      <div className="border-b bg-card">
+        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
         <Button variant="ghost" size="icon" onClick={() => navigate(backTo)} aria-label="Back">
           <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -573,6 +574,17 @@ export default function SalesPatientDetail() {
           />
         </DialogContent>
       </Dialog>
+    </>
+  );
+
+  if (fromConsult) {
+    return <DashboardLayout>{content}</DashboardLayout>;
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      <TopBar />
+      {content}
     </div>
   );
 }
