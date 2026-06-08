@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import TopBar from "@/components/layout/TopBar";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -184,7 +185,10 @@ function notePreview(n: ClinicalNoteRow): string {
 export default function SalesPatientDetail() {
   const { patientId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { profile } = useAuth();
+  const fromConsult = location.pathname.startsWith("/consult/");
+  const backTo = fromConsult ? "/consult/patients" : "/sales/leads";
   const [patient, setPatient] = useState<Patient | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
