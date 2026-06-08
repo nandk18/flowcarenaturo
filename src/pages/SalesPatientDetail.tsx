@@ -96,15 +96,18 @@ type AppointmentRow = {
   doctor_name?: string | null;
 };
 
-type ClinicalNoteRow = {
+type VisitDetail = {
   id: string;
+  visit_date: string | null;
   created_at: string;
-  visit_id: string | null;
+  chief_complaint: string | null;
+  vitals: any;
+  status: string | null;
   doctor_id: string | null;
-  raw_transcript: string | null;
-  soap_notes: any;
-  audio_url: string | null;
   doctor_name?: string | null;
+  clinical_notes: { id: string; soap_notes: any; raw_transcript: string | null; audio_url: string | null; created_at: string }[];
+  prescriptions: { id: string; medications: any; investigations: any; notes: string | null; follow_up_date: string | null; pdf_url: string | null }[];
+  documents: { id: string; file_name: string | null; file_url: string | null; document_type: string | null }[];
 };
 
 type InvoiceRow = {
@@ -192,7 +195,7 @@ export default function SalesPatientDetail() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
-  const [clinicalNotes, setClinicalNotes] = useState<ClinicalNoteRow[]>([]);
+  const [clinicalNotes, setClinicalNotes] = useState<VisitDetail[]>([]);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [addingNote, setAddingNote] = useState(false);
   const [newNote, setNewNote] = useState("");
@@ -245,26 +248,46 @@ export default function SalesPatientDetail() {
 
   const loadClinicalNotes = async () => {
     if (!patientId) return;
-    // visits for this patient → clinical_notes
     const { data: visits } = await supabase
       .from("visits")
-      .select("id")
-      .eq("patient_id", patientId);
-    const visitIds = (visits ?? []).map((v: any) => v.id);
-    if (!visitIds.length) { setClinicalNotes([]); return; }
-    const { data: cn } = await supabase
-      .from("clinical_notes")
-      .select("id, created_at, visit_id, doctor_id, raw_transcript, soap_notes, audio_url")
-      .in("visit_id", visitIds)
-      .order("created_at", { ascending: false });
-    const rows = (cn ?? []) as ClinicalNoteRow[];
+      .select(`
+        id, visit_date, created_at, chief_complaint, vitals, status, doctor_id,
+        clinical_notes(id, soap_notes, raw_transcript, audio_url, created_at),
+        prescriptions(id, medications, investigations, notes, follow_up_date, pdf_url)
+      `)
+      .eq("patient_id", patientId)
+      .order("visit_date", { ascending: false, nullsFirst: false });
+    const rows = (visits ?? []) as any[];
     const docIds = Array.from(new Set(rows.map((r) => r.doctor_id).filter(Boolean))) as string[];
+    let docMap = new Map<string, string>();
     if (docIds.length) {
       const { data: docs } = await supabase.from("doctors").select("id, name").in("id", docIds);
-      const map = new Map((docs ?? []).map((d: any) => [d.id, d.name]));
-      rows.forEach((r) => { r.doctor_name = r.doctor_id ? map.get(r.doctor_id) ?? null : null; });
+      docMap = new Map((docs ?? []).map((d: any) => [d.id, d.name]));
     }
-    setClinicalNotes(rows);
+    // Load patient-level documents and group them by visit_id when present.
+    const { data: docsRows } = await supabase
+      .from("patient_documents")
+      .select("id, file_name, file_url, document_type, visit_id")
+      .eq("patient_id", patientId);
+    const docsByVisit: Record<string, any[]> = {};
+    (docsRows ?? []).forEach((d: any) => {
+      const k = d.visit_id ?? "_patient";
+      (docsByVisit[k] ||= []).push(d);
+    });
+    const enriched: VisitDetail[] = rows.map((r: any) => ({
+      id: r.id,
+      visit_date: r.visit_date,
+      created_at: r.created_at,
+      chief_complaint: r.chief_complaint,
+      vitals: r.vitals,
+      status: r.status,
+      doctor_id: r.doctor_id,
+      doctor_name: r.doctor_id ? docMap.get(r.doctor_id) ?? null : null,
+      clinical_notes: r.clinical_notes ?? [],
+      prescriptions: r.prescriptions ?? [],
+      documents: docsByVisit[r.id] ?? [],
+    }));
+    setClinicalNotes(enriched);
   };
 
   const loadInvoices = async () => {
