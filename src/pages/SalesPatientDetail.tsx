@@ -581,7 +581,12 @@ export default function SalesPatientDetail() {
 
           {/* ===== CLINICAL NOTES ===== */}
           <TabsContent value="clinical" className="mt-6">
-            <ClinicalNotesTab patientName={patient.name} notes={clinicalNotes} />
+            <ClinicalNotesTab
+              patientName={patient.name}
+              notes={clinicalNotes}
+              editable={fromConsult}
+              onReload={loadClinicalNotes}
+            />
           </TabsContent>
 
           {/* ===== INVOICES ===== */}
