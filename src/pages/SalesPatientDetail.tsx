@@ -175,14 +175,32 @@ function fmtCurrency(n: number) {
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n || 0);
 }
 
-function notePreview(n: ClinicalNoteRow): string {
-  if (n.soap_notes && typeof n.soap_notes === "object") {
-    const s = n.soap_notes as any;
+function visitPreview(v: VisitDetail): string {
+  if (v.chief_complaint) return v.chief_complaint.slice(0, 80);
+  const cn = v.clinical_notes?.[0];
+  if (cn?.soap_notes && typeof cn.soap_notes === "object") {
+    const s = cn.soap_notes as any;
     const txt = s.subjective || s.assessment || s.plan || s.objective || "";
     if (txt) return String(txt).slice(0, 80);
   }
-  if (n.raw_transcript) return n.raw_transcript.slice(0, 80);
-  return "Clinical note";
+  if (cn?.raw_transcript) return cn.raw_transcript.slice(0, 80);
+  return "Consultation";
+}
+
+function fmtVitals(vitals: any): { label: string; value: string }[] {
+  if (!vitals || typeof vitals !== "object") return [];
+  const map: Record<string, string> = {
+    bp: "BP", blood_pressure: "BP",
+    pulse: "Pulse", heart_rate: "Pulse",
+    temp: "Temp", temperature: "Temp",
+    weight: "Weight",
+    height: "Height",
+    spo2: "SpO₂", oxygen_saturation: "SpO₂",
+    respiratory_rate: "RR", rr: "RR",
+  };
+  return Object.entries(vitals)
+    .filter(([, v]) => v !== null && v !== undefined && v !== "")
+    .map(([k, v]) => ({ label: map[k.toLowerCase()] ?? k, value: String(v) }));
 }
 
 export default function SalesPatientDetail() {
