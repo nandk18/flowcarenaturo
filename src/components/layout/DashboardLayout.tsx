@@ -13,11 +13,12 @@ import {
   Users, CalendarDays, Settings, LogOut, Menu, X, FileText, BarChart2, Calendar, Receipt, ArrowLeft
 } from "lucide-react";
 import Logo from "@/components/Logo";
+import SidebarLogo from "@/components/SidebarLogo";
 
 const adminLinks = [
   { to: "/dashboard", icon: CalendarDays, label: "Queue" },
   { to: "/dashboard/appointments", icon: Calendar, label: "Appointments" },
-  { to: "/dashboard/patients", icon: Users, label: "Patients" },
+  { to: "/consult/patients", icon: Users, label: "Patients" },
   { to: "/dashboard/templates", icon: FileText, label: "Templates" },
   { to: "/dashboard/billing", icon: Receipt, label: "Billing" },
   { to: "/dashboard/analytics", icon: BarChart2, label: "Analytics" },
@@ -49,7 +50,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const sidebarContent = (
     <>
       <div className="flex h-16 items-center gap-3 px-6 bg-sidebar-accent/40">
-        <Logo height={32} className="dark:invert-0 dark:mix-blend-normal" />
+        <SidebarLogo clinicName={clinic?.name} size={32} />
         {clinic?.name && (
           <span className="font-display text-sm font-semibold text-sidebar-foreground truncate">{clinic.name}</span>
         )}
@@ -105,7 +106,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen w-full">
       <div className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between gradient-sidebar px-4 md:hidden">
         <div className="flex items-center gap-2">
-          <Logo height={26} />
+          <SidebarLogo clinicName={clinic?.name} size={26} />
           {clinic?.name && (
             <span className="font-display text-sm font-semibold text-sidebar-foreground truncate">{clinic.name}</span>
           )}

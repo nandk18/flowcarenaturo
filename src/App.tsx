@@ -33,6 +33,7 @@ import BillingPage from "./pages/BillingPage";
 import InvoiceDetailPage from "./pages/InvoiceDetailPage";
 import PublicInvoiceViewer from "./pages/PublicInvoiceViewer";
 import NotFound from "./pages/NotFound";
+import ConsultPatients from "./pages/ConsultPatients";
 import CookieConsent from "./components/CookieConsent";
 import TestWhatsApp from "./pages/__TestWhatsApp";
 import { useEffect, useState } from "react";
@@ -248,6 +249,8 @@ function AppRoutes() {
       <Route path="/consult" element={<Navigate to="/dashboard" replace />} />
       <Route path="/consult/appointments" element={<AppointmentsPage />} />
       <Route path="/consult/appointments/new" element={<AppointmentsPage />} />
+      <Route path="/consult/patients" element={<ConsultPatients />} />
+      <Route path="/consult/patients/:patientId" element={<SalesPatientDetail />} />
       <Route path="/dashboard" element={<AdminDashboard />} />
       <Route path="/dashboard/consultation/:visitId" element={<DoctorConsultationPage />} />
       <Route path="/dashboard/patients" element={<PatientsPage />} />
