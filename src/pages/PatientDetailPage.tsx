@@ -302,6 +302,15 @@ export default function PatientDetailPage() {
         </div>
       )}
 
+      {/* Invoices */}
+      {patientId && profile?.clinic_id && (
+        <div className="mt-6">
+          <h2 className="font-display text-lg font-semibold text-foreground mb-3">Invoices</h2>
+          <PatientInvoicesTab patientId={patientId} clinicId={profile.clinic_id} />
+        </div>
+      )}
+
+
       {/* Edit Visit Sheet */}
       <EditVisitSheet
         open={!!editingVisit}
