@@ -52,6 +52,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { LeadForm } from "./Sales";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
+import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 
 type LeadStatus = "attempt1" | "attempt2" | "attempt3" | "closed" | "current";
 
@@ -580,7 +581,12 @@ export default function SalesPatientDetail() {
 
           {/* ===== CLINICAL NOTES ===== */}
           <TabsContent value="clinical" className="mt-6">
-            <ClinicalNotesTab patientName={patient.name} notes={clinicalNotes} />
+            <ClinicalNotesTab
+              patientName={patient.name}
+              notes={clinicalNotes}
+              editable={fromConsult}
+              onReload={loadClinicalNotes}
+            />
           </TabsContent>
 
           {/* ===== INVOICES ===== */}
@@ -650,9 +656,20 @@ function StatBox({ label, value }: { label: string; value: string }) {
 
 // ============ CLINICAL NOTES TAB ============
 
-function ClinicalNotesTab({ patientName, notes }: { patientName: string; notes: VisitDetail[] }) {
+function ClinicalNotesTab({
+  patientName,
+  notes,
+  editable = false,
+  onReload,
+}: {
+  patientName: string;
+  notes: VisitDetail[];
+  editable?: boolean;
+  onReload?: () => void;
+}) {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(notes[0]?.id ?? null);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     if (!selectedId && notes.length) setSelectedId(notes[0].id);
@@ -678,7 +695,38 @@ function ClinicalNotesTab({ patientName, notes }: { patientName: string; notes: 
         Array.isArray(p.medications) ? p.medications : []
       )
     : [];
+  const investigations: any[] = selected
+    ? selected.prescriptions.flatMap((p) =>
+        Array.isArray(p.investigations) ? p.investigations : []
+      )
+    : [];
   const rxNotes = selected?.prescriptions.map((p) => p.notes).filter(Boolean) ?? [];
+  const followUps = selected?.prescriptions.map((p) => p.follow_up_date).filter(Boolean) ?? [];
+  const rxPdfs = selected?.prescriptions.filter((p) => p.pdf_url) ?? [];
+
+  const firstNote = selected?.clinical_notes?.[0];
+  const firstRx = selected?.prescriptions?.[0];
+  const editVisit = selected
+    ? {
+        id: selected.id,
+        clinical_notes_id: firstNote?.id ?? null,
+        soap_notes: firstNote?.soap_notes ?? {},
+        prescription_id: firstRx?.id ?? null,
+        medications: firstRx?.medications ?? [],
+        follow_up_date: firstRx?.follow_up_date ?? null,
+        prescription_notes: firstRx?.notes ?? null,
+      }
+    : null;
+
+  const fmtSchedule = (m: any) => {
+    const parts: string[] = [];
+    if (m.morning) parts.push("M");
+    if (m.afternoon) parts.push("A");
+    if (m.evening) parts.push("E");
+    if (m.night) parts.push("N");
+    if (parts.length) return parts.join(" - ");
+    return m.frequency ?? "—";
+  };
 
   return (
     <div className="grid gap-4 lg:grid-cols-10">
@@ -729,13 +777,20 @@ function ClinicalNotesTab({ patientName, notes }: { patientName: string; notes: 
           </div>
         ) : (
           <div className="space-y-5">
-            <div className="border-b pb-3">
-              <h2 className="font-display text-xl font-semibold">{patientName}</h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                {fmtDateShort(selected.visit_date ?? selected.created_at)} ·{" "}
-                {new Date(selected.created_at).toLocaleTimeString()} ·{" "}
-                {selected.doctor_name ?? "Doctor"}
-              </p>
+            <div className="flex items-start justify-between border-b pb-3 gap-3">
+              <div>
+                <h2 className="font-display text-xl font-semibold">{patientName}</h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {fmtDateShort(selected.visit_date ?? selected.created_at)} ·{" "}
+                  {new Date(selected.created_at).toLocaleTimeString()} ·{" "}
+                  {selected.doctor_name ?? "Doctor"}
+                </p>
+              </div>
+              {editable && editVisit && (firstNote || firstRx) && (
+                <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
+                </Button>
+              )}
             </div>
 
             {selected.chief_complaint && (
@@ -766,30 +821,40 @@ function ClinicalNotesTab({ patientName, notes }: { patientName: string; notes: 
             {selected.clinical_notes.length === 0 ? (
               <p className="text-sm text-muted-foreground">No clinical notes recorded.</p>
             ) : (
-              selected.clinical_notes.map((cn) => (
-                <div key={cn.id} className="space-y-3 rounded-lg border bg-background p-3">
-                  {cn.soap_notes && typeof cn.soap_notes === "object" ? (
-                    (["subjective", "objective", "assessment", "plan"] as const).map((k) => {
-                      const v = (cn.soap_notes as any)[k];
-                      if (!v) return null;
-                      return (
+              selected.clinical_notes.map((cn) => {
+                const soap = cn.soap_notes as any;
+                const templateName = soap?._template ?? null;
+                const soapKeys = soap && typeof soap === "object"
+                  ? Object.keys(soap).filter((k) => k !== "_template" && soap[k])
+                  : [];
+                return (
+                  <div key={cn.id} className="space-y-3 rounded-lg border bg-background p-3">
+                    {templateName && (
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Template: {templateName}
+                      </p>
+                    )}
+                    {soapKeys.length > 0 ? (
+                      soapKeys.map((k) => (
                         <div key={k}>
-                          <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">{k}</h4>
-                          <p className="text-sm whitespace-pre-wrap">{String(v)}</p>
+                          <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">
+                            {k.replace(/_/g, " ")}
+                          </h4>
+                          <p className="text-sm whitespace-pre-wrap">{String(soap[k])}</p>
                         </div>
-                      );
-                    })
-                  ) : cn.raw_transcript ? (
-                    <div>
-                      <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">Transcript</h4>
-                      <p className="text-sm whitespace-pre-wrap">{cn.raw_transcript}</p>
-                    </div>
-                  ) : null}
-                  {cn.audio_url && (
-                    <audio src={cn.audio_url} controls className="w-full" />
-                  )}
-                </div>
-              ))
+                      ))
+                    ) : cn.raw_transcript ? (
+                      <div>
+                        <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">Transcript</h4>
+                        <p className="text-sm whitespace-pre-wrap">{cn.raw_transcript}</p>
+                      </div>
+                    ) : null}
+                    {cn.audio_url && (
+                      <audio src={cn.audio_url} controls className="w-full" />
+                    )}
+                  </div>
+                );
+              })
             )}
 
             {meds.length > 0 && (
@@ -801,8 +866,9 @@ function ClinicalNotesTab({ patientName, notes }: { patientName: string; notes: 
                       <TableRow>
                         <TableHead>Medicine</TableHead>
                         <TableHead>Dosage</TableHead>
-                        <TableHead>Frequency</TableHead>
+                        <TableHead>Schedule</TableHead>
                         <TableHead>Duration</TableHead>
+                        <TableHead>Instructions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -810,8 +876,9 @@ function ClinicalNotesTab({ patientName, notes }: { patientName: string; notes: 
                         <TableRow key={i}>
                           <TableCell className="text-sm">{m.name ?? m.medicine ?? "—"}</TableCell>
                           <TableCell className="text-sm">{m.dosage ?? m.dose ?? "—"}</TableCell>
-                          <TableCell className="text-sm">{m.frequency ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{fmtSchedule(m)}</TableCell>
                           <TableCell className="text-sm">{m.duration ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{m.notes ?? m.instructions ?? "—"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -825,6 +892,40 @@ function ClinicalNotesTab({ patientName, notes }: { patientName: string; notes: 
                     ))}
                   </div>
                 )}
+                {followUps.length > 0 && (
+                  <p className="mt-2 text-sm">
+                    <span className="text-xs uppercase tracking-wide text-muted-foreground">Follow-up: </span>
+                    {followUps.map((d) => fmtDateShort(d as string)).join(", ")}
+                  </p>
+                )}
+                {rxPdfs.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {rxPdfs.map((p) => (
+                      <a
+                        key={p.id}
+                        href={p.pdf_url!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                      >
+                        <FileText className="h-3.5 w-3.5" /> Prescription PDF
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {investigations.length > 0 && (
+              <div>
+                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">Investigations</h4>
+                <ul className="list-disc pl-5 space-y-1">
+                  {investigations.map((inv, i) => (
+                    <li key={i} className="text-sm">
+                      {typeof inv === "string" ? inv : inv.name ?? inv.test ?? JSON.stringify(inv)}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 
@@ -848,12 +949,21 @@ function ClinicalNotesTab({ patientName, notes }: { patientName: string; notes: 
               </div>
             )}
 
-            <p className="text-[11px] text-muted-foreground border-t pt-3">
-              Read-only view. Editing happens in Consult.
-            </p>
+            {!editable && (
+              <p className="text-[11px] text-muted-foreground border-t pt-3">
+                Read-only view. Editing happens in Consult.
+              </p>
+            )}
           </div>
         )}
       </section>
+
+      <EditVisitSheet
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        visit={editVisit}
+        onSaved={() => { setEditOpen(false); onReload?.(); }}
+      />
     </div>
   );
 }
