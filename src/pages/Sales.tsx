@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Users, Phone, UserPlus, Settings as SettingsIcon, Home as HomeIcon, LogOut } from "lucide-react";
-import Logo from "@/components/Logo";
+import SidebarLogo from "@/components/SidebarLogo";
 import { useClinic } from "@/hooks/useClinic";
 
 import { Button } from "@/components/ui/button";
@@ -280,9 +280,11 @@ export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
 type LeadListProps = {
   clinicId: string;
   onEdit: (patient: Patient) => void;
+  /** URL prefix for patient detail navigation. Defaults to /sales/patient. */
+  patientHrefPrefix?: string;
 };
 
-function LeadList({ clinicId, onEdit }: LeadListProps) {
+export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient" }: LeadListProps) {
   const navigate = useNavigate();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [notesByPatient, setNotesByPatient] = useState<Record<string, string>>({});
@@ -453,7 +455,7 @@ function LeadList({ clinicId, onEdit }: LeadListProps) {
                   <TableCell>
                     <button
                       type="button"
-                      onClick={() => navigate(`/sales/patient/${p.id}`)}
+                      onClick={() => navigate(`${patientHrefPrefix}/${p.id}`)}
                       className="text-primary hover:underline font-medium"
                     >
                       {p.name}
@@ -912,7 +914,7 @@ export default function Sales() {
     <div className="flex min-h-screen w-full bg-background">
       <aside className="hidden w-64 flex-col gradient-sidebar md:flex">
         <div className="flex h-16 items-center gap-3 px-6 bg-sidebar-accent/40">
-          <Logo height={32} className="dark:invert-0 dark:mix-blend-normal" />
+          <SidebarLogo clinicName={clinic?.name} size={32} />
           {clinic?.name && (
             <span className="font-display text-sm font-semibold text-sidebar-foreground truncate">
               {clinic.name}
@@ -974,7 +976,7 @@ export default function Sales() {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur sm:px-6">
           <div className="flex items-center gap-3">
-            <Logo height={32} className="md:hidden" />
+            <div className="md:hidden"><SidebarLogo clinicName={clinic?.name} size={28} /></div>
             <h1 className="font-display text-lg font-semibold">Sales · {sectionTitle}</h1>
           </div>
         </header>
