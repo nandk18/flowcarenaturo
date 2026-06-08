@@ -650,7 +650,7 @@ function StatBox({ label, value }: { label: string; value: string }) {
 
 // ============ CLINICAL NOTES TAB ============
 
-function ClinicalNotesTab({ patientName, notes }: { patientName: string; notes: ClinicalNoteRow[] }) {
+function ClinicalNotesTab({ patientName, notes }: { patientName: string; notes: VisitDetail[] }) {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(notes[0]?.id ?? null);
 
@@ -661,47 +661,61 @@ function ClinicalNotesTab({ patientName, notes }: { patientName: string; notes: 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return notes;
-    return notes.filter((n) => {
-      const dateStr = fmtDateShort(n.created_at).toLowerCase();
-      const txt = (n.raw_transcript ?? "") + " " + JSON.stringify(n.soap_notes ?? {});
+    return notes.filter((v) => {
+      const dateStr = fmtDateShort(v.visit_date ?? v.created_at).toLowerCase();
+      const txt =
+        (v.chief_complaint ?? "") + " " +
+        (v.doctor_name ?? "") + " " +
+        v.clinical_notes.map((c) => (c.raw_transcript ?? "") + JSON.stringify(c.soap_notes ?? {})).join(" ");
       return dateStr.includes(q) || txt.toLowerCase().includes(q);
     });
   }, [notes, search]);
 
-  const selected = notes.find((n) => n.id === selectedId) ?? null;
+  const selected = notes.find((v) => v.id === selectedId) ?? null;
+  const vitals = selected ? fmtVitals(selected.vitals) : [];
+  const meds: any[] = selected
+    ? selected.prescriptions.flatMap((p) =>
+        Array.isArray(p.medications) ? p.medications : []
+      )
+    : [];
+  const rxNotes = selected?.prescriptions.map((p) => p.notes).filter(Boolean) ?? [];
 
   return (
     <div className="grid gap-4 lg:grid-cols-10">
       <aside className="lg:col-span-3 rounded-2xl border bg-card p-4 shadow-card">
         <div className="flex items-center gap-2 mb-3">
           <Search className="h-4 w-4 text-muted-foreground" />
-          <h3 className="font-display text-sm font-semibold">Search & Filter</h3>
+          <h3 className="font-display text-sm font-semibold">Visits</h3>
         </div>
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by date or content"
+          placeholder="Search by date, doctor, content"
           className="mb-3"
         />
         <div className="space-y-2 max-h-[600px] overflow-y-auto">
           {filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-3 text-center">No clinical notes</p>
+            <p className="text-sm text-muted-foreground p-3 text-center">No consultations</p>
           ) : (
-            filtered.map((n) => (
+            filtered.map((v) => (
               <button
-                key={n.id}
-                onClick={() => setSelectedId(n.id)}
+                key={v.id}
+                onClick={() => setSelectedId(v.id)}
                 className={cn(
                   "w-full text-left rounded-lg border p-3 transition hover:bg-accent",
-                  selectedId === n.id && "border-primary bg-accent"
+                  selectedId === v.id && "border-primary bg-accent"
                 )}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-primary">Note</span>
-                  <Pencil className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs font-semibold uppercase tracking-wide text-primary">
+                    {fmtDateShort(v.visit_date ?? v.created_at)}
+                  </span>
+                  {v.status && (
+                    <span className="text-[10px] uppercase text-muted-foreground">{v.status}</span>
+                  )}
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">{fmtDateShort(n.created_at)}</p>
-                <p className="mt-1 text-sm line-clamp-2">{notePreview(n)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{v.doctor_name ?? "Doctor"}</p>
+                <p className="mt-1 text-sm line-clamp-2">{visitPreview(v)}</p>
               </button>
             ))
           )}
@@ -711,45 +725,132 @@ function ClinicalNotesTab({ patientName, notes }: { patientName: string; notes: 
       <section className="lg:col-span-7 rounded-2xl border bg-card p-6 shadow-card">
         {!selected ? (
           <div className="flex h-64 items-center justify-center text-muted-foreground text-sm">
-            Select a note to view
+            Select a visit to view full consultation
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="border-b pb-3">
               <h2 className="font-display text-xl font-semibold">{patientName}</h2>
               <p className="text-xs text-muted-foreground mt-1">
-                {selected.doctor_name ?? "Practitioner"} · {new Date(selected.created_at).toLocaleString()}
+                {fmtDateShort(selected.visit_date ?? selected.created_at)} ·{" "}
+                {new Date(selected.created_at).toLocaleTimeString()} ·{" "}
+                {selected.doctor_name ?? "Doctor"}
               </p>
             </div>
 
-            {selected.soap_notes && typeof selected.soap_notes === "object" ? (
-              <div className="space-y-4">
-                {(["subjective", "objective", "assessment", "plan"] as const).map((k) => {
-                  const v = (selected.soap_notes as any)[k];
-                  if (!v) return null;
-                  return (
-                    <div key={k}>
-                      <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">{k}</h4>
-                      <p className="text-sm whitespace-pre-wrap">{String(v)}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : selected.raw_transcript ? (
+            {selected.chief_complaint && (
               <div>
-                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">Transcript</h4>
-                <p className="text-sm whitespace-pre-wrap">{selected.raw_transcript}</p>
+                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">
+                  Chief Complaint
+                </h4>
+                <p className="text-sm whitespace-pre-wrap">{selected.chief_complaint}</p>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No content</p>
             )}
 
-            {selected.audio_url && (
-              <div className="border-t pt-3">
-                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">Attached audio</h4>
-                <audio src={selected.audio_url} controls className="w-full" />
+            {vitals.length > 0 && (
+              <div>
+                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">
+                  Vitals
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {vitals.map((v) => (
+                    <div key={v.label} className="rounded-md border bg-background px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{v.label}</p>
+                      <p className="text-sm font-medium">{v.value}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
+
+            {selected.clinical_notes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No clinical notes recorded.</p>
+            ) : (
+              selected.clinical_notes.map((cn) => (
+                <div key={cn.id} className="space-y-3 rounded-lg border bg-background p-3">
+                  {cn.soap_notes && typeof cn.soap_notes === "object" ? (
+                    (["subjective", "objective", "assessment", "plan"] as const).map((k) => {
+                      const v = (cn.soap_notes as any)[k];
+                      if (!v) return null;
+                      return (
+                        <div key={k}>
+                          <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">{k}</h4>
+                          <p className="text-sm whitespace-pre-wrap">{String(v)}</p>
+                        </div>
+                      );
+                    })
+                  ) : cn.raw_transcript ? (
+                    <div>
+                      <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">Transcript</h4>
+                      <p className="text-sm whitespace-pre-wrap">{cn.raw_transcript}</p>
+                    </div>
+                  ) : null}
+                  {cn.audio_url && (
+                    <audio src={cn.audio_url} controls className="w-full" />
+                  )}
+                </div>
+              ))
+            )}
+
+            {meds.length > 0 && (
+              <div>
+                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">Prescription</h4>
+                <div className="rounded-lg border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Medicine</TableHead>
+                        <TableHead>Dosage</TableHead>
+                        <TableHead>Frequency</TableHead>
+                        <TableHead>Duration</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {meds.map((m, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="text-sm">{m.name ?? m.medicine ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{m.dosage ?? m.dose ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{m.frequency ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{m.duration ?? "—"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {rxNotes.length > 0 && (
+                  <div className="mt-2">
+                    <h5 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">Special Instructions</h5>
+                    {rxNotes.map((n, i) => (
+                      <p key={i} className="text-sm whitespace-pre-wrap">{n}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {selected.documents.length > 0 && (
+              <div>
+                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">Attached Files</h4>
+                <ul className="space-y-1">
+                  {selected.documents.map((d) => (
+                    <li key={d.id}>
+                      <a
+                        href={d.file_url ?? "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary hover:underline"
+                      >
+                        {d.file_name ?? d.document_type ?? "Document"}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <p className="text-[11px] text-muted-foreground border-t pt-3">
+              Read-only view. Editing happens in Consult.
+            </p>
           </div>
         )}
       </section>
