@@ -50,6 +50,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { LeadForm } from "./Sales";
+import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 
 type LeadStatus = "attempt1" | "attempt2" | "attempt3" | "closed" | "current";
 
