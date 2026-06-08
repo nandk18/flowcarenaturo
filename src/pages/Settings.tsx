@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import InvoiceServicesSection from "@/components/billing/InvoiceServicesSection";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -593,6 +594,8 @@ export default function Settings() {
             </Button>
           </CardContent>
         </Card>
+
+        <InvoiceServicesSection />
 
         {/* Billing Settings */}
         <Card className="rounded-2xl border-0 shadow-sm">

@@ -517,8 +517,56 @@ export type Database = {
           },
         ]
       }
+      invoice_services: {
+        Row: {
+          amount: number
+          clinic_id: string | null
+          created_at: string | null
+          description: string | null
+          gst_percentage: number | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number
+          clinic_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          gst_percentage?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          clinic_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          gst_percentage?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_services_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
+          appointment_id: string | null
           clinic_id: string
           created_at: string | null
           created_by: string | null
@@ -542,6 +590,7 @@ export type Database = {
           visit_id: string | null
         }
         Insert: {
+          appointment_id?: string | null
           clinic_id: string
           created_at?: string | null
           created_by?: string | null
@@ -565,6 +614,7 @@ export type Database = {
           visit_id?: string | null
         }
         Update: {
+          appointment_id?: string | null
           clinic_id?: string
           created_at?: string | null
           created_by?: string | null
@@ -589,17 +639,17 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "invoices_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "invoices_clinic_id_fkey"
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoices_doctor_id_fkey"
-            columns: ["doctor_id"]
-            isOneToOne: false
-            referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
           {

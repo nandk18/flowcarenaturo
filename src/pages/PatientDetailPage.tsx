@@ -16,6 +16,7 @@ import { renderClinicalNotes } from "@/lib/templateFields";
 import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 import { openPrescription } from "@/lib/prescriptionUtils";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
+import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 
 type Patient = {
   id: string; name: string; healthcare_id: string | null; gender: string | null;
@@ -301,6 +302,15 @@ export default function PatientDetailPage() {
           })}
         </div>
       )}
+
+      {/* Invoices */}
+      {patientId && profile?.clinic_id && (
+        <div className="mt-6">
+          <h2 className="font-display text-lg font-semibold text-foreground mb-3">Invoices</h2>
+          <PatientInvoicesTab patientId={patientId} clinicId={profile.clinic_id} />
+        </div>
+      )}
+
 
       {/* Edit Visit Sheet */}
       <EditVisitSheet
