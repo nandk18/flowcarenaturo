@@ -16,6 +16,7 @@ import { renderClinicalNotes } from "@/lib/templateFields";
 import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 import { openPrescription } from "@/lib/prescriptionUtils";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
+import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 
 type Patient = {
   id: string; name: string; healthcare_id: string | null; gender: string | null;
