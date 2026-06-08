@@ -538,7 +538,7 @@ export default function SalesPatientDetail() {
 
           {/* ===== INVOICES ===== */}
           <TabsContent value="invoices" className="mt-6">
-            <InvoicesTab patientName={patient.name} invoices={invoices} />
+            <PatientInvoicesTab patientId={patient.id} clinicId={patient.clinic_id} />
           </TabsContent>
 
           {/* ===== APPOINTMENTS ===== */}
