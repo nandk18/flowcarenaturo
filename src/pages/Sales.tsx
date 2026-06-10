@@ -132,6 +132,7 @@ export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
   const [firstName, setFirstName] = useState(initial?.first_name ?? "");
   const [lastName, setLastName] = useState(initial?.last_name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "+91");
+  const [convenientTime, setConvenientTime] = useState(initial?.convenient_time ?? "");
   const [dob, setDob] = useState(initial?.dob ?? "");
   const [gender, setGender] = useState(initial?.gender ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
