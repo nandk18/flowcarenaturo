@@ -156,6 +156,10 @@ export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
       toast.error("Phone number is required");
       return;
     }
+    if (!clinicId) {
+      toast.error("Clinic not loaded yet. Please wait and try again.");
+      return;
+    }
     setSubmitting(true);
     const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
     const payload = {
@@ -175,33 +179,38 @@ export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
       emergency_contact_relation: ecRelation.trim() || null,
     };
 
-    let result;
-    if (isEdit && initial) {
-      result = await supabase
-        .from("patients")
-        .update(payload)
-        .eq("id", initial.id)
-        .select()
-        .single();
-    } else {
-      result = await supabase
-        .from("patients")
-        .insert({
-          ...payload,
-          lead_status: "attempt1",
-          call_due_date: new Date().toISOString().slice(0, 10),
-        })
-        .select()
-        .single();
-    }
+    try {
+      let result;
+      if (isEdit && initial) {
+        result = await supabase
+          .from("patients")
+          .update(payload)
+          .eq("id", initial.id)
+          .select()
+          .single();
+      } else {
+        result = await supabase
+          .from("patients")
+          .insert({
+            ...payload,
+            lead_status: "attempt1",
+            call_due_date: new Date().toISOString().slice(0, 10),
+          })
+          .select()
+          .single();
+      }
 
-    setSubmitting(false);
-    if (result.error || !result.data) {
-      toast.error(result.error?.message ?? "Failed to save");
-      return;
+      if (result.error || !result.data) {
+        toast.error(result.error?.message ?? "Failed to save");
+        return;
+      }
+      toast.success(isEdit ? "Patient updated" : "Lead added successfully");
+      onSaved(result.data as Patient);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to save lead");
+    } finally {
+      setSubmitting(false);
     }
-    toast.success(isEdit ? "Patient updated" : "Lead added successfully");
-    onSaved(result.data as Patient);
   };
 
   return (
