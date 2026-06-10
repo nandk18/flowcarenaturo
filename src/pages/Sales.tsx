@@ -594,13 +594,17 @@ function CallTaskRow({
   }
 
   const handle = async (outcome: CallOutcome) => {
+    if (!note.trim()) return;
     setBusy(true);
     try {
       await onAction(patient, outcome, note.trim());
+      setNote("");
     } finally {
       setBusy(false);
     }
   };
+
+  const noteEmpty = note.trim().length === 0;
 
   return (
     <div className="rounded-lg border bg-card p-4 space-y-3">
@@ -614,7 +618,7 @@ function CallTaskRow({
         </button>
         <span className={cn("ml-auto text-xs", sla.cls)}>{sla.label}</span>
       </div>
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <span>{patient.phone ?? "—"}</span>
         {patient.phone && (
           <Button variant="ghost" size="icon" asChild aria-label="WhatsApp" className="h-7 w-7">
@@ -627,6 +631,11 @@ function CallTaskRow({
             </a>
           </Button>
         )}
+        {patient.convenient_time && (
+          <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700">
+            🕒 {patient.convenient_time}
+          </span>
+        )}
       </div>
       <Textarea
         rows={2}
@@ -637,21 +646,23 @@ function CallTaskRow({
       <div className="flex justify-end">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="sm" disabled={busy}>
-              Log Call <ChevronDown className="ml-1 h-4 w-4" />
-            </Button>
+            <span title={noteEmpty ? "Add a note before logging the call" : undefined}>
+              <Button size="sm" disabled={busy || noteEmpty}>
+                Log Call <ChevronDown className="ml-1 h-4 w-4" />
+              </Button>
+            </span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => handle("no_answer")}>
+            <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("no_answer")}>
               <PhoneOff className="mr-2 h-4 w-4" /> No Answer
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handle("follow_up")}>
+            <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("follow_up")}>
               <RotateCw className="mr-2 h-4 w-4" /> Follow Up
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handle("not_interested")}>
+            <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("not_interested")}>
               <XCircle className="mr-2 h-4 w-4" /> Not Interested
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handle("booked")}>
+            <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("booked")}>
               <CalendarCheck className="mr-2 h-4 w-4" /> Appointment Booked
             </DropdownMenuItem>
           </DropdownMenuContent>
