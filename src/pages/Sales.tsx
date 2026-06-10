@@ -73,6 +73,7 @@ type Patient = {
   call_due_date: string | null;
   sla_breach_days: number | null;
   created_at: string | null;
+  convenient_time: string | null;
 };
 
 type ContactNote = { patient_id: string; note: string; created_at: string };
