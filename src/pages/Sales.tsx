@@ -774,6 +774,10 @@ function CallTask({ clinicId }: { clinicId: string }) {
   }, [rows, today]);
 
   const handleAction = async (p: Patient, outcome: CallOutcome, note: string) => {
+    if (!profile?.id || !p?.clinic_id) {
+      toast.error("Session not ready. Please refresh and try again.");
+      return;
+    }
     const current = (p.lead_status ?? "attempt1") as LeadStatus;
     let nextStatus: LeadStatus = current;
     let nextDue: string | null = p.call_due_date;
@@ -782,12 +786,18 @@ function CallTask({ clinicId }: { clinicId: string }) {
     let navigateAfter: string | null = null;
 
     if (outcome === "no_answer") {
-      if (current === "attempt3") {
-        nextStatus = "closed";
-        removeFromQueue = true;
-      } else {
+      if (current === "attempt1") {
+        nextStatus = "attempt2";
         nextDue = addDaysISO(1);
         nextBreach = 0;
+      } else if (current === "attempt2") {
+        nextStatus = "attempt3";
+        nextDue = addDaysISO(1);
+        nextBreach = 0;
+      } else {
+        // attempt3 → auto close
+        nextStatus = "closed";
+        removeFromQueue = true;
       }
     } else if (outcome === "follow_up") {
       if (current === "attempt1") {
@@ -810,44 +820,55 @@ function CallTask({ clinicId }: { clinicId: string }) {
       navigateAfter = `/consult/appointments/new?patient_id=${p.id}&from=sales`;
     }
 
-    const { error: logError } = await supabase.from("call_logs").insert({
-      patient_id: p.id,
-      clinic_id: p.clinic_id,
-      outcome,
-      notes: note || null,
-      called_by: profile?.id ?? null,
-      called_at: new Date().toISOString(),
-    });
-    if (logError) {
-      toast.error(logError.message);
-      return;
-    }
-
-    if (note) {
-      await supabase.from("contact_notes").insert({
+    try {
+      const { error: logError } = await supabase.from("call_logs").insert({
         patient_id: p.id,
         clinic_id: p.clinic_id,
-        note,
-        created_by: profile?.id ?? null,
+        outcome,
+        notes: note || null,
+        called_by: profile.id,
+        called_at: new Date().toISOString(),
       });
-    }
+      if (logError) {
+        toast.error(logError.message);
+        return;
+      }
 
-    const { error: updError } = await supabase
-      .from("patients")
-      .update({
-        lead_status: nextStatus,
-        call_due_date: nextDue,
-        sla_breach_days: nextBreach,
-      })
-      .eq("id", p.id);
-    if (updError) {
-      toast.error(updError.message);
+      if (note) {
+        const { error: noteError } = await supabase.from("contact_notes").insert({
+          patient_id: p.id,
+          clinic_id: p.clinic_id,
+          note,
+          created_by: profile.id,
+        });
+        if (noteError) {
+          toast.error(noteError.message);
+          return;
+        }
+      }
+
+      const { error: updError } = await supabase
+        .from("patients")
+        .update({
+          lead_status: nextStatus,
+          call_due_date: nextDue,
+          sla_breach_days: nextBreach,
+        })
+        .eq("id", p.id);
+      if (updError) {
+        toast.error(updError.message);
+        return;
+      }
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to log call");
       return;
     }
 
     toast.success(
       outcome === "no_answer"
-        ? "Logged: No answer"
+        ? current === "attempt3"
+          ? "Lead auto-closed after 3 no-answer attempts"
+          : "Logged: No answer — moved to next attempt"
         : outcome === "follow_up"
         ? "Logged: Follow up scheduled"
         : outcome === "not_interested"
@@ -859,13 +880,19 @@ function CallTask({ clinicId }: { clinicId: string }) {
     if (removeFromQueue) {
       setRows((prev) => prev.filter((x) => x.id !== p.id));
     } else {
-      setRows((prev) =>
-        prev.map((x) =>
-          x.id === p.id
-            ? { ...x, lead_status: nextStatus, call_due_date: nextDue, sla_breach_days: nextBreach }
-            : x,
-        ),
-      );
+      // If next due is in the future, it leaves the queue (overdue/today only)
+      const stillInQueue = nextDue && nextDue <= todayISO();
+      if (!stillInQueue) {
+        setRows((prev) => prev.filter((x) => x.id !== p.id));
+      } else {
+        setRows((prev) =>
+          prev.map((x) =>
+            x.id === p.id
+              ? { ...x, lead_status: nextStatus, call_due_date: nextDue, sla_breach_days: nextBreach }
+              : x,
+          ),
+        );
+      }
     }
     if (navigateAfter) navigate(navigateAfter);
   };
