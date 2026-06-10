@@ -76,6 +76,7 @@ type Patient = {
   call_due_date: string | null;
   sla_breach_days: number | null;
   created_at: string | null;
+  convenient_time: string | null;
 };
 
 type Note = {
@@ -329,44 +330,64 @@ export default function SalesPatientDetail() {
   }, [patientId]);
 
   const apptStats = useMemo(() => {
+    const list = Array.isArray(appointments) ? appointments : [];
     const today = new Date().toISOString().slice(0, 10);
-    const past = appointments.filter((a) => a.appointment_date < today);
-    const upcoming = appointments.filter((a) => a.appointment_date >= today);
+    const past = list.filter((a) => a?.appointment_date && a.appointment_date < today);
+    const upcoming = list.filter((a) => a?.appointment_date && a.appointment_date >= today);
+    const invList = Array.isArray(invoices) ? invoices : [];
+    const pendingPayment = invList
+      .filter((i) => i?.status === "unpaid" || i?.status === "partial")
+      .reduce((sum, i) => sum + Number(i?.outstanding_amount || 0), 0);
     return {
-      total: appointments.length,
+      total: list.length,
       last: past.length ? past[0].appointment_date : null,
       next: upcoming.length ? upcoming[upcoming.length - 1].appointment_date : null,
+      pendingPayment,
     };
-  }, [appointments]);
+  }, [appointments, invoices]);
 
   const saveNote = async () => {
     if (!newNote.trim() || !patient) return;
+    if (!profile?.id || !patient.clinic_id) {
+      toast.error("Session not ready. Please refresh and try again.");
+      return;
+    }
     setSaving(true);
-    const { error } = await supabase.from("contact_notes").insert({
-      patient_id: patient.id,
-      clinic_id: patient.clinic_id,
-      note: newNote.trim(),
-      created_by: profile?.id ?? null,
-    });
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    setNewNote("");
-    setAddingNote(false);
-    toast.success("Note added");
-    loadNotes();
+    try {
+      const { error } = await supabase.from("contact_notes").insert({
+        patient_id: patient.id,
+        clinic_id: patient.clinic_id,
+        note: newNote.trim(),
+        created_by: profile.id,
+      });
+      if (error) { toast.error(error.message); return; }
+      setNewNote("");
+      setAddingNote(false);
+      toast.success("Note added");
+      loadNotes();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to save note");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const updateStatus = async (value: LeadStatus) => {
     if (!patient) return;
     setStatusSaving(true);
-    const { error } = await supabase
-      .from("patients")
-      .update({ lead_status: value })
-      .eq("id", patient.id);
-    setStatusSaving(false);
-    if (error) { toast.error(error.message); return; }
-    setPatient({ ...patient, lead_status: value });
-    toast.success("Status updated");
+    try {
+      const { error } = await supabase
+        .from("patients")
+        .update({ lead_status: value })
+        .eq("id", patient.id);
+      if (error) { toast.error(error.message); return; }
+      setPatient({ ...patient, lead_status: value });
+      toast.success("Status updated");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to update status");
+    } finally {
+      setStatusSaving(false);
+    }
   };
 
   if (!patient) {
@@ -497,6 +518,10 @@ export default function SalesPatientDetail() {
                       </dd>
                     </div>
                     <div>
+                      <dt className="text-xs uppercase tracking-wide text-muted-foreground">Convenient Time to Call</dt>
+                      <dd className="mt-1 text-sm">{patient.convenient_time ?? "—"}</dd>
+                    </div>
+                    <div>
                       <dt className="text-xs uppercase tracking-wide text-muted-foreground">Address</dt>
                       <dd className="mt-1 flex items-start gap-2">
                         <MapPin className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
@@ -523,10 +548,15 @@ export default function SalesPatientDetail() {
               <div className="space-y-6 lg:col-span-7">
                 <section className="rounded-2xl border bg-card p-5 shadow-card">
                   <h2 className="font-display text-base font-semibold">Appointments Overview</h2>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <StatBox label="Total Appointments" value={String(apptStats.total)} />
                     <StatBox label="Last Appointment" value={apptStats.last ? fmtDate(apptStats.last) : "None"} />
                     <StatBox label="Next Appointment" value={apptStats.next ? fmtDate(apptStats.next) : "None"} />
+                    <StatBox
+                      label="Pending Payment"
+                      value={`₹${Number(apptStats.pendingPayment || 0).toLocaleString("en-IN")}`}
+                      valueClassName={apptStats.pendingPayment > 0 ? "text-red-600" : "text-green-600"}
+                    />
                   </div>
                 </section>
 
@@ -645,11 +675,11 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StatBox({ label, value }: { label: string; value: string }) {
+function StatBox({ label, value, valueClassName }: { label: string; value: string; valueClassName?: string }) {
   return (
     <div className="rounded-xl border bg-background p-4">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-2 font-display text-2xl font-semibold">{value}</p>
+      <p className={cn("mt-2 font-display text-2xl font-semibold", valueClassName)}>{value}</p>
     </div>
   );
 }

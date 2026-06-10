@@ -73,6 +73,8 @@ type Patient = {
   call_due_date: string | null;
   sla_breach_days: number | null;
   created_at: string | null;
+  convenient_time: string | null;
+  lead_source: string | null;
 };
 
 type ContactNote = { patient_id: string; note: string; created_at: string };
@@ -131,6 +133,7 @@ export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
   const [firstName, setFirstName] = useState(initial?.first_name ?? "");
   const [lastName, setLastName] = useState(initial?.last_name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "+91");
+  const [convenientTime, setConvenientTime] = useState(initial?.convenient_time ?? "");
   const [dob, setDob] = useState(initial?.dob ?? "");
   const [gender, setGender] = useState(initial?.gender ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
@@ -153,6 +156,10 @@ export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
       toast.error("Phone number is required");
       return;
     }
+    if (!clinicId) {
+      toast.error("Clinic not loaded yet. Please wait and try again.");
+      return;
+    }
     setSubmitting(true);
     const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
     const payload = {
@@ -161,6 +168,7 @@ export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
       first_name: firstName.trim(),
       last_name: lastName.trim() || null,
       phone: normalizePhone(phone),
+      convenient_time: convenientTime.trim() || null,
       email: email.trim() || null,
       dob: dob || null,
       gender: gender || null,
@@ -171,33 +179,38 @@ export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
       emergency_contact_relation: ecRelation.trim() || null,
     };
 
-    let result;
-    if (isEdit && initial) {
-      result = await supabase
-        .from("patients")
-        .update(payload)
-        .eq("id", initial.id)
-        .select()
-        .single();
-    } else {
-      result = await supabase
-        .from("patients")
-        .insert({
-          ...payload,
-          lead_status: "attempt1",
-          call_due_date: new Date().toISOString().slice(0, 10),
-        })
-        .select()
-        .single();
-    }
+    try {
+      let result;
+      if (isEdit && initial) {
+        result = await supabase
+          .from("patients")
+          .update(payload)
+          .eq("id", initial.id)
+          .select()
+          .single();
+      } else {
+        result = await supabase
+          .from("patients")
+          .insert({
+            ...payload,
+            lead_status: "attempt1",
+            call_due_date: new Date().toISOString().slice(0, 10),
+          })
+          .select()
+          .single();
+      }
 
-    setSubmitting(false);
-    if (result.error || !result.data) {
-      toast.error(result.error?.message ?? "Failed to save");
-      return;
+      if (result.error || !result.data) {
+        toast.error(result.error?.message ?? "Failed to save");
+        return;
+      }
+      toast.success(isEdit ? "Patient updated" : "Lead added successfully");
+      onSaved(result.data as Patient);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to save lead");
+    } finally {
+      setSubmitting(false);
     }
-    toast.success(isEdit ? "Patient updated" : "Lead added successfully");
-    onSaved(result.data as Patient);
   };
 
   return (
@@ -218,6 +231,15 @@ export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
         <div className="space-y-1.5">
           <Label htmlFor="phone">Phone Number *</Label>
           <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="convenientTime">Convenient Time to Call</Label>
+          <Input
+            id="convenientTime"
+            value={convenientTime}
+            onChange={(e) => setConvenientTime(e.target.value)}
+            placeholder="e.g. Morning 9-11am, Evening after 6pm"
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
@@ -572,13 +594,17 @@ function CallTaskRow({
   }
 
   const handle = async (outcome: CallOutcome) => {
+    if (!note.trim()) return;
     setBusy(true);
     try {
       await onAction(patient, outcome, note.trim());
+      setNote("");
     } finally {
       setBusy(false);
     }
   };
+
+  const noteEmpty = note.trim().length === 0;
 
   return (
     <div className="rounded-lg border bg-card p-4 space-y-3">
@@ -592,7 +618,7 @@ function CallTaskRow({
         </button>
         <span className={cn("ml-auto text-xs", sla.cls)}>{sla.label}</span>
       </div>
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <span>{patient.phone ?? "—"}</span>
         {patient.phone && (
           <Button variant="ghost" size="icon" asChild aria-label="WhatsApp" className="h-7 w-7">
@@ -605,6 +631,11 @@ function CallTaskRow({
             </a>
           </Button>
         )}
+        {patient.convenient_time && (
+          <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700">
+            🕒 {patient.convenient_time}
+          </span>
+        )}
       </div>
       <Textarea
         rows={2}
@@ -615,21 +646,23 @@ function CallTaskRow({
       <div className="flex justify-end">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="sm" disabled={busy}>
-              Log Call <ChevronDown className="ml-1 h-4 w-4" />
-            </Button>
+            <span title={noteEmpty ? "Add a note before logging the call" : undefined}>
+              <Button size="sm" disabled={busy || noteEmpty}>
+                Log Call <ChevronDown className="ml-1 h-4 w-4" />
+              </Button>
+            </span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => handle("no_answer")}>
+            <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("no_answer")}>
               <PhoneOff className="mr-2 h-4 w-4" /> No Answer
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handle("follow_up")}>
+            <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("follow_up")}>
               <RotateCw className="mr-2 h-4 w-4" /> Follow Up
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handle("not_interested")}>
+            <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("not_interested")}>
               <XCircle className="mr-2 h-4 w-4" /> Not Interested
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handle("booked")}>
+            <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("booked")}>
               <CalendarCheck className="mr-2 h-4 w-4" /> Appointment Booked
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -693,24 +726,31 @@ function CallTask({ clinicId }: { clinicId: string }) {
   const [doneToday, setDoneToday] = useState(0);
 
   const load = async () => {
+    if (!clinicId) return;
     setLoading(true);
-    const today = todayISO();
-    const [patientsRes, callsRes] = await Promise.all([
-      supabase
-        .from("patients")
-        .select("*")
-        .eq("clinic_id", clinicId)
-        .in("lead_status", ["attempt1", "attempt2", "attempt3"]),
-      supabase
-        .from("call_logs")
-        .select("id", { count: "exact", head: true })
-        .eq("clinic_id", clinicId)
-        .gte("called_at", today + "T00:00:00")
-        .lte("called_at", today + "T23:59:59"),
-    ]);
-    setRows((patientsRes.data ?? []) as Patient[]);
-    setDoneToday(callsRes.count ?? 0);
-    setLoading(false);
+    try {
+      const today = todayISO();
+      const [patientsRes, callsRes] = await Promise.all([
+        supabase
+          .from("patients")
+          .select("*")
+          .eq("clinic_id", clinicId)
+          .in("lead_status", ["attempt1", "attempt2", "attempt3"])
+          .lte("call_due_date", today),
+        supabase
+          .from("call_logs")
+          .select("id", { count: "exact", head: true })
+          .eq("clinic_id", clinicId)
+          .gte("called_at", today + "T00:00:00")
+          .lte("called_at", today + "T23:59:59"),
+      ]);
+      setRows(Array.isArray(patientsRes.data) ? (patientsRes.data as Patient[]) : []);
+      setDoneToday(callsRes.count ?? 0);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to load call tasks");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -719,24 +759,25 @@ function CallTask({ clinicId }: { clinicId: string }) {
   }, [clinicId]);
 
   const today = todayISO();
-  const { overdue, dueToday, upcoming } = useMemo(() => {
+  const { overdue, dueToday } = useMemo(() => {
     const overdue: Patient[] = [];
     const dueToday: Patient[] = [];
-    const upcoming: Patient[] = [];
     for (const p of rows) {
       const d = p.call_due_date;
       if (!d) continue;
       if (d < today) overdue.push(p);
       else if (d === today) dueToday.push(p);
-      else upcoming.push(p);
     }
     overdue.sort((a, b) => (b.sla_breach_days ?? 0) - (a.sla_breach_days ?? 0));
     dueToday.sort((a, b) => (b.lead_status ?? "").localeCompare(a.lead_status ?? ""));
-    upcoming.sort((a, b) => (a.call_due_date ?? "").localeCompare(b.call_due_date ?? ""));
-    return { overdue, dueToday, upcoming };
+    return { overdue, dueToday };
   }, [rows, today]);
 
   const handleAction = async (p: Patient, outcome: CallOutcome, note: string) => {
+    if (!profile?.id || !p?.clinic_id) {
+      toast.error("Session not ready. Please refresh and try again.");
+      return;
+    }
     const current = (p.lead_status ?? "attempt1") as LeadStatus;
     let nextStatus: LeadStatus = current;
     let nextDue: string | null = p.call_due_date;
@@ -745,12 +786,18 @@ function CallTask({ clinicId }: { clinicId: string }) {
     let navigateAfter: string | null = null;
 
     if (outcome === "no_answer") {
-      if (current === "attempt3") {
-        nextStatus = "closed";
-        removeFromQueue = true;
-      } else {
+      if (current === "attempt1") {
+        nextStatus = "attempt2";
         nextDue = addDaysISO(1);
         nextBreach = 0;
+      } else if (current === "attempt2") {
+        nextStatus = "attempt3";
+        nextDue = addDaysISO(1);
+        nextBreach = 0;
+      } else {
+        // attempt3 → auto close
+        nextStatus = "closed";
+        removeFromQueue = true;
       }
     } else if (outcome === "follow_up") {
       if (current === "attempt1") {
@@ -773,44 +820,55 @@ function CallTask({ clinicId }: { clinicId: string }) {
       navigateAfter = `/consult/appointments/new?patient_id=${p.id}&from=sales`;
     }
 
-    const { error: logError } = await supabase.from("call_logs").insert({
-      patient_id: p.id,
-      clinic_id: p.clinic_id,
-      outcome,
-      notes: note || null,
-      called_by: profile?.id ?? null,
-      called_at: new Date().toISOString(),
-    });
-    if (logError) {
-      toast.error(logError.message);
-      return;
-    }
-
-    if (note) {
-      await supabase.from("contact_notes").insert({
+    try {
+      const { error: logError } = await supabase.from("call_logs").insert({
         patient_id: p.id,
         clinic_id: p.clinic_id,
-        note,
-        created_by: profile?.id ?? null,
+        outcome,
+        notes: note || null,
+        called_by: profile.id,
+        called_at: new Date().toISOString(),
       });
-    }
+      if (logError) {
+        toast.error(logError.message);
+        return;
+      }
 
-    const { error: updError } = await supabase
-      .from("patients")
-      .update({
-        lead_status: nextStatus,
-        call_due_date: nextDue,
-        sla_breach_days: nextBreach,
-      })
-      .eq("id", p.id);
-    if (updError) {
-      toast.error(updError.message);
+      if (note) {
+        const { error: noteError } = await supabase.from("contact_notes").insert({
+          patient_id: p.id,
+          clinic_id: p.clinic_id,
+          note,
+          created_by: profile.id,
+        });
+        if (noteError) {
+          toast.error(noteError.message);
+          return;
+        }
+      }
+
+      const { error: updError } = await supabase
+        .from("patients")
+        .update({
+          lead_status: nextStatus,
+          call_due_date: nextDue,
+          sla_breach_days: nextBreach,
+        })
+        .eq("id", p.id);
+      if (updError) {
+        toast.error(updError.message);
+        return;
+      }
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to log call");
       return;
     }
 
     toast.success(
       outcome === "no_answer"
-        ? "Logged: No answer"
+        ? current === "attempt3"
+          ? "Lead auto-closed after 3 no-answer attempts"
+          : "Logged: No answer — moved to next attempt"
         : outcome === "follow_up"
         ? "Logged: Follow up scheduled"
         : outcome === "not_interested"
@@ -822,13 +880,19 @@ function CallTask({ clinicId }: { clinicId: string }) {
     if (removeFromQueue) {
       setRows((prev) => prev.filter((x) => x.id !== p.id));
     } else {
-      setRows((prev) =>
-        prev.map((x) =>
-          x.id === p.id
-            ? { ...x, lead_status: nextStatus, call_due_date: nextDue, sla_breach_days: nextBreach }
-            : x,
-        ),
-      );
+      // If next due is in the future, it leaves the queue (overdue/today only)
+      const stillInQueue = nextDue && nextDue <= todayISO();
+      if (!stillInQueue) {
+        setRows((prev) => prev.filter((x) => x.id !== p.id));
+      } else {
+        setRows((prev) =>
+          prev.map((x) =>
+            x.id === p.id
+              ? { ...x, lead_status: nextStatus, call_due_date: nextDue, sla_breach_days: nextBreach }
+              : x,
+          ),
+        );
+      }
     }
     if (navigateAfter) navigate(navigateAfter);
   };
@@ -854,13 +918,11 @@ function CallTask({ clinicId }: { clinicId: string }) {
       <div className="flex flex-wrap gap-2">
         <Pill icon="🔴" label="Overdue" count={overdue.length} cls="bg-red-50 text-red-700 border-red-200" />
         <Pill icon="🟡" label="Due Today" count={dueToday.length} cls="bg-yellow-50 text-yellow-800 border-yellow-200" />
-        <Pill icon="🔵" label="Upcoming" count={upcoming.length} cls="bg-blue-50 text-blue-700 border-blue-200" />
         <Pill icon="✅" label="Done Today" count={doneToday} cls="bg-green-50 text-green-700 border-green-200" />
       </div>
 
       <CallSection title="Overdue" color="red" rows={overdue} onAction={handleAction} />
       <CallSection title="Due Today" color="yellow" rows={dueToday} onAction={handleAction} />
-      <CallSection title="Upcoming" color="blue" rows={upcoming} onAction={handleAction} defaultOpen={false} />
     </div>
   );
 }
