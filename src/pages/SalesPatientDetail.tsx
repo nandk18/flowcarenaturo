@@ -530,10 +530,15 @@ export default function SalesPatientDetail() {
               <div className="space-y-6 lg:col-span-7">
                 <section className="rounded-2xl border bg-card p-5 shadow-card">
                   <h2 className="font-display text-base font-semibold">Appointments Overview</h2>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <StatBox label="Total Appointments" value={String(apptStats.total)} />
                     <StatBox label="Last Appointment" value={apptStats.last ? fmtDate(apptStats.last) : "None"} />
                     <StatBox label="Next Appointment" value={apptStats.next ? fmtDate(apptStats.next) : "None"} />
+                    <StatBox
+                      label="Pending Payment"
+                      value={`₹${Number(apptStats.pendingPayment || 0).toLocaleString("en-IN")}`}
+                      valueClassName={apptStats.pendingPayment > 0 ? "text-red-600" : "text-green-600"}
+                    />
                   </div>
                 </section>
 
