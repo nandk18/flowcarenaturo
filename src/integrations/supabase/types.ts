@@ -1029,6 +1029,7 @@ export type Database = {
           call_due_date: string | null
           chronic_conditions: Json | null
           clinic_id: string
+          convenient_time: string | null
           created_at: string | null
           dob: string | null
           email: string | null
@@ -1054,6 +1055,7 @@ export type Database = {
           call_due_date?: string | null
           chronic_conditions?: Json | null
           clinic_id: string
+          convenient_time?: string | null
           created_at?: string | null
           dob?: string | null
           email?: string | null
@@ -1079,6 +1081,7 @@ export type Database = {
           call_due_date?: string | null
           chronic_conditions?: Json | null
           clinic_id?: string
+          convenient_time?: string | null
           created_at?: string | null
           dob?: string | null
           email?: string | null
