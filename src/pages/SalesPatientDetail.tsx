@@ -330,15 +330,21 @@ export default function SalesPatientDetail() {
   }, [patientId]);
 
   const apptStats = useMemo(() => {
+    const list = Array.isArray(appointments) ? appointments : [];
     const today = new Date().toISOString().slice(0, 10);
-    const past = appointments.filter((a) => a.appointment_date < today);
-    const upcoming = appointments.filter((a) => a.appointment_date >= today);
+    const past = list.filter((a) => a?.appointment_date && a.appointment_date < today);
+    const upcoming = list.filter((a) => a?.appointment_date && a.appointment_date >= today);
+    const invList = Array.isArray(invoices) ? invoices : [];
+    const pendingPayment = invList
+      .filter((i) => i?.status === "unpaid" || i?.status === "partial")
+      .reduce((sum, i) => sum + Number(i?.outstanding_amount || 0), 0);
     return {
-      total: appointments.length,
+      total: list.length,
       last: past.length ? past[0].appointment_date : null,
       next: upcoming.length ? upcoming[upcoming.length - 1].appointment_date : null,
+      pendingPayment,
     };
-  }, [appointments]);
+  }, [appointments, invoices]);
 
   const saveNote = async () => {
     if (!newNote.trim() || !patient) return;
