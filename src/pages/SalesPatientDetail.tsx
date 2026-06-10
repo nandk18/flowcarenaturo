@@ -348,32 +348,46 @@ export default function SalesPatientDetail() {
 
   const saveNote = async () => {
     if (!newNote.trim() || !patient) return;
+    if (!profile?.id || !patient.clinic_id) {
+      toast.error("Session not ready. Please refresh and try again.");
+      return;
+    }
     setSaving(true);
-    const { error } = await supabase.from("contact_notes").insert({
-      patient_id: patient.id,
-      clinic_id: patient.clinic_id,
-      note: newNote.trim(),
-      created_by: profile?.id ?? null,
-    });
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    setNewNote("");
-    setAddingNote(false);
-    toast.success("Note added");
-    loadNotes();
+    try {
+      const { error } = await supabase.from("contact_notes").insert({
+        patient_id: patient.id,
+        clinic_id: patient.clinic_id,
+        note: newNote.trim(),
+        created_by: profile.id,
+      });
+      if (error) { toast.error(error.message); return; }
+      setNewNote("");
+      setAddingNote(false);
+      toast.success("Note added");
+      loadNotes();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to save note");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const updateStatus = async (value: LeadStatus) => {
     if (!patient) return;
     setStatusSaving(true);
-    const { error } = await supabase
-      .from("patients")
-      .update({ lead_status: value })
-      .eq("id", patient.id);
-    setStatusSaving(false);
-    if (error) { toast.error(error.message); return; }
-    setPatient({ ...patient, lead_status: value });
-    toast.success("Status updated");
+    try {
+      const { error } = await supabase
+        .from("patients")
+        .update({ lead_status: value })
+        .eq("id", patient.id);
+      if (error) { toast.error(error.message); return; }
+      setPatient({ ...patient, lead_status: value });
+      toast.success("Status updated");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to update status");
+    } finally {
+      setStatusSaving(false);
+    }
   };
 
   if (!patient) {
