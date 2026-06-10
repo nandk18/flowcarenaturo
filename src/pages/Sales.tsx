@@ -224,6 +224,15 @@ export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
           <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required />
         </div>
         <div className="space-y-1.5">
+          <Label htmlFor="convenientTime">Convenient Time to Call</Label>
+          <Input
+            id="convenientTime"
+            value={convenientTime}
+            onChange={(e) => setConvenientTime(e.target.value)}
+            placeholder="e.g. Morning 9-11am, Evening after 6pm"
+          />
+        </div>
+        <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
           <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
