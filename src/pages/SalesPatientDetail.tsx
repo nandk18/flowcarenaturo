@@ -504,6 +504,10 @@ export default function SalesPatientDetail() {
                       </dd>
                     </div>
                     <div>
+                      <dt className="text-xs uppercase tracking-wide text-muted-foreground">Convenient Time to Call</dt>
+                      <dd className="mt-1 text-sm">{patient.convenient_time ?? "—"}</dd>
+                    </div>
+                    <div>
                       <dt className="text-xs uppercase tracking-wide text-muted-foreground">Address</dt>
                       <dd className="mt-1 flex items-start gap-2">
                         <MapPin className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
