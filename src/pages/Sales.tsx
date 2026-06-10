@@ -74,6 +74,7 @@ type Patient = {
   sla_breach_days: number | null;
   created_at: string | null;
   convenient_time: string | null;
+  lead_source: string | null;
 };
 
 type ContactNote = { patient_id: string; note: string; created_at: string };
