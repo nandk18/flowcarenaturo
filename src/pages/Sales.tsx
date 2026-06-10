@@ -726,24 +726,31 @@ function CallTask({ clinicId }: { clinicId: string }) {
   const [doneToday, setDoneToday] = useState(0);
 
   const load = async () => {
+    if (!clinicId) return;
     setLoading(true);
-    const today = todayISO();
-    const [patientsRes, callsRes] = await Promise.all([
-      supabase
-        .from("patients")
-        .select("*")
-        .eq("clinic_id", clinicId)
-        .in("lead_status", ["attempt1", "attempt2", "attempt3"]),
-      supabase
-        .from("call_logs")
-        .select("id", { count: "exact", head: true })
-        .eq("clinic_id", clinicId)
-        .gte("called_at", today + "T00:00:00")
-        .lte("called_at", today + "T23:59:59"),
-    ]);
-    setRows((patientsRes.data ?? []) as Patient[]);
-    setDoneToday(callsRes.count ?? 0);
-    setLoading(false);
+    try {
+      const today = todayISO();
+      const [patientsRes, callsRes] = await Promise.all([
+        supabase
+          .from("patients")
+          .select("*")
+          .eq("clinic_id", clinicId)
+          .in("lead_status", ["attempt1", "attempt2", "attempt3"])
+          .lte("call_due_date", today),
+        supabase
+          .from("call_logs")
+          .select("id", { count: "exact", head: true })
+          .eq("clinic_id", clinicId)
+          .gte("called_at", today + "T00:00:00")
+          .lte("called_at", today + "T23:59:59"),
+      ]);
+      setRows(Array.isArray(patientsRes.data) ? (patientsRes.data as Patient[]) : []);
+      setDoneToday(callsRes.count ?? 0);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to load call tasks");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -752,21 +759,18 @@ function CallTask({ clinicId }: { clinicId: string }) {
   }, [clinicId]);
 
   const today = todayISO();
-  const { overdue, dueToday, upcoming } = useMemo(() => {
+  const { overdue, dueToday } = useMemo(() => {
     const overdue: Patient[] = [];
     const dueToday: Patient[] = [];
-    const upcoming: Patient[] = [];
     for (const p of rows) {
       const d = p.call_due_date;
       if (!d) continue;
       if (d < today) overdue.push(p);
       else if (d === today) dueToday.push(p);
-      else upcoming.push(p);
     }
     overdue.sort((a, b) => (b.sla_breach_days ?? 0) - (a.sla_breach_days ?? 0));
     dueToday.sort((a, b) => (b.lead_status ?? "").localeCompare(a.lead_status ?? ""));
-    upcoming.sort((a, b) => (a.call_due_date ?? "").localeCompare(b.call_due_date ?? ""));
-    return { overdue, dueToday, upcoming };
+    return { overdue, dueToday };
   }, [rows, today]);
 
   const handleAction = async (p: Patient, outcome: CallOutcome, note: string) => {
