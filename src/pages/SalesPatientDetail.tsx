@@ -657,11 +657,11 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StatBox({ label, value }: { label: string; value: string }) {
+function StatBox({ label, value, valueClassName }: { label: string; value: string; valueClassName?: string }) {
   return (
     <div className="rounded-xl border bg-background p-4">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-2 font-display text-2xl font-semibold">{value}</p>
+      <p className={cn("mt-2 font-display text-2xl font-semibold", valueClassName)}>{value}</p>
     </div>
   );
 }
