@@ -164,6 +164,7 @@ export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
       first_name: firstName.trim(),
       last_name: lastName.trim() || null,
       phone: normalizePhone(phone),
+      convenient_time: convenientTime.trim() || null,
       email: email.trim() || null,
       dob: dob || null,
       gender: gender || null,
