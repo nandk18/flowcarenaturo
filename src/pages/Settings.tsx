@@ -610,6 +610,8 @@ export default function Settings() {
 
         <InvoiceServicesSection />
 
+        <StoreItemsSection />
+
         {/* Billing Settings */}
         <Card className="rounded-2xl border-0 shadow-sm">
           <CardHeader>
