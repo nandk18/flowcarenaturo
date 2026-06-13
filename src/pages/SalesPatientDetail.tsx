@@ -468,6 +468,7 @@ export default function SalesPatientDetail() {
                     />
                     <Field label="Gender" value={patient.gender ?? "—"} />
                     <Field label="Blood Group" value={patient.blood_group ?? "—"} />
+                    <Field label="Lead Source" value={patient.lead_source ?? "—"} />
                     <div>
                       <dt className="text-xs uppercase tracking-wide text-muted-foreground">Lead Status</dt>
                       <dd className="mt-1">

@@ -258,7 +258,8 @@ function AppRoutes() {
       <Route path="/dashboard/templates" element={<TemplatesPage />} />
       <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
       <Route path="/dashboard/appointments" element={<AppointmentsPage />} />
-      <Route path="/dashboard/settings" element={<Settings />} />
+      <Route path="/settings" element={<Settings />} />
+      <Route path="/dashboard/settings" element={<Navigate to="/settings" replace />} />
       <Route path="/dashboard/billing" element={<BillingPage />} />
       <Route path="/dashboard/billing/:invoiceId" element={<InvoiceDetailPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />

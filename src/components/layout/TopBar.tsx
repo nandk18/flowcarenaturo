@@ -24,7 +24,7 @@ export default function TopBar() {
         <Logo height={38} />
       </button>
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/settings")} aria-label="Settings">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} aria-label="Settings">
           <SettingsIcon className="h-5 w-5" />
         </Button>
         <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Sign out">
