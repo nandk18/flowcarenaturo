@@ -94,7 +94,15 @@ function normaliseItems(raw: any): LineItem[] {
     description: it.description ?? "",
     quantity: Number(it.quantity ?? 1),
     unit_price: Number(it.unit_price ?? it.price ?? 0),
+    appointment_id: it.appointment_id ?? null,
+    gst_percentage: Number(it.gst_percentage ?? 0),
   }));
+}
+
+function isMultiVisit(raw: any): boolean {
+  if (!Array.isArray(raw)) return false;
+  const ids = raw.map((i) => i?.appointment_id).filter(Boolean);
+  return new Set(ids).size > 1;
 }
 
 interface Props {
