@@ -1026,87 +1026,27 @@ export default function Sales() {
   const sectionTitle = SIDEBAR_ITEMS.find((s) => s.id === active)?.label ?? "Sales";
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
-      <aside className="hidden w-64 flex-col gradient-sidebar md:flex">
-        <div className="flex h-16 items-center gap-3 px-6 bg-sidebar-accent/40">
-          <SidebarLogo clinicName={clinic?.name} size={32} />
-          {clinic?.name && (
-            <span className="font-display text-sm font-semibold text-sidebar-foreground truncate">
-              {clinic.name}
-            </span>
-          )}
+    <AppShell title={`Sales · ${sectionTitle}`}>
+      {!clinicId ? (
+        <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
+          Loading clinic...
         </div>
-
-        <nav className="flex-1 space-y-1 px-3 py-4">
-          {SIDEBAR_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = active === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => goTo(item.id)}
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-foreground font-medium"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                <span className="flex-1 text-left">{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="border-t border-sidebar-border p-3 space-y-1">
-          <button
-            type="button"
-            onClick={() => navigate("/home")}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-          >
-            <HomeIcon className="h-4 w-4" />
-            <span>Back to Home</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-          >
-            <LogOut className="h-4 w-4" />
-            <span>Logout</span>
-          </button>
+      ) : active === "leads" ? (
+        <LeadList
+          clinicId={clinicId}
+          onEdit={(p) => {
+            setEditing(p);
+            navigate("/sales/add-lead");
+          }}
+        />
+      ) : active === "call-task" ? (
+        <CallTask clinicId={clinicId} />
+      ) : (
+        <div className="max-w-3xl">
+          <LeadForm clinicId={clinicId} initial={editing} onSaved={handleSaved} />
         </div>
-      </aside>
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="md:hidden"><SidebarLogo clinicName={clinic?.name} size={28} /></div>
-            <h1 className="font-display text-lg font-semibold">Sales · {sectionTitle}</h1>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
-          {!clinicId ? (
-            <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
-              Loading clinic...
-            </div>
-          ) : active === "leads" ? (
-            <LeadList
-              clinicId={clinicId}
-              onEdit={(p) => { setEditing(p); navigate("/sales/add-lead"); }}
-            />
-          ) : active === "call-task" ? (
-            <CallTask clinicId={clinicId} />
-          ) : (
-            <div className="max-w-3xl">
-              <LeadForm clinicId={clinicId} initial={editing} onSaved={handleSaved} />
-            </div>
-          )}
-        </main>
-      </div>
-    </div>
+      )}
+    </AppShell>
   );
 }
+
