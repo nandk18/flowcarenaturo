@@ -713,7 +713,25 @@ function CreateInvoiceModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Create Invoice</DialogTitle></DialogHeader>
-        <div className="grid sm:grid-cols-2 gap-3">
+        {existingTodayId && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm">
+            <div className="flex gap-2 items-start">
+              <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium text-amber-900">An unpaid invoice already exists for today.</p>
+                <p className="text-xs text-amber-800 mt-0.5">Do you want to add to the existing invoice instead?</p>
+                <div className="flex gap-2 mt-2">
+                  <Button size="sm" onClick={() => onOpenExisting?.(existingTodayId)}>
+                    Add to Existing
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setExistingTodayId(null)}>
+                    Create New Invoice
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
           <div>
             <Label>Invoice Date</Label>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
