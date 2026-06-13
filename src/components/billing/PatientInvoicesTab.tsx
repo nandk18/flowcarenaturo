@@ -219,7 +219,9 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
 
 /* ============== DETAIL ============== */
 
-function InvoiceDetail({ invoice, onChanged }: { invoice: Invoice; onChanged: () => void }) {
+function InvoiceDetail({ invoice, onChanged, patientId, clinicId }: { invoice: Invoice; onChanged: () => void; patientId: string; clinicId: string }) {
+  const { clinic } = useClinic();
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [items, setItems] = useState<LineItem[]>(normaliseItems(invoice.line_items));
   const [gstPct, setGstPct] = useState(Number(invoice.gst_percentage) || 0);
   const [discount, setDiscount] = useState(Number(invoice.discount_amount) || 0);
