@@ -18,6 +18,7 @@ import {
   Loader2, CheckCircle, XCircle, ArrowRight, AlertCircle
 } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay, isToday, parseISO } from "date-fns";
+import { formatDoctorName } from "@/lib/utils";
 
 type Appointment = {
   id: string;
@@ -320,7 +321,7 @@ export default function AppointmentsPage() {
                         <span className="font-medium text-foreground truncate">{appt.patient?.name}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                        <span>Dr. {appt.doctor?.name}</span>
+                        <span>{formatDoctorName(appt.doctor?.name)}</span>
                         {appt.reason && <span>• {appt.reason}</span>}
                       </div>
                     </div>
@@ -387,7 +388,7 @@ export default function AppointmentsPage() {
               <Select value={bookDoctorId} onValueChange={setBookDoctorId}>
                 <SelectTrigger className="rounded-lg"><SelectValue placeholder="Select doctor" /></SelectTrigger>
                 <SelectContent>
-                  {doctors.map(d => <SelectItem key={d.id} value={d.id}>Dr. {d.name}</SelectItem>)}
+                  {doctors.map(d => <SelectItem key={d.id} value={d.id}>{formatDoctorName(d.name)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -449,7 +450,7 @@ export default function AppointmentsPage() {
                   <Clock className="h-4 w-4" />
                   <span>{detailAppt.appointment_date} at {detailAppt.appointment_time.substring(0, 5)}</span>
                 </div>
-                <div className="text-sm text-muted-foreground">Dr. {detailAppt.doctor?.name}</div>
+                <div className="text-sm text-muted-foreground">{formatDoctorName(detailAppt.doctor?.name)}</div>
                 {detailAppt.reason && <div className="text-sm">Reason: {detailAppt.reason}</div>}
                 <Badge variant="outline" className={`capitalize ${STATUS_COLORS[detailAppt.status] || ""}`}>
                   {detailAppt.status.replace("_", " ")}

@@ -40,7 +40,6 @@ export default function TodayQueue() {
   useEffect(() => {
     fetchVisits();
 
-    // Realtime subscription
     const channel = supabase
       .channel("visits-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "visits" }, () => {
@@ -83,8 +82,8 @@ export default function TodayQueue() {
       <Card className="shadow-card">
         <CardContent className="flex flex-col items-center justify-center py-16">
           <CalendarEmpty className="mb-4 h-16 w-16 text-muted-foreground/30" />
-          <h3 className="font-display text-lg font-semibold text-foreground">No patients today</h3>
-          <p className="text-sm text-muted-foreground">Register a new patient to get started</p>
+          <h3 className="font-display text-lg font-semibold text-foreground">No patients in queue</h3>
+          <p className="text-sm text-muted-foreground">Book an appointment to add patients.</p>
         </CardContent>
       </Card>
     );

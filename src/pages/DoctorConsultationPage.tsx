@@ -16,6 +16,10 @@ type Visit = {
   vitals: any;
   created_at: string;
   patient_id: string;
+  lifestyle?: string | null;
+  height_cm?: number | null;
+  weight_kg?: number | null;
+  captured_at_reception?: boolean | null;
   patient: {
     id: string; name: string; healthcare_id: string | null; gender: string | null;
     dob: string | null; blood_group: string | null; allergies: any; chronic_conditions: any;
@@ -32,9 +36,9 @@ export default function DoctorConsultationPage() {
 
   const fetchVisit = useCallback(async () => {
     if (!visitId || !profile?.clinic_id) return;
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("visits")
-      .select("id, token_number, status, chief_complaint, vitals, created_at, patient_id, patients!inner(id, name, healthcare_id, gender, dob, blood_group, allergies, chronic_conditions, phone, email)")
+      .select("id, token_number, status, chief_complaint, vitals, created_at, patient_id, lifestyle, height_cm, weight_kg, captured_at_reception, patients!inner(id, name, healthcare_id, gender, dob, blood_group, allergies, chronic_conditions, phone, email)")
       .eq("id", visitId)
       .eq("clinic_id", profile.clinic_id)
       .single();
@@ -94,6 +98,40 @@ export default function DoctorConsultationPage() {
           </Badge>
         </div>
       </div>
+
+      {visit.captured_at_reception && (
+        <div className="mb-4 rounded-xl border bg-card p-4">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Check-in Information
+          </h3>
+          <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+            {visit.chief_complaint && (
+              <div className="col-span-2 sm:col-span-4">
+                <p className="text-xs text-muted-foreground">Chief Complaint</p>
+                <p className="font-medium">{visit.chief_complaint}</p>
+              </div>
+            )}
+            {visit.lifestyle && (
+              <div>
+                <p className="text-xs text-muted-foreground">Lifestyle</p>
+                <p className="font-medium">{visit.lifestyle}</p>
+              </div>
+            )}
+            {visit.height_cm != null && (
+              <div>
+                <p className="text-xs text-muted-foreground">Height</p>
+                <p className="font-medium">{visit.height_cm} cm</p>
+              </div>
+            )}
+            {visit.weight_kg != null && (
+              <div>
+                <p className="text-xs text-muted-foreground">Weight</p>
+                <p className="font-medium">{visit.weight_kg} kg</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <ConsultationWorkspace visit={visit} onComplete={() => navigate("/dashboard")} />
     </DashboardLayout>

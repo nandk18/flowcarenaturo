@@ -2,14 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import PatientRegistration from "@/components/receptionist/PatientRegistration";
 import TodayQueue from "@/components/receptionist/TodayQueue";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { CalendarDays, Stethoscope, UserPlus, Clock, AlertTriangle, ArrowRight } from "lucide-react";
+import { CalendarDays, Stethoscope, Clock, AlertTriangle, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import TodayAppointmentsWidget from "@/components/appointments/TodayAppointmentsWidget";
 
@@ -29,7 +27,7 @@ function AdminQueueView() {
   const navigate = useNavigate();
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [addPatientOpen, setAddPatientOpen] = useState(false);
+  
 
   const fetchVisits = useCallback(async () => {
     if (!profile?.clinic_id) return;
@@ -87,15 +85,6 @@ function AdminQueueView() {
           <TabsTrigger value="reception"><CalendarDays className="mr-2 h-4 w-4" /> Reception</TabsTrigger>
           <TabsTrigger value="doctor"><Stethoscope className="mr-2 h-4 w-4" /> Consultation</TabsTrigger>
         </TabsList>
-        <Dialog open={addPatientOpen} onOpenChange={setAddPatientOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="w-full sm:w-auto"><UserPlus className="mr-2 h-4 w-4" /> Add Patient</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
-            <DialogHeader><DialogTitle>Register & Queue Patient</DialogTitle></DialogHeader>
-            <PatientRegistration onSuccess={() => { setAddPatientOpen(false); fetchVisits(); }} />
-          </DialogContent>
-        </Dialog>
       </div>
 
       <TabsContent value="reception">

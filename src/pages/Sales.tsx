@@ -127,12 +127,14 @@ type LeadFormProps = {
   clinicId: string;
   initial?: Patient | null;
   onSaved: (patient: Patient) => void;
+  /** Pre-fill values when creating a brand new lead (ignored if initial is set). */
+  prefill?: { first_name?: string; last_name?: string };
 };
 
-export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
+export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps) {
   const [leadSource, setLeadSource] = useState(initial?.lead_source ?? "");
-  const [firstName, setFirstName] = useState(initial?.first_name ?? "");
-  const [lastName, setLastName] = useState(initial?.last_name ?? "");
+  const [firstName, setFirstName] = useState(initial?.first_name ?? prefill?.first_name ?? "");
+  const [lastName, setLastName] = useState(initial?.last_name ?? prefill?.last_name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "+91");
   const [convenientTime, setConvenientTime] = useState(initial?.convenient_time ?? "");
   const [dob, setDob] = useState(initial?.dob ?? "");
@@ -319,14 +321,18 @@ type LeadListProps = {
   onEdit: (patient: Patient) => void;
   /** URL prefix for patient detail navigation. Defaults to /sales/patient. */
   patientHrefPrefix?: string;
+  /** Initial status filter; defaults to "all". */
+  defaultStatus?: LeadStatus | "all";
+  /** Render a custom node when the search returns zero results (overrides default empty cell). */
+  renderSearchEmpty?: (searchTerm: string) => React.ReactNode;
 };
 
-export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient" }: LeadListProps) {
+export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient", defaultStatus = "all", renderSearchEmpty }: LeadListProps) {
   const navigate = useNavigate();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [notesByPatient, setNotesByPatient] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">(defaultStatus);
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState("");
@@ -369,9 +375,17 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return patients.filter((p) => {
-      if (statusFilter !== "all" && p.lead_status !== statusFilter) return false;
+      // Search overrides status filter so user can find any patient
+      if (q) {
+        const matches =
+          p.name?.toLowerCase().includes(q) ||
+          (p.phone ?? "").toLowerCase().includes(q) ||
+          (p.email ?? "").toLowerCase().includes(q);
+        if (!matches) return false;
+      } else {
+        if (statusFilter !== "all" && p.lead_status !== statusFilter) return false;
+      }
       if (sourceFilter !== "all" && p.lead_source !== sourceFilter) return false;
-      if (q && !(p.name?.toLowerCase().includes(q) || (p.phone ?? "").toLowerCase().includes(q))) return false;
       if (fromDate && p.created_at && p.created_at < fromDate) return false;
       if (toDate && p.created_at && p.created_at > toDate + "T23:59:59") return false;
       return true;
@@ -500,7 +514,13 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
             {loading ? (
               <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Loading...</TableCell></TableRow>
             ) : pageRows.length === 0 ? (
-              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No leads found</TableCell></TableRow>
+              <TableRow>
+                <TableCell colSpan={9} className="py-10">
+                  {search.trim() && renderSearchEmpty
+                    ? renderSearchEmpty(search.trim())
+                    : <div className="text-center text-muted-foreground">No leads found</div>}
+                </TableCell>
+              </TableRow>
             ) : pageRows.map((p) => {
               const lastNote = notesByPatient[p.id];
               const breach = p.sla_breach_days ?? 0;

@@ -608,6 +608,30 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        {/* Quick links to other admin tools */}
+        <Card className="rounded-2xl border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-display">
+              <ClipboardList className="h-5 w-5 text-primary" /> Tools
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Templates, billing, and analytics now live under Settings.
+            </p>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Button variant="outline" className="justify-start" onClick={() => navigate("/dashboard/templates")}>
+              <ClipboardList className="mr-2 h-4 w-4" /> Templates
+            </Button>
+            <Button variant="outline" className="justify-start" onClick={() => navigate("/dashboard/billing")}>
+              <Receipt className="mr-2 h-4 w-4" /> Billing
+            </Button>
+            <Button variant="outline" className="justify-start" onClick={() => navigate("/dashboard/analytics")}>
+              <Database className="mr-2 h-4 w-4" /> Analytics
+            </Button>
+          </CardContent>
+        </Card>
+
+
         <InvoiceServicesSection />
 
         <StoreItemsSection />
