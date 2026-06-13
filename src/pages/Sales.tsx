@@ -512,7 +512,13 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
             {loading ? (
               <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Loading...</TableCell></TableRow>
             ) : pageRows.length === 0 ? (
-              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No leads found</TableCell></TableRow>
+              <TableRow>
+                <TableCell colSpan={9} className="py-10">
+                  {search.trim() && renderSearchEmpty
+                    ? renderSearchEmpty(search.trim())
+                    : <div className="text-center text-muted-foreground">No leads found</div>}
+                </TableCell>
+              </TableRow>
             ) : pageRows.map((p) => {
               const lastNote = notesByPatient[p.id];
               const breach = p.sla_breach_days ?? 0;
