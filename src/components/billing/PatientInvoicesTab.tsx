@@ -115,6 +115,13 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [services, setServices] = useState<ServiceRow[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
+  const [autoPickerForId, setAutoPickerForId] = useState<string | null>(null);
+
+  const openExisting = (id: string) => {
+    setSelectedId(id);
+    setCreateOpen(false);
+    setAutoPickerForId(id);
+  };
 
   const load = useCallback(async () => {
     const { data } = await supabase
