@@ -16,6 +16,10 @@ type Visit = {
   vitals: any;
   created_at: string;
   patient_id: string;
+  lifestyle?: string | null;
+  height_cm?: number | null;
+  weight_kg?: number | null;
+  captured_at_reception?: boolean | null;
   patient: {
     id: string; name: string; healthcare_id: string | null; gender: string | null;
     dob: string | null; blood_group: string | null; allergies: any; chronic_conditions: any;
@@ -32,9 +36,9 @@ export default function DoctorConsultationPage() {
 
   const fetchVisit = useCallback(async () => {
     if (!visitId || !profile?.clinic_id) return;
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("visits")
-      .select("id, token_number, status, chief_complaint, vitals, created_at, patient_id, patients!inner(id, name, healthcare_id, gender, dob, blood_group, allergies, chronic_conditions, phone, email)")
+      .select("id, token_number, status, chief_complaint, vitals, created_at, patient_id, lifestyle, height_cm, weight_kg, captured_at_reception, patients!inner(id, name, healthcare_id, gender, dob, blood_group, allergies, chronic_conditions, phone, email)")
       .eq("id", visitId)
       .eq("clinic_id", profile.clinic_id)
       .single();
