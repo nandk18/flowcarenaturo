@@ -1355,43 +1355,55 @@ export type Database = {
       }
       visits: {
         Row: {
+          captured_at_reception: boolean | null
           chief_complaint: string | null
           clinic_id: string
           created_at: string | null
           created_by: string | null
           doctor_id: string | null
+          height_cm: number | null
           id: string
+          lifestyle: string | null
           patient_id: string
           status: string | null
           token_number: number
           visit_date: string | null
           vitals: Json | null
+          weight_kg: number | null
         }
         Insert: {
+          captured_at_reception?: boolean | null
           chief_complaint?: string | null
           clinic_id: string
           created_at?: string | null
           created_by?: string | null
           doctor_id?: string | null
+          height_cm?: number | null
           id?: string
+          lifestyle?: string | null
           patient_id: string
           status?: string | null
           token_number: number
           visit_date?: string | null
           vitals?: Json | null
+          weight_kg?: number | null
         }
         Update: {
+          captured_at_reception?: boolean | null
           chief_complaint?: string | null
           clinic_id?: string
           created_at?: string | null
           created_by?: string | null
           doctor_id?: string | null
+          height_cm?: number | null
           id?: string
+          lifestyle?: string | null
           patient_id?: string
           status?: string | null
           token_number?: number
           visit_date?: string | null
           vitals?: Json | null
+          weight_kg?: number | null
         }
         Relationships: [
           {
