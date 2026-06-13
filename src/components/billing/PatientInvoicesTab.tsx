@@ -476,7 +476,10 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId }: { invoice: I
         <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Invoice notes" rows={3} />
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={sendWhatsApp}>
+          <MessageCircle className="h-4 w-4 mr-1" /> Send via WhatsApp
+        </Button>
         <Button onClick={saveAll} disabled={saving}>{saving ? "Saving..." : "Save Invoice"}</Button>
       </div>
 
@@ -486,6 +489,12 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId }: { invoice: I
         invoice={invoice}
         outstanding={totals.outstanding}
         onRecorded={() => { loadPayments(); onChanged(); }}
+      />
+      <StoreItemPicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        clinicId={clinicId}
+        onPick={addStoreItem}
       />
     </div>
   );
