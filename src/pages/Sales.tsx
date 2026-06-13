@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Users, Phone, UserPlus, Home as HomeIcon, LogOut } from "lucide-react";
 import SidebarLogo from "@/components/SidebarLogo";
+import AppShell from "@/components/layout/AppShell";
 import { useClinic } from "@/hooks/useClinic";
 
 import { Button } from "@/components/ui/button";
