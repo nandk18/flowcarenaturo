@@ -27,6 +27,7 @@ export default function TodayAppointmentsWidget() {
   const { profile } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [converting, setConverting] = useState<string | null>(null);
+  const [checkInFor, setCheckInFor] = useState<Appointment | null>(null);
 
   const fetchToday = async () => {
     if (!profile?.clinic_id) return;
@@ -49,7 +50,7 @@ export default function TodayAppointmentsWidget() {
 
   useEffect(() => { fetchToday(); }, [profile?.clinic_id]);
 
-  const convertToQueue = async (appt: Appointment) => {
+  const performMoveToQueue = async (appt: Appointment, checkIn: CheckInData | null) => {
     if (!profile?.clinic_id) return;
     setConverting(appt.id);
     try {
@@ -59,22 +60,29 @@ export default function TodayAppointmentsWidget() {
         .eq("visit_date", today).order("token_number", { ascending: false }).limit(1).single();
       const nextToken = (lastVisit?.token_number || 0) + 1;
 
-      const { error } = await supabase.from("visits").insert({
+      const visitPayload: any = {
         clinic_id: profile.clinic_id,
         patient_id: appt.patient_id,
         doctor_id: appt.doctor_id,
         token_number: nextToken,
-        chief_complaint: appt.reason || null,
+        chief_complaint: (checkIn?.chief_complaint || appt.reason) || null,
         status: "waiting",
         visit_date: today,
-      });
+      };
+      if (checkIn) {
+        visitPayload.lifestyle = checkIn.lifestyle;
+        visitPayload.height_cm = checkIn.height_cm;
+        visitPayload.weight_kg = checkIn.weight_kg;
+        visitPayload.captured_at_reception = true;
+      }
+      const { error } = await supabase.from("visits").insert(visitPayload);
       if (error) throw error;
 
       await (supabase as any).from("appointments").update({ status: "completed" } as any).eq("id", appt.id);
       toast.success(`${appt.patient?.name} added to queue as #${nextToken}`);
       fetchToday();
     } catch (err: any) { toast.error(err.message); }
-    finally { setConverting(null); }
+    finally { setConverting(null); setCheckInFor(null); }
   };
 
   if (appointments.length === 0) return null;
@@ -111,7 +119,7 @@ export default function TodayAppointmentsWidget() {
                   <span className="text-xs text-muted-foreground truncate">{formatDoctorName(appt.doctor?.name)}</span>
                   <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30 flex-shrink-0">Appt</Badge>
                 </div>
-                <Button size="sm" className="text-xs flex-shrink-0" onClick={() => convertToQueue(appt)} disabled={converting === appt.id}>
+                <Button size="sm" className="text-xs flex-shrink-0" onClick={() => setCheckInFor(appt)} disabled={converting === appt.id}>
                   <ArrowRight className="mr-1 h-3 w-3" /> To Queue
                 </Button>
               </CardContent>
@@ -119,6 +127,13 @@ export default function TodayAppointmentsWidget() {
           ))}
         </div>
       </CollapsibleContent>
+      <CheckInModal
+        open={!!checkInFor}
+        patientName={checkInFor?.patient?.name ?? ""}
+        appointmentTime={checkInFor?.appointment_time?.substring(0, 5)}
+        onClose={() => setCheckInFor(null)}
+        onConfirm={async (data) => { if (checkInFor) await performMoveToQueue(checkInFor, data); }}
+      />
     </Collapsible>
   );
 }
