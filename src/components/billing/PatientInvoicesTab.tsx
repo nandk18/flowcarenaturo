@@ -425,7 +425,7 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
                         </Button>
                       </td>
                     </tr>
-                  </>
+                  </React.Fragment>
                 );
               })}
             </tbody>
