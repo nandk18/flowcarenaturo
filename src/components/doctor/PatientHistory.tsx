@@ -223,7 +223,7 @@ export default function PatientHistory({ patientId, currentVisitId }: Props) {
                   </div>
                   {visit.doctors && (
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Dr. {visit.doctors.name}{visit.doctors.qualification && `, ${visit.doctors.qualification}`}
+                      {(visit.doctors.name?.match(/^dr\.?\b/i) ? visit.doctors.name : `Dr. ${visit.doctors.name}`)}{visit.doctors.qualification && `, ${visit.doctors.qualification}`}
                     </p>
                   )}
                   {lastEdited && (

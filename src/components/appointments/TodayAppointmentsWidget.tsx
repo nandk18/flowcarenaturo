@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { Calendar, ChevronDown, ArrowRight, Clock } from "lucide-react";
+import { formatDoctorName } from "@/lib/utils";
+import CheckInModal, { type CheckInData } from "@/components/queue/CheckInModal";
 import { format } from "date-fns";
 
 type Appointment = {
@@ -106,7 +108,7 @@ export default function TodayAppointmentsWidget() {
                   <Clock className="h-4 w-4 text-primary flex-shrink-0" />
                   <span className="font-mono text-xs font-bold text-primary">{appt.appointment_time.substring(0, 5)}</span>
                   <span className="text-sm font-medium truncate">{appt.patient?.name}</span>
-                  <span className="text-xs text-muted-foreground truncate">Dr. {appt.doctor?.name}</span>
+                  <span className="text-xs text-muted-foreground truncate">{formatDoctorName(appt.doctor?.name)}</span>
                   <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30 flex-shrink-0">Appt</Badge>
                 </div>
                 <Button size="sm" className="text-xs flex-shrink-0" onClick={() => convertToQueue(appt)} disabled={converting === appt.id}>
