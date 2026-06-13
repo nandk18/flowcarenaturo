@@ -547,18 +547,12 @@ export default function Settings() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-40 flex h-16 w-full items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur sm:px-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/home")} aria-label="Back to home">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="font-display text-lg font-semibold">Settings</h1>
-      </header>
-      <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
-        <div className="mb-6">
-          <h1 className="font-display text-2xl font-bold text-foreground">Settings</h1>
-          <p className="text-sm text-muted-foreground">Manage your clinic, profile, and security</p>
-        </div>
+    <AppShell title="Settings">
+      <div className="mb-6">
+        <h1 className="font-display text-2xl font-bold text-foreground">Settings</h1>
+        <p className="text-sm text-muted-foreground">Manage your clinic, profile, and security</p>
+      </div>
+
 
       <div className="space-y-6 max-w-2xl">
         {/* Clinic Details */}
