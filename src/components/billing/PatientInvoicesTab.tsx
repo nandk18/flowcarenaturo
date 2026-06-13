@@ -208,6 +208,8 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
             onChanged={load}
             patientId={patientId}
             clinicId={clinicId}
+            autoOpenPicker={autoPickerForId === selected.id}
+            onPickerHandled={() => setAutoPickerForId(null)}
           />
         )}
       </section>
@@ -219,6 +221,7 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
         patientId={patientId}
         clinicId={clinicId}
         services={services}
+        onOpenExisting={openExisting}
       />
     </div>
   );
