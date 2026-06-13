@@ -1175,7 +1175,7 @@ export default function Settings() {
           </div>
         </div>
       )}
-    </main>
-    </div>
+    </AppShell>
   );
 }
+
