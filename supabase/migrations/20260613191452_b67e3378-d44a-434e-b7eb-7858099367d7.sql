@@ -1,0 +1,1 @@
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.store_items TO authenticated; GRANT ALL ON public.store_items TO service_role;
