@@ -622,10 +622,11 @@ function RecordPaymentDialog({
 /* ============== CREATE INVOICE ============== */
 
 function CreateInvoiceModal({
-  open, onClose, onCreated, patientId, clinicId, services,
+  open, onClose, onCreated, patientId, clinicId, services, onOpenExisting,
 }: {
   open: boolean; onClose: () => void; onCreated: () => void;
   patientId: string; clinicId: string; services: ServiceRow[];
+  onOpenExisting?: (invoiceId: string) => void;
 }) {
   const { user } = useAuth();
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -635,13 +636,23 @@ function CreateInvoiceModal({
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState("unpaid");
   const [saving, setSaving] = useState(false);
+  const [existingTodayId, setExistingTodayId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (open) {
-      setDate(new Date().toISOString().slice(0, 10));
-      setItems([]); setGstPct(0); setDiscount(0); setNotes(""); setStatus("unpaid");
-    }
-  }, [open]);
+    if (!open) return;
+    setDate(new Date().toISOString().slice(0, 10));
+    setItems([]); setGstPct(0); setDiscount(0); setNotes(""); setStatus("unpaid");
+    const today = new Date().toISOString().slice(0, 10);
+    supabase
+      .from("invoices")
+      .select("id")
+      .eq("patient_id", patientId)
+      .eq("invoice_date", today)
+      .eq("status", "unpaid")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .then(({ data }) => setExistingTodayId(data?.[0]?.id ?? null));
+  }, [open, patientId]);
 
   const addService = (id: string) => {
     const s = services.find((x) => x.id === id);
