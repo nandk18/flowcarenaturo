@@ -319,14 +319,18 @@ type LeadListProps = {
   onEdit: (patient: Patient) => void;
   /** URL prefix for patient detail navigation. Defaults to /sales/patient. */
   patientHrefPrefix?: string;
+  /** Initial status filter; defaults to "all". */
+  defaultStatus?: LeadStatus | "all";
+  /** Render a custom node when the search returns zero results (overrides default empty cell). */
+  renderSearchEmpty?: (searchTerm: string) => React.ReactNode;
 };
 
-export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient" }: LeadListProps) {
+export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient", defaultStatus = "all", renderSearchEmpty }: LeadListProps) {
   const navigate = useNavigate();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [notesByPatient, setNotesByPatient] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">(defaultStatus);
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState("");
@@ -369,9 +373,17 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return patients.filter((p) => {
-      if (statusFilter !== "all" && p.lead_status !== statusFilter) return false;
+      // Search overrides status filter so user can find any patient
+      if (q) {
+        const matches =
+          p.name?.toLowerCase().includes(q) ||
+          (p.phone ?? "").toLowerCase().includes(q) ||
+          (p.email ?? "").toLowerCase().includes(q);
+        if (!matches) return false;
+      } else {
+        if (statusFilter !== "all" && p.lead_status !== statusFilter) return false;
+      }
       if (sourceFilter !== "all" && p.lead_source !== sourceFilter) return false;
-      if (q && !(p.name?.toLowerCase().includes(q) || (p.phone ?? "").toLowerCase().includes(q))) return false;
       if (fromDate && p.created_at && p.created_at < fromDate) return false;
       if (toDate && p.created_at && p.created_at > toDate + "T23:59:59") return false;
       return true;
