@@ -78,12 +78,11 @@ export default function ConsultPatients() {
           {addPrefill !== null && clinicId && (
             <LeadForm
               clinicId={clinicId}
-              initial={{
+              prefill={{
                 first_name: addPrefill.split(" ")[0] ?? addPrefill,
-                last_name: addPrefill.split(" ").slice(1).join(" ") || null,
-              } as any}
+                last_name: addPrefill.split(" ").slice(1).join(" ") || undefined,
+              }}
               onSaved={async (p) => {
-                // Promote to 'current' immediately
                 await supabase.from("patients").update({ lead_status: "current" }).eq("id", p.id);
                 setAddPrefill(null);
                 navigate(`/consult/patients/${p.id}`);

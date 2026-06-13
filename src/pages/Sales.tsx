@@ -127,12 +127,14 @@ type LeadFormProps = {
   clinicId: string;
   initial?: Patient | null;
   onSaved: (patient: Patient) => void;
+  /** Pre-fill values when creating a brand new lead (ignored if initial is set). */
+  prefill?: { first_name?: string; last_name?: string };
 };
 
-export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
+export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps) {
   const [leadSource, setLeadSource] = useState(initial?.lead_source ?? "");
-  const [firstName, setFirstName] = useState(initial?.first_name ?? "");
-  const [lastName, setLastName] = useState(initial?.last_name ?? "");
+  const [firstName, setFirstName] = useState(initial?.first_name ?? prefill?.first_name ?? "");
+  const [lastName, setLastName] = useState(initial?.last_name ?? prefill?.last_name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "+91");
   const [convenientTime, setConvenientTime] = useState(initial?.convenient_time ?? "");
   const [dob, setDob] = useState(initial?.dob ?? "");
