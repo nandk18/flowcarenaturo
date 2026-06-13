@@ -732,6 +732,7 @@ function CreateInvoiceModal({
             </div>
           </div>
         )}
+        <div className="grid sm:grid-cols-2 gap-3">
           <div>
             <Label>Invoice Date</Label>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
