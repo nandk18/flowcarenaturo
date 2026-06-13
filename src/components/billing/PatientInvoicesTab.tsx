@@ -13,7 +13,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Receipt, CreditCard } from "lucide-react";
+import { Plus, Trash2, Receipt, CreditCard, Package, MessageCircle, AlertTriangle } from "lucide-react";
+import StoreItemPicker, { type StoreItemPick } from "./StoreItemPicker";
+import { useClinic } from "@/hooks/useClinic";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 type LineItem = {
   name?: string;
