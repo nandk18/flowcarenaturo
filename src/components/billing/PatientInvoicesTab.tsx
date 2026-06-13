@@ -397,7 +397,7 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
                   ? Array.from(distinctAppointments).indexOf(it.appointment_id) + 1
                   : 0;
                 return (
-                  <>
+                  <React.Fragment key={idx}>
                     {showGroupHeader && (
                       <tr key={`grp-${idx}`} className="bg-blue-50/60 border-t">
                         <td colSpan={6} className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700">
