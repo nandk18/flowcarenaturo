@@ -174,7 +174,14 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
                   )}>{i.status}</span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{fmtInvoiceDate(i.invoice_date)}</p>
-                <p className="mt-1 text-sm font-medium">{fmtINR(i.total_amount)}</p>
+                <div className="mt-1 flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium">{fmtINR(i.total_amount)}</p>
+                  {isMultiVisit(i.line_items) && (
+                    <span className="inline-flex rounded-full bg-blue-100 text-blue-700 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold uppercase">
+                      Multi-visit
+                    </span>
+                  )}
+                </div>
               </button>
             ))
           )}
