@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload, Code2, ClipboardList, ChevronDown, ChevronUp, Database, AlertTriangle, Download } from "lucide-react";
+import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload, Code2, ClipboardList, ChevronDown, ChevronUp, Database, AlertTriangle, Download, ArrowLeft } from "lucide-react";
 
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import { clientCache, CACHE_KEYS } from "@/lib/clientCache";

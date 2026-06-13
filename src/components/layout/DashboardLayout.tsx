@@ -10,7 +10,7 @@ import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import SessionTimeoutWarning from "@/components/SessionTimeoutWarning";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import {
-  Users, CalendarDays, Settings, LogOut, Menu, X, FileText, BarChart2, Calendar, Receipt, ArrowLeft
+  Users, CalendarDays, LogOut, Menu, X, FileText, BarChart2, Calendar, Receipt, ArrowLeft
 } from "lucide-react";
 import Logo from "@/components/Logo";
 import SidebarLogo from "@/components/SidebarLogo";
@@ -22,7 +22,6 @@ const adminLinks = [
   { to: "/dashboard/templates", icon: FileText, label: "Templates" },
   { to: "/dashboard/billing", icon: Receipt, label: "Billing" },
   { to: "/dashboard/analytics", icon: BarChart2, label: "Analytics" },
-  { to: "/dashboard/settings", icon: Settings, label: "Settings" },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Users, Phone, UserPlus, Settings as SettingsIcon, Home as HomeIcon, LogOut } from "lucide-react";
+import { Users, Phone, UserPlus, Home as HomeIcon, LogOut } from "lucide-react";
 import SidebarLogo from "@/components/SidebarLogo";
 import { useClinic } from "@/hooks/useClinic";
 
@@ -130,6 +130,7 @@ type LeadFormProps = {
 };
 
 export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
+  const [leadSource, setLeadSource] = useState(initial?.lead_source ?? "");
   const [firstName, setFirstName] = useState(initial?.first_name ?? "");
   const [lastName, setLastName] = useState(initial?.last_name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "+91");
@@ -169,6 +170,7 @@ export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
       last_name: lastName.trim() || null,
       phone: normalizePhone(phone),
       convenient_time: convenientTime.trim() || null,
+      lead_source: leadSource.trim() || null,
       email: email.trim() || null,
       dob: dob || null,
       gender: gender || null,
@@ -242,6 +244,19 @@ export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
           />
         </div>
         <div className="space-y-1.5">
+          <Label>Lead Source</Label>
+          <Select value={leadSource} onValueChange={setLeadSource}>
+            <SelectTrigger><SelectValue placeholder="Select lead source" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">—</SelectItem>
+              <SelectItem value="Instagram">Instagram</SelectItem>
+              <SelectItem value="Phone">Phone</SelectItem>
+              <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+              <SelectItem value="YuvaLife">YuvaLife</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
           <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
@@ -312,6 +327,7 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
   const [notesByPatient, setNotesByPatient] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -354,14 +370,15 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
     const q = search.trim().toLowerCase();
     return patients.filter((p) => {
       if (statusFilter !== "all" && p.lead_status !== statusFilter) return false;
+      if (sourceFilter !== "all" && p.lead_source !== sourceFilter) return false;
       if (q && !(p.name?.toLowerCase().includes(q) || (p.phone ?? "").toLowerCase().includes(q))) return false;
       if (fromDate && p.created_at && p.created_at < fromDate) return false;
       if (toDate && p.created_at && p.created_at > toDate + "T23:59:59") return false;
       return true;
     });
-  }, [patients, statusFilter, search, fromDate, toDate]);
+  }, [patients, statusFilter, sourceFilter, search, fromDate, toDate]);
 
-  useEffect(() => { setPage(1); }, [statusFilter, search, fromDate, toDate, pageSize]);
+  useEffect(() => { setPage(1); }, [statusFilter, sourceFilter, search, fromDate, toDate, pageSize]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -371,6 +388,7 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
       Name: p.name,
       Phone: p.phone ?? "",
       Status: p.lead_status ?? "",
+      "Lead Source": p.lead_source ?? "",
       "Call Due": p.call_due_date ?? "",
       "SLA Breach (days)": p.sla_breach_days ?? 0,
       "Last Note": notesByPatient[p.id] ?? "",
@@ -421,6 +439,19 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
           </Select>
         </div>
         <div className="space-y-1">
+          <Label className="text-xs">Source</Label>
+          <Select value={sourceFilter} onValueChange={setSourceFilter}>
+            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="Instagram">Instagram</SelectItem>
+              <SelectItem value="Phone">Phone</SelectItem>
+              <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+              <SelectItem value="YuvaLife">YuvaLife</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
           <Label className="text-xs">From</Label>
           <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-[150px]" />
         </div>
@@ -457,6 +488,7 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
               <TableHead>Name</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Lead Source</TableHead>
               <TableHead>Call Due</TableHead>
               <TableHead>SLA Breach</TableHead>
               <TableHead>Last Note</TableHead>
@@ -466,35 +498,36 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Loading...</TableCell></TableRow>
             ) : pageRows.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No leads found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No leads found</TableCell></TableRow>
             ) : pageRows.map((p) => {
               const lastNote = notesByPatient[p.id];
               const breach = p.sla_breach_days ?? 0;
               return (
                 <TableRow key={p.id}>
                   <TableCell>
-                    <button
-                      type="button"
-                      onClick={() => navigate(`${patientHrefPrefix}/${p.id}`)}
-                      className="text-primary hover:underline font-medium"
-                    >
-                      {p.name}
-                    </button>
-                  </TableCell>
-                  <TableCell className="text-sm">{p.phone ?? "—"}</TableCell>
-                  <TableCell>{statusBadge(p.lead_status)}</TableCell>
-                  <TableCell className="text-sm">{p.call_due_date ?? "—"}</TableCell>
-                  <TableCell className={cn("text-sm", breach > 0 && "text-red-600 font-semibold")}>
-                    {breach > 0 ? `${breach}d` : "—"}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-[240px] truncate">
-                    {lastNote ? lastNote.slice(0, 40) + (lastNote.length > 40 ? "..." : "") : "—"}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {p.created_at ? new Date(p.created_at).toLocaleDateString() : "—"}
-                  </TableCell>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`${patientHrefPrefix}/${p.id}`)}
+                    className="text-primary hover:underline font-medium"
+                  >
+                    {p.name}
+                  </button>
+                </TableCell>
+                <TableCell className="text-sm">{p.phone ?? "—"}</TableCell>
+                <TableCell>{statusBadge(p.lead_status)}</TableCell>
+                <TableCell className="text-sm">{p.lead_source ?? "—"}</TableCell>
+                <TableCell className="text-sm">{p.call_due_date ?? "—"}</TableCell>
+                <TableCell className={cn("text-sm", breach > 0 && "text-red-600 font-semibold")}>
+                  {breach > 0 ? `${breach}d` : "—"}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground max-w-[240px] truncate">
+                  {lastNote ? lastNote.slice(0, 40) + (lastNote.length > 40 ? "..." : "") : "—"}
+                </TableCell>
+                <TableCell className="text-sm">
+                  {p.created_at ? new Date(p.created_at).toLocaleDateString() : "—"}
+                </TableCell>
                   <TableCell className="text-right">
                     <div className="inline-flex gap-1">
                       {p.phone && (
@@ -1008,14 +1041,6 @@ export default function Sales() {
         </nav>
 
         <div className="border-t border-sidebar-border p-3 space-y-1">
-          <button
-            type="button"
-            onClick={() => navigate("/dashboard/settings")}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-          >
-            <SettingsIcon className="h-4 w-4" />
-            <span>Settings</span>
-          </button>
           <button
             type="button"
             onClick={() => navigate("/home")}
