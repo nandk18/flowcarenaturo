@@ -283,13 +283,52 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId }: { invoice: I
     onChanged();
   };
 
-  const addItem = () => setItems([...items, { name: "", description: "", quantity: 1, unit_price: 0 }]);
+  const addStoreItem = (s: StoreItemPick) => {
+    setItems((cur) => [...cur, {
+      name: s.name,
+      description: s.description ?? "",
+      quantity: 1,
+      unit_price: Number(s.unit_price),
+      gst_percentage: Number(s.gst_percentage ?? 0),
+      appointment_id: null,
+    }]);
+  };
   const updateItem = (idx: number, field: keyof LineItem, v: any) => {
     const next = [...items];
     (next[idx] as any)[field] = field === "name" || field === "description" ? v : Number(v);
     setItems(next);
   };
   const removeItem = (idx: number) => setItems(items.filter((_, i) => i !== idx));
+
+  const distinctAppointments = new Set(items.map((i) => i.appointment_id).filter(Boolean));
+  const showAppointmentGroups = distinctAppointments.size > 1;
+
+  const sendWhatsApp = async () => {
+    const { data: patient } = await supabase
+      .from("patients").select("name,phone").eq("id", patientId).single();
+    if (!patient?.phone) return toast.error("No phone number found for this patient");
+    const clinicName = clinic?.name ?? "";
+    const lines = items.map((it) =>
+      `• ${it.name || it.description || "Item"} x${it.quantity} — ${fmtINR(Number(it.quantity) * Number(it.unit_price))}`
+    ).join("\n");
+    const statusLabel = (status || "unpaid").toUpperCase();
+    const message =
+      `Payment Receipt - ${clinicName}\n\n` +
+      `Dear ${patient.name},\n\n` +
+      `Invoice No: ${invoice.invoice_number}\n` +
+      `Date: ${fmtInvoiceDate(invoice.invoice_date)}\n\n` +
+      `Items:\n${lines}\n\n` +
+      `Subtotal: ${fmtINR(totals.subtotal)}\n` +
+      `GST: ${fmtINR(totals.gstAmount)}\n` +
+      `Discount: ${fmtINR(discount)}\n` +
+      `Total: ${fmtINR(totals.total)}\n` +
+      `Paid: ${fmtINR(invoice.paid_amount)}\n` +
+      `Outstanding: ${fmtINR(totals.outstanding)}\n\n` +
+      `Status: ${statusLabel}\n\n` +
+      `Thank you for visiting ${clinicName}!`;
+    toast.success("Opening WhatsApp...");
+    openWhatsApp(patient.phone, message);
+  };
 
   return (
     <div className="space-y-5">
