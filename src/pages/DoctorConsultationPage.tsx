@@ -99,6 +99,40 @@ export default function DoctorConsultationPage() {
         </div>
       </div>
 
+      {visit.captured_at_reception && (
+        <div className="mb-4 rounded-xl border bg-card p-4">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Check-in Information
+          </h3>
+          <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+            {visit.chief_complaint && (
+              <div className="col-span-2 sm:col-span-4">
+                <p className="text-xs text-muted-foreground">Chief Complaint</p>
+                <p className="font-medium">{visit.chief_complaint}</p>
+              </div>
+            )}
+            {visit.lifestyle && (
+              <div>
+                <p className="text-xs text-muted-foreground">Lifestyle</p>
+                <p className="font-medium">{visit.lifestyle}</p>
+              </div>
+            )}
+            {visit.height_cm != null && (
+              <div>
+                <p className="text-xs text-muted-foreground">Height</p>
+                <p className="font-medium">{visit.height_cm} cm</p>
+              </div>
+            )}
+            {visit.weight_kg != null && (
+              <div>
+                <p className="text-xs text-muted-foreground">Weight</p>
+                <p className="font-medium">{visit.weight_kg} kg</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <ConsultationWorkspace visit={visit} onComplete={() => navigate("/dashboard")} />
     </DashboardLayout>
   );
