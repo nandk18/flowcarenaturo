@@ -372,33 +372,49 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId }: { invoice: I
             <tbody>
               {items.length === 0 ? (
                 <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">No items</td></tr>
-              ) : items.map((it, idx) => (
-                <tr key={idx} className="border-t">
-                  <td className="px-2 py-1">
-                    <Input value={it.name ?? ""} onChange={(e) => updateItem(idx, "name", e.target.value)} className="h-8 border-0 focus-visible:ring-1" />
-                  </td>
-                  <td className="px-2 py-1">
-                    <Input value={it.description ?? ""} onChange={(e) => updateItem(idx, "description", e.target.value)} className="h-8 border-0 focus-visible:ring-1" />
-                  </td>
-                  <td className="px-2 py-1">
-                    <Input type="number" min={1} value={it.quantity} onChange={(e) => updateItem(idx, "quantity", e.target.value)} className="h-8 text-center border-0 focus-visible:ring-1" />
-                  </td>
-                  <td className="px-2 py-1">
-                    <Input type="number" min={0} value={it.unit_price} onChange={(e) => updateItem(idx, "unit_price", e.target.value)} className="h-8 text-right border-0 focus-visible:ring-1" />
-                  </td>
-                  <td className="px-3 py-2 text-right font-medium">{fmtINR(Number(it.quantity) * Number(it.unit_price))}</td>
-                  <td className="px-2 py-2 text-right">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeItem(idx)}>
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+              ) : items.map((it, idx) => {
+                const prevAppt = idx > 0 ? items[idx - 1].appointment_id : undefined;
+                const showGroupHeader = showAppointmentGroups && it.appointment_id && it.appointment_id !== prevAppt;
+                const groupIdx = showAppointmentGroups && it.appointment_id
+                  ? Array.from(distinctAppointments).indexOf(it.appointment_id) + 1
+                  : 0;
+                return (
+                  <>
+                    {showGroupHeader && (
+                      <tr key={`grp-${idx}`} className="bg-blue-50/60 border-t">
+                        <td colSpan={6} className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700">
+                          Visit {groupIdx}
+                        </td>
+                      </tr>
+                    )}
+                    <tr key={idx} className="border-t">
+                      <td className="px-2 py-1">
+                        <Input value={it.name ?? ""} onChange={(e) => updateItem(idx, "name", e.target.value)} className="h-8 border-0 focus-visible:ring-1" />
+                      </td>
+                      <td className="px-2 py-1">
+                        <Input value={it.description ?? ""} onChange={(e) => updateItem(idx, "description", e.target.value)} className="h-8 border-0 focus-visible:ring-1" />
+                      </td>
+                      <td className="px-2 py-1">
+                        <Input type="number" min={1} value={it.quantity} onChange={(e) => updateItem(idx, "quantity", e.target.value)} className="h-8 text-center border-0 focus-visible:ring-1" />
+                      </td>
+                      <td className="px-2 py-1">
+                        <Input type="number" min={0} value={it.unit_price} onChange={(e) => updateItem(idx, "unit_price", e.target.value)} className="h-8 text-right border-0 focus-visible:ring-1" />
+                      </td>
+                      <td className="px-3 py-2 text-right font-medium">{fmtINR(Number(it.quantity) * Number(it.unit_price))}</td>
+                      <td className="px-2 py-2 text-right">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeItem(idx)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </td>
+                    </tr>
+                  </>
+                );
+              })}
             </tbody>
           </table>
         </div>
-        <Button variant="outline" size="sm" className="mt-2" onClick={addItem}>
-          <Plus className="h-3.5 w-3.5 mr-1" /> Add Line Item
+        <Button variant="outline" size="sm" className="mt-2" onClick={() => setPickerOpen(true)}>
+          <Package className="h-3.5 w-3.5 mr-1" /> Add Store Item
         </Button>
       </div>
 
