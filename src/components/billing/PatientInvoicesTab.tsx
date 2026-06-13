@@ -24,6 +24,8 @@ type LineItem = {
   quantity: number;
   unit_price: number;
   total?: number;
+  appointment_id?: string | null;
+  gst_percentage?: number;
 };
 
 type Invoice = {
