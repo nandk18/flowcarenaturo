@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Receipt, CreditCard } from "lucide-react";
+import { Plus, Trash2, Receipt, CreditCard, Package, MessageCircle, AlertTriangle } from "lucide-react";
+import StoreItemPicker, { type StoreItemPick } from "./StoreItemPicker";
+import { useClinic } from "@/hooks/useClinic";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 type LineItem = {
   name?: string;
@@ -21,6 +24,8 @@ type LineItem = {
   quantity: number;
   unit_price: number;
   total?: number;
+  appointment_id?: string | null;
+  gst_percentage?: number;
 };
 
 type Invoice = {
@@ -89,7 +94,15 @@ function normaliseItems(raw: any): LineItem[] {
     description: it.description ?? "",
     quantity: Number(it.quantity ?? 1),
     unit_price: Number(it.unit_price ?? it.price ?? 0),
+    appointment_id: it.appointment_id ?? null,
+    gst_percentage: Number(it.gst_percentage ?? 0),
   }));
+}
+
+function isMultiVisit(raw: any): boolean {
+  if (!Array.isArray(raw)) return false;
+  const ids = raw.map((i) => i?.appointment_id).filter(Boolean);
+  return new Set(ids).size > 1;
 }
 
 interface Props {
@@ -102,6 +115,13 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [services, setServices] = useState<ServiceRow[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
+  const [autoPickerForId, setAutoPickerForId] = useState<string | null>(null);
+
+  const openExisting = (id: string) => {
+    setSelectedId(id);
+    setCreateOpen(false);
+    setAutoPickerForId(id);
+  };
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -161,7 +181,14 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
                   )}>{i.status}</span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{fmtInvoiceDate(i.invoice_date)}</p>
-                <p className="mt-1 text-sm font-medium">{fmtINR(i.total_amount)}</p>
+                <div className="mt-1 flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium">{fmtINR(i.total_amount)}</p>
+                  {isMultiVisit(i.line_items) && (
+                    <span className="inline-flex rounded-full bg-blue-100 text-blue-700 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold uppercase">
+                      Multi-visit
+                    </span>
+                  )}
+                </div>
               </button>
             ))
           )}
@@ -179,6 +206,10 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
             key={selected.id}
             invoice={selected}
             onChanged={load}
+            patientId={patientId}
+            clinicId={clinicId}
+            autoOpenPicker={autoPickerForId === selected.id}
+            onPickerHandled={() => setAutoPickerForId(null)}
           />
         )}
       </section>
@@ -190,6 +221,7 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
         patientId={patientId}
         clinicId={clinicId}
         services={services}
+        onOpenExisting={openExisting}
       />
     </div>
   );
@@ -197,7 +229,17 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
 
 /* ============== DETAIL ============== */
 
-function InvoiceDetail({ invoice, onChanged }: { invoice: Invoice; onChanged: () => void }) {
+function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker, onPickerHandled }: { invoice: Invoice; onChanged: () => void; patientId: string; clinicId: string; autoOpenPicker?: boolean; onPickerHandled?: () => void }) {
+  const { clinic } = useClinic();
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  useEffect(() => {
+    if (autoOpenPicker) {
+      setPickerOpen(true);
+      onPickerHandled?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenPicker]);
   const [items, setItems] = useState<LineItem[]>(normaliseItems(invoice.line_items));
   const [gstPct, setGstPct] = useState(Number(invoice.gst_percentage) || 0);
   const [discount, setDiscount] = useState(Number(invoice.discount_amount) || 0);
@@ -259,13 +301,52 @@ function InvoiceDetail({ invoice, onChanged }: { invoice: Invoice; onChanged: ()
     onChanged();
   };
 
-  const addItem = () => setItems([...items, { name: "", description: "", quantity: 1, unit_price: 0 }]);
+  const addStoreItem = (s: StoreItemPick) => {
+    setItems((cur) => [...cur, {
+      name: s.name,
+      description: s.description ?? "",
+      quantity: 1,
+      unit_price: Number(s.unit_price),
+      gst_percentage: Number(s.gst_percentage ?? 0),
+      appointment_id: null,
+    }]);
+  };
   const updateItem = (idx: number, field: keyof LineItem, v: any) => {
     const next = [...items];
     (next[idx] as any)[field] = field === "name" || field === "description" ? v : Number(v);
     setItems(next);
   };
   const removeItem = (idx: number) => setItems(items.filter((_, i) => i !== idx));
+
+  const distinctAppointments = new Set(items.map((i) => i.appointment_id).filter(Boolean));
+  const showAppointmentGroups = distinctAppointments.size > 1;
+
+  const sendWhatsApp = async () => {
+    const { data: patient } = await supabase
+      .from("patients").select("name,phone").eq("id", patientId).single();
+    if (!patient?.phone) return toast.error("No phone number found for this patient");
+    const clinicName = clinic?.name ?? "";
+    const lines = items.map((it) =>
+      `• ${it.name || it.description || "Item"} x${it.quantity} — ${fmtINR(Number(it.quantity) * Number(it.unit_price))}`
+    ).join("\n");
+    const statusLabel = (status || "unpaid").toUpperCase();
+    const message =
+      `Payment Receipt - ${clinicName}\n\n` +
+      `Dear ${patient.name},\n\n` +
+      `Invoice No: ${invoice.invoice_number}\n` +
+      `Date: ${fmtInvoiceDate(invoice.invoice_date)}\n\n` +
+      `Items:\n${lines}\n\n` +
+      `Subtotal: ${fmtINR(totals.subtotal)}\n` +
+      `GST: ${fmtINR(totals.gstAmount)}\n` +
+      `Discount: ${fmtINR(discount)}\n` +
+      `Total: ${fmtINR(totals.total)}\n` +
+      `Paid: ${fmtINR(invoice.paid_amount)}\n` +
+      `Outstanding: ${fmtINR(totals.outstanding)}\n\n` +
+      `Status: ${statusLabel}\n\n` +
+      `Thank you for visiting ${clinicName}!`;
+    toast.success("Opening WhatsApp...");
+    openWhatsApp(patient.phone, message);
+  };
 
   return (
     <div className="space-y-5">
@@ -309,33 +390,49 @@ function InvoiceDetail({ invoice, onChanged }: { invoice: Invoice; onChanged: ()
             <tbody>
               {items.length === 0 ? (
                 <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">No items</td></tr>
-              ) : items.map((it, idx) => (
-                <tr key={idx} className="border-t">
-                  <td className="px-2 py-1">
-                    <Input value={it.name ?? ""} onChange={(e) => updateItem(idx, "name", e.target.value)} className="h-8 border-0 focus-visible:ring-1" />
-                  </td>
-                  <td className="px-2 py-1">
-                    <Input value={it.description ?? ""} onChange={(e) => updateItem(idx, "description", e.target.value)} className="h-8 border-0 focus-visible:ring-1" />
-                  </td>
-                  <td className="px-2 py-1">
-                    <Input type="number" min={1} value={it.quantity} onChange={(e) => updateItem(idx, "quantity", e.target.value)} className="h-8 text-center border-0 focus-visible:ring-1" />
-                  </td>
-                  <td className="px-2 py-1">
-                    <Input type="number" min={0} value={it.unit_price} onChange={(e) => updateItem(idx, "unit_price", e.target.value)} className="h-8 text-right border-0 focus-visible:ring-1" />
-                  </td>
-                  <td className="px-3 py-2 text-right font-medium">{fmtINR(Number(it.quantity) * Number(it.unit_price))}</td>
-                  <td className="px-2 py-2 text-right">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeItem(idx)}>
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+              ) : items.map((it, idx) => {
+                const prevAppt = idx > 0 ? items[idx - 1].appointment_id : undefined;
+                const showGroupHeader = showAppointmentGroups && it.appointment_id && it.appointment_id !== prevAppt;
+                const groupIdx = showAppointmentGroups && it.appointment_id
+                  ? Array.from(distinctAppointments).indexOf(it.appointment_id) + 1
+                  : 0;
+                return (
+                  <React.Fragment key={idx}>
+                    {showGroupHeader && (
+                      <tr key={`grp-${idx}`} className="bg-blue-50/60 border-t">
+                        <td colSpan={6} className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700">
+                          Visit {groupIdx}
+                        </td>
+                      </tr>
+                    )}
+                    <tr key={idx} className="border-t">
+                      <td className="px-2 py-1">
+                        <Input value={it.name ?? ""} onChange={(e) => updateItem(idx, "name", e.target.value)} className="h-8 border-0 focus-visible:ring-1" />
+                      </td>
+                      <td className="px-2 py-1">
+                        <Input value={it.description ?? ""} onChange={(e) => updateItem(idx, "description", e.target.value)} className="h-8 border-0 focus-visible:ring-1" />
+                      </td>
+                      <td className="px-2 py-1">
+                        <Input type="number" min={1} value={it.quantity} onChange={(e) => updateItem(idx, "quantity", e.target.value)} className="h-8 text-center border-0 focus-visible:ring-1" />
+                      </td>
+                      <td className="px-2 py-1">
+                        <Input type="number" min={0} value={it.unit_price} onChange={(e) => updateItem(idx, "unit_price", e.target.value)} className="h-8 text-right border-0 focus-visible:ring-1" />
+                      </td>
+                      <td className="px-3 py-2 text-right font-medium">{fmtINR(Number(it.quantity) * Number(it.unit_price))}</td>
+                      <td className="px-2 py-2 text-right">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeItem(idx)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </td>
+                    </tr>
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
-        <Button variant="outline" size="sm" className="mt-2" onClick={addItem}>
-          <Plus className="h-3.5 w-3.5 mr-1" /> Add Line Item
+        <Button variant="outline" size="sm" className="mt-2" onClick={() => setPickerOpen(true)}>
+          <Package className="h-3.5 w-3.5 mr-1" /> Add Store Item
         </Button>
       </div>
 
@@ -397,7 +494,10 @@ function InvoiceDetail({ invoice, onChanged }: { invoice: Invoice; onChanged: ()
         <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Invoice notes" rows={3} />
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={sendWhatsApp}>
+          <MessageCircle className="h-4 w-4 mr-1" /> Send via WhatsApp
+        </Button>
         <Button onClick={saveAll} disabled={saving}>{saving ? "Saving..." : "Save Invoice"}</Button>
       </div>
 
@@ -407,6 +507,12 @@ function InvoiceDetail({ invoice, onChanged }: { invoice: Invoice; onChanged: ()
         invoice={invoice}
         outstanding={totals.outstanding}
         onRecorded={() => { loadPayments(); onChanged(); }}
+      />
+      <StoreItemPicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        clinicId={clinicId}
+        onPick={addStoreItem}
       />
     </div>
   );
@@ -516,10 +622,11 @@ function RecordPaymentDialog({
 /* ============== CREATE INVOICE ============== */
 
 function CreateInvoiceModal({
-  open, onClose, onCreated, patientId, clinicId, services,
+  open, onClose, onCreated, patientId, clinicId, services, onOpenExisting,
 }: {
   open: boolean; onClose: () => void; onCreated: () => void;
   patientId: string; clinicId: string; services: ServiceRow[];
+  onOpenExisting?: (invoiceId: string) => void;
 }) {
   const { user } = useAuth();
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -529,13 +636,23 @@ function CreateInvoiceModal({
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState("unpaid");
   const [saving, setSaving] = useState(false);
+  const [existingTodayId, setExistingTodayId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (open) {
-      setDate(new Date().toISOString().slice(0, 10));
-      setItems([]); setGstPct(0); setDiscount(0); setNotes(""); setStatus("unpaid");
-    }
-  }, [open]);
+    if (!open) return;
+    setDate(new Date().toISOString().slice(0, 10));
+    setItems([]); setGstPct(0); setDiscount(0); setNotes(""); setStatus("unpaid");
+    const today = new Date().toISOString().slice(0, 10);
+    supabase
+      .from("invoices")
+      .select("id")
+      .eq("patient_id", patientId)
+      .eq("invoice_date", today)
+      .eq("status", "unpaid")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .then(({ data }) => setExistingTodayId(data?.[0]?.id ?? null));
+  }, [open, patientId]);
 
   const addService = (id: string) => {
     const s = services.find((x) => x.id === id);
@@ -596,6 +713,25 @@ function CreateInvoiceModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Create Invoice</DialogTitle></DialogHeader>
+        {existingTodayId && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm">
+            <div className="flex gap-2 items-start">
+              <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium text-amber-900">An unpaid invoice already exists for today.</p>
+                <p className="text-xs text-amber-800 mt-0.5">Do you want to add to the existing invoice instead?</p>
+                <div className="flex gap-2 mt-2">
+                  <Button size="sm" onClick={() => onOpenExisting?.(existingTodayId)}>
+                    Add to Existing
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setExistingTodayId(null)}>
+                    Create New Invoice
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
             <Label>Invoice Date</Label>

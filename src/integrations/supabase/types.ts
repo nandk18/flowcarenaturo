@@ -1282,6 +1282,59 @@ export type Database = {
           },
         ]
       }
+      store_items: {
+        Row: {
+          category: string | null
+          clinic_id: string | null
+          created_at: string | null
+          description: string | null
+          gst_percentage: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          sku: string | null
+          unit: string | null
+          unit_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          gst_percentage?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          sku?: string | null
+          unit?: string | null
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          gst_percentage?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sku?: string | null
+          unit?: string | null
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_items_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
