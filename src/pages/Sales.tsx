@@ -248,7 +248,7 @@ export function LeadForm({ clinicId, initial, onSaved }: LeadFormProps) {
           <Select value={leadSource} onValueChange={setLeadSource}>
             <SelectTrigger><SelectValue placeholder="Select lead source" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">—</SelectItem>
+              
               <SelectItem value="Instagram">Instagram</SelectItem>
               <SelectItem value="Phone">Phone</SelectItem>
               <SelectItem value="WhatsApp">WhatsApp</SelectItem>
