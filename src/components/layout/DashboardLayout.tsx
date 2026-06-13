@@ -19,9 +19,6 @@ const adminLinks = [
   { to: "/dashboard", icon: CalendarDays, label: "Queue" },
   { to: "/dashboard/appointments", icon: Calendar, label: "Appointments" },
   { to: "/consult/patients", icon: Users, label: "Patients" },
-  { to: "/dashboard/templates", icon: FileText, label: "Templates" },
-  { to: "/dashboard/billing", icon: Receipt, label: "Billing" },
-  { to: "/dashboard/analytics", icon: BarChart2, label: "Analytics" },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
