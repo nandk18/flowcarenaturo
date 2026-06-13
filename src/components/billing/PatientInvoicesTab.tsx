@@ -229,9 +229,17 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
 
 /* ============== DETAIL ============== */
 
-function InvoiceDetail({ invoice, onChanged, patientId, clinicId }: { invoice: Invoice; onChanged: () => void; patientId: string; clinicId: string }) {
+function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker, onPickerHandled }: { invoice: Invoice; onChanged: () => void; patientId: string; clinicId: string; autoOpenPicker?: boolean; onPickerHandled?: () => void }) {
   const { clinic } = useClinic();
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  useEffect(() => {
+    if (autoOpenPicker) {
+      setPickerOpen(true);
+      onPickerHandled?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenPicker]);
   const [items, setItems] = useState<LineItem[]>(normaliseItems(invoice.line_items));
   const [gstPct, setGstPct] = useState(Number(invoice.gst_percentage) || 0);
   const [discount, setDiscount] = useState(Number(invoice.discount_amount) || 0);
