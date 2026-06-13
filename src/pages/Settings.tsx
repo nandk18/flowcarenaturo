@@ -5,6 +5,7 @@ import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
 import InvoiceServicesSection from "@/components/billing/InvoiceServicesSection";
 import StoreItemsSection from "@/components/billing/StoreItemsSection";
+import AppShell from "@/components/layout/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
