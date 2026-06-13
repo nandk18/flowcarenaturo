@@ -199,6 +199,8 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
             key={selected.id}
             invoice={selected}
             onChanged={load}
+            patientId={patientId}
+            clinicId={clinicId}
           />
         )}
       </section>
