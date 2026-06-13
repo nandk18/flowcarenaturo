@@ -590,30 +590,7 @@ export default function Settings() {
             <div className="space-y-2"><Label>Clinic Name</Label><Input value={clinicName} onChange={e => setClinicName(e.target.value)} className="rounded-lg" /></div>
             <div className="space-y-2"><Label>Address</Label><Input value={clinicAddress} onChange={e => setClinicAddress(e.target.value)} className="rounded-lg" /></div>
             <div className="space-y-2"><Label>Phone</Label><Input value={clinicPhone} onChange={e => setClinicPhone(e.target.value)} className="rounded-lg" /></div>
-      <div className="space-y-6 max-w-2xl">
-        {/* Quick links to other admin tools */}
-        <Card className="rounded-2xl border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-display">
-              <ClipboardList className="h-5 w-5 text-primary" /> Tools
-            </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              Templates, billing, and analytics now live under Settings.
-            </p>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Button variant="outline" className="justify-start" onClick={() => navigate("/dashboard/templates")}>
-              <ClipboardList className="mr-2 h-4 w-4" /> Templates
-            </Button>
-            <Button variant="outline" className="justify-start" onClick={() => navigate("/dashboard/billing")}>
-              <Receipt className="mr-2 h-4 w-4" /> Billing
-            </Button>
-            <Button variant="outline" className="justify-start" onClick={() => navigate("/dashboard/analytics")}>
-              <Database className="mr-2 h-4 w-4" /> Analytics
-            </Button>
-          </CardContent>
-        </Card>
-
+            <div className="space-y-2">
               <Label className="flex items-center gap-2"><Globe className="h-4 w-4 text-primary" /> Regional Language</Label>
               <Select value={regionalLanguage} onValueChange={setRegionalLanguage}>
                 <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
