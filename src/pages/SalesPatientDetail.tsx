@@ -395,12 +395,7 @@ export default function SalesPatientDetail() {
       <div className="flex flex-1 items-center justify-center text-muted-foreground py-20">Loading...</div>
     );
     if (fromConsult) return <DashboardLayout>{loadingBody}</DashboardLayout>;
-    return (
-      <div className="flex min-h-screen flex-col bg-background">
-        <TopBar />
-        {loadingBody}
-      </div>
-    );
+    return <SalesShell title="Patient">{loadingBody}</SalesShell>;
   }
 
   const phoneDigits = patient.phone ? patient.phone.replace(/[^\d]/g, "") : "";
