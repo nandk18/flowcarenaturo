@@ -472,7 +472,7 @@ export type Database = {
             foreignKeyName: "doctor_exceptions_doctor_id_fkey"
             columns: ["doctor_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
         ]
@@ -523,7 +523,7 @@ export type Database = {
             foreignKeyName: "doctor_schedules_doctor_id_fkey"
             columns: ["doctor_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
         ]
