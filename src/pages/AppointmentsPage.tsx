@@ -462,21 +462,75 @@ export default function AppointmentsPage() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Date</Label>
-                <Input type="date" value={bookDate} min={format(new Date(), "yyyy-MM-dd")} onChange={e => setBookDate(e.target.value)} className="rounded-lg" />
-              </div>
-              <div className="space-y-2">
-                <Label>Time</Label>
-                <Select value={bookTime} onValueChange={setBookTime}>
-                  <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {getAvailableSlots().map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label>Date</Label>
+              <Input type="date" value={bookDate} min={format(new Date(), "yyyy-MM-dd")} onChange={e => setBookDate(e.target.value)} className="rounded-lg" />
             </div>
+
+            <div className="space-y-2">
+              <Label>Time</Label>
+              {!bookDoctorId ? (
+                <p className="text-xs text-muted-foreground">Select a doctor first.</p>
+              ) : loadingSlots ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Loading slots…
+                </div>
+              ) : slotResult.reason === "no-schedule" || slotResult.reason === "inactive" ? (
+                <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
+                  No schedule configured for this doctor on this day.{" "}
+                  <button
+                    type="button"
+                    className="underline"
+                    onClick={() => navigate("/settings/doctor-schedule")}
+                  >
+                    Set up schedule
+                  </button>
+                </div>
+              ) : slotResult.reason === "exception" ? (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+                  Doctor not available on this date
+                  {slotResult.exception?.reason ? ` — ${slotResult.exception.reason}` : ""}.
+                </div>
+              ) : slotResult.slots.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No slots available.</p>
+              ) : (
+                <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                  {(["morning", "afternoon", "evening"] as const).map((g) => {
+                    const items = slotGroups[g];
+                    if (items.length === 0) return null;
+                    return (
+                      <div key={g}>
+                        <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{g}</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {items.map((s) => {
+                            const disabled = !s.available;
+                            const selected = bookTime === s.time;
+                            return (
+                              <button
+                                key={s.time}
+                                type="button"
+                                disabled={disabled}
+                                onClick={() => setBookTime(s.time)}
+                                className={`rounded-md border px-2 py-1 text-xs font-mono transition-colors ${
+                                  selected
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : disabled
+                                      ? "border-border bg-muted text-muted-foreground/60 cursor-not-allowed line-through"
+                                      : "border-border bg-background hover:border-primary hover:text-primary"
+                                }`}
+                              >
+                                {s.time}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
 
             <div className="space-y-2">
               <Label>Duration</Label>
