@@ -722,9 +722,10 @@ export default function Settings() {
             </Button>
           </CardContent>
         </Card>
+        )}
 
         {/* Doctor Profile (only for doctor/admin roles) */}
-        {profile?.role === "admin" && (
+        {showClinic && profile?.role === "admin" && (
           <Card className="rounded-2xl border-0 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-display">
