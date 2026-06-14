@@ -1065,7 +1065,7 @@ export default function Settings() {
         )}
 
         {/* Danger Zone (Admin only) */}
-        {profile?.role === "admin" && (
+        {showClinic && profile?.role === "admin" && (
           <Card className="border-destructive/30">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-destructive">
