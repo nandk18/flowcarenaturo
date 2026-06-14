@@ -85,6 +85,12 @@ export default function AppointmentsPage() {
   const [bookReason, setBookReason] = useState("");
   const [booking, setBooking] = useState(false);
 
+  // Slot-aware booking state
+  const [bookSchedule, setBookSchedule] = useState<DoctorSchedule | null>(null);
+  const [bookException, setBookException] = useState<DoctorException | null>(null);
+  const [bookDayAppts, setBookDayAppts] = useState<any[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
   const fetchAppointments = useCallback(async () => {
     if (!profile?.clinic_id) return;
     const startDate = format(weekStart, "yyyy-MM-dd");
