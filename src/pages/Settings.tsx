@@ -636,8 +636,10 @@ export default function Settings() {
             </Button>
           </CardContent>
         </Card>
+        )}
 
         {/* Quick links to other admin tools */}
+        {showClinic && (
         <Card className="rounded-2xl border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display">
@@ -648,22 +650,24 @@ export default function Settings() {
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Button variant="outline" className="justify-start" onClick={() => navigate("/dashboard/templates")}>
+            <Button variant="outline" className="justify-start" onClick={() => navigate("/settings/templates")}>
               <ClipboardList className="mr-2 h-4 w-4" /> Templates
             </Button>
             <Button variant="outline" className="justify-start" onClick={() => navigate("/dashboard/billing")}>
               <Receipt className="mr-2 h-4 w-4" /> Billing
             </Button>
-            <Button variant="outline" className="justify-start" onClick={() => navigate("/dashboard/analytics")}>
+            <Button variant="outline" className="justify-start" onClick={() => navigate("/settings/analytics")}>
               <Database className="mr-2 h-4 w-4" /> Analytics
             </Button>
           </CardContent>
         </Card>
+        )}
 
 
-        <InvoiceServicesSection />
+        {showServices && <InvoiceServicesSection />}
 
-        <StoreItemsSection />
+        {showStoreItems && <StoreItemsSection />}
+
 
         {/* Billing Settings */}
         <Card className="rounded-2xl border-0 shadow-sm">
