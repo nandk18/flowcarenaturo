@@ -69,25 +69,37 @@ export default function TodayQueue() {
     return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   };
 
+  const walkInTrigger = (
+    <Button size="sm" onClick={() => setWalkInOpen(true)}>
+      <UserPlus className="mr-1 h-4 w-4" /> Walk-in Appointment
+    </Button>
+  );
+
   if (loading) {
     return (
       <div className="space-y-3">
+        <div className="flex justify-end">{walkInTrigger}</div>
         {[1, 2, 3].map(i => (
           <div key={i} className="h-20 animate-pulse rounded-lg bg-muted" />
         ))}
+        <WalkInDialog open={walkInOpen} onOpenChange={setWalkInOpen} onCreated={fetchVisits} />
       </div>
     );
   }
 
   if (visits.length === 0) {
     return (
-      <Card className="shadow-card">
-        <CardContent className="flex flex-col items-center justify-center py-16">
-          <CalendarEmpty className="mb-4 h-16 w-16 text-muted-foreground/30" />
-          <h3 className="font-display text-lg font-semibold text-foreground">No patients in queue</h3>
-          <p className="text-sm text-muted-foreground">Book an appointment to add patients.</p>
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        <div className="flex justify-end">{walkInTrigger}</div>
+        <Card className="shadow-card">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <CalendarEmpty className="mb-4 h-16 w-16 text-muted-foreground/30" />
+            <h3 className="font-display text-lg font-semibold text-foreground">No patients in queue</h3>
+            <p className="text-sm text-muted-foreground">Book an appointment or add a walk-in.</p>
+          </CardContent>
+        </Card>
+        <WalkInDialog open={walkInOpen} onOpenChange={setWalkInOpen} onCreated={fetchVisits} />
+      </div>
     );
   }
 
@@ -95,10 +107,13 @@ export default function TodayQueue() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{visits.length} patient{visits.length !== 1 ? "s" : ""} today</p>
-        <div className="flex gap-2 text-xs">
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-warning" /> Waiting</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-info" /> In Progress</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" /> Done</span>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex gap-2 text-xs">
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-warning" /> Waiting</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-info" /> In Progress</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" /> Done</span>
+          </div>
+          {walkInTrigger}
         </div>
       </div>
 
@@ -130,6 +145,8 @@ export default function TodayQueue() {
           </CardContent>
         </Card>
       ))}
+
+      <WalkInDialog open={walkInOpen} onOpenChange={setWalkInOpen} onCreated={fetchVisits} />
     </div>
   );
 }
