@@ -41,6 +41,20 @@ export default function Settings() {
   const { user, profile } = useAuth();
   const { clinic, doctor, loading, refetch } = useClinic();
   const navigate = useNavigate();
+  const { section: sectionParam, subsection } = useParams<{ section?: string; subsection?: string }>();
+  const section = sectionParam || "clinic";
+  const sectionTitles: Record<string, string> = {
+    clinic: "Clinic Profile",
+    hours: "Opening Hours",
+    staff: "Staff Members",
+    services: "Invoice Services",
+    "store-items": "Store Items",
+    "billing-config": "Billing Config",
+    analytics: "Analytics",
+    templates: "Templates",
+    integrations: subsection === "whatsapp" ? "WhatsApp Integration" : subsection === "sms" ? "SMS Integration" : "Integrations",
+  };
+  const sectionTitle = sectionTitles[section] || "Settings";
   const [saving, setSaving] = useState(false);
   const { log: auditLog } = useAuditLog();
 
