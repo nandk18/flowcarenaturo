@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { LayoutDashboard, Users, Calendar, Clock } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, Clock, CalendarRange } from "lucide-react";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
 
 const NAV: ShellNavGroup[] = [
