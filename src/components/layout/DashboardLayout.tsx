@@ -1,6 +1,8 @@
 import { ReactNode, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { requestPushPermission } from "@/lib/pushNotifications";
 import ConsultShell from "./ConsultShell";
+import SettingsShell from "./SettingsShell";
 
 export default function DashboardLayout({
   children,
@@ -9,12 +11,18 @@ export default function DashboardLayout({
   children: ReactNode;
   title?: string;
 }) {
+  const { pathname } = useLocation();
+
   useEffect(() => {
     const timer = setTimeout(() => {
       requestPushPermission();
     }, 3000);
     return () => clearTimeout(timer);
   }, []);
+
+  if (pathname.startsWith("/settings")) {
+    return <SettingsShell title={title}>{children}</SettingsShell>;
+  }
 
   return <ConsultShell title={title}>{children}</ConsultShell>;
 }
