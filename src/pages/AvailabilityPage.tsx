@@ -325,15 +325,16 @@ export default function AvailabilityPage() {
                   </p>
                 ) : (
                   <>
-                    {[
-                      ["MORNING", morningSlots],
-                      ["AFTERNOON", afternoonSlots],
-                      ["EVENING", eveningSlots],
-                    ].map(([label, list]) => {
-                      const items = list as GeneratedSlot[];
+                    {(
+                      [
+                        ["MORNING", morningSlots],
+                        ["AFTERNOON", afternoonSlots],
+                        ["EVENING", eveningSlots],
+                      ] as Array<[string, GeneratedSlot[]]>
+                    ).map(([label, items]) => {
                       if (items.length === 0) return null;
                       return (
-                        <div key={label as string}>
+                        <div key={label}>
                           <div className="mb-2 text-xs font-semibold text-muted-foreground">
                             {label}
                           </div>
