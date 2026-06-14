@@ -294,11 +294,16 @@ export default function AppointmentsPage() {
 
   const listAppointments = appointments.filter(a => a.appointment_date === listDate);
 
-  const getAvailableSlots = () => {
-    if (!bookDoctorId || !bookDate) return TIME_SLOTS;
-    const booked = appointments.filter(a => a.doctor_id === bookDoctorId && a.appointment_date === bookDate && a.status !== "cancelled")
-      .map(a => a.appointment_time.substring(0, 5));
-    return TIME_SLOTS.filter(s => !booked.includes(s));
+  const slotResult = generateSlots({
+    schedule: bookSchedule,
+    exception: bookException,
+    appointments: bookDayAppts as any,
+    date: bookDate,
+  });
+  const slotGroups = {
+    morning: slotResult.slots.filter((s) => s.group === "morning"),
+    afternoon: slotResult.slots.filter((s) => s.group === "afternoon"),
+    evening: slotResult.slots.filter((s) => s.group === "evening"),
   };
 
   return (
