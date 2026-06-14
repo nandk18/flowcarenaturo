@@ -116,10 +116,65 @@ export default function AppointmentsPage() {
   useEffect(() => {
     if (!profile?.clinic_id) return;
     supabase.from("doctors").select("id, name").eq("clinic_id", profile.clinic_id)
-      .then(({ data }) => { if (data) setDoctors(data); });
+      .then(({ data }) => {
+        if (data) {
+          setDoctors(data);
+          setBookDoctorId((prev) => prev || data[0]?.id || "");
+        }
+      });
   }, [profile?.clinic_id]);
 
   useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
+
+  // Prefill doctor/date/time from URL
+  useEffect(() => {
+    const d = searchParams.get("doctor_id");
+    const dt = searchParams.get("date");
+    const tm = searchParams.get("time");
+    if (d) setBookDoctorId(d);
+    if (dt) setBookDate(dt);
+    if (tm) setBookTime(tm);
+    if (d || dt || tm || isNewRoute) setBookOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch schedule/exception/day appointments when booking inputs change
+  useEffect(() => {
+    if (!bookDoctorId || !bookDate || !bookOpen) return;
+    let cancelled = false;
+    setLoadingSlots(true);
+    (async () => {
+      const dow = new Date(bookDate + "T00:00:00").getDay();
+      const [sched, exc, ap] = await Promise.all([
+        (supabase as any)
+          .from("doctor_schedules")
+          .select("*")
+          .eq("doctor_id", bookDoctorId)
+          .eq("day_of_week", dow)
+          .maybeSingle(),
+        (supabase as any)
+          .from("doctor_exceptions")
+          .select("*")
+          .eq("doctor_id", bookDoctorId)
+          .eq("exception_date", bookDate)
+          .maybeSingle(),
+        supabase
+          .from("appointments")
+          .select("id, appointment_time, status")
+          .eq("doctor_id", bookDoctorId)
+          .eq("appointment_date", bookDate),
+      ]);
+      if (cancelled) return;
+      setBookSchedule((sched.data as DoctorSchedule) || null);
+      setBookException((exc.data as DoctorException) || null);
+      setBookDayAppts(ap.data || []);
+      if (sched.data?.slot_duration_minutes) {
+        setBookDuration(String(sched.data.slot_duration_minutes));
+      }
+      setLoadingSlots(false);
+    })();
+    return () => { cancelled = true; };
+  }, [bookDoctorId, bookDate, bookOpen]);
 
   // Prefill patient from URL (?patient_id=...) and open booking dialog on /new
   useEffect(() => {
