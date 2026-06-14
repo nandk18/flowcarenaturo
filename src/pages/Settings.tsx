@@ -590,10 +590,8 @@ export default function Settings() {
       <div className="space-y-6 max-w-2xl">
         {/* Clinic Details */}
         {showClinic && (
-
-
-        {/* Clinic Details */}
         <Card className="rounded-2xl border-0 shadow-sm">
+
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display">
               <Building2 className="h-5 w-5 text-primary" /> Clinic Details
