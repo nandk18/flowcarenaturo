@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, User } from "lucide-react";
+import { Clock, User, UserPlus } from "lucide-react";
+import WalkInDialog from "@/components/queue/WalkInDialog";
 
 type Visit = {
   id: string;
