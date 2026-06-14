@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { LayoutDashboard, Users, Calendar, Clock } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, Clock, CalendarRange } from "lucide-react";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
 
 const NAV: ShellNavGroup[] = [
@@ -32,6 +32,11 @@ const NAV: ShellNavGroup[] = [
         to: "/consult/queue",
         icon: Clock,
         label: "Queue",
+      },
+      {
+        to: "/consult/availability",
+        icon: CalendarRange,
+        label: "Availability",
       },
     ],
   },

@@ -19,6 +19,8 @@ import Settings from "./pages/Settings";
 import TemplatesPage from "./pages/TemplatesPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AppointmentsPage from "./pages/AppointmentsPage";
+import DoctorSchedulePage from "./pages/DoctorSchedulePage";
+import AvailabilityPage from "./pages/AvailabilityPage";
 import Home from "./pages/Home";
 import Sales from "./pages/Sales";
 import SalesPatientDetail from "./pages/SalesPatientDetail";
@@ -254,6 +256,7 @@ function AppRoutes() {
       <Route path="/consult/appointments/new" element={<AppointmentsPage />} />
       <Route path="/consult/patients" element={<ConsultPatients />} />
       <Route path="/consult/patients/:patientId" element={<SalesPatientDetail />} />
+      <Route path="/consult/availability" element={<AvailabilityPage />} />
       <Route path="/dashboard" element={<AdminDashboard />} />
       <Route path="/dashboard/consultation/:visitId" element={<DoctorConsultationPage />} />
       <Route path="/dashboard/patients" element={<PatientsPage />} />
@@ -266,6 +269,7 @@ function AppRoutes() {
       <Route path="/settings/analytics" element={<AnalyticsPage />} />
       <Route path="/settings/billing-config" element={<BillingPage />} />
       <Route path="/settings/billing-config/:invoiceId" element={<InvoiceDetailPage />} />
+      <Route path="/settings/doctor-schedule" element={<DoctorSchedulePage />} />
       <Route path="/settings/:section" element={<Settings />} />
       <Route path="/settings/:section/:subsection" element={<Settings />} />
       <Route path="/dashboard/settings" element={<Navigate to="/settings/clinic" replace />} />
