@@ -19,6 +19,8 @@ import Settings from "./pages/Settings";
 import TemplatesPage from "./pages/TemplatesPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AppointmentsPage from "./pages/AppointmentsPage";
+import DoctorSchedulePage from "./pages/DoctorSchedulePage";
+import AvailabilityPage from "./pages/AvailabilityPage";
 import Home from "./pages/Home";
 import Sales from "./pages/Sales";
 import SalesPatientDetail from "./pages/SalesPatientDetail";
