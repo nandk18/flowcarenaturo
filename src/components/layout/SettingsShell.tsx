@@ -10,6 +10,7 @@ import {
   FileText,
   MessageCircle,
   MessageSquare,
+  CalendarClock,
 } from "lucide-react";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
 
@@ -24,6 +25,11 @@ const NAV: ShellNavGroup[] = [
         match: (p) => p === "/settings" || p === "/settings/clinic",
       },
       { to: "/settings/hours", icon: Clock, label: "Opening Hours" },
+      {
+        to: "/settings/doctor-schedule",
+        icon: CalendarClock,
+        label: "Doctor Schedule",
+      },
     ],
   },
   {
