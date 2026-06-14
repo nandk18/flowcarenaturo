@@ -19,6 +19,9 @@ import {
 } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay, isToday, parseISO } from "date-fns";
 import { formatDoctorName } from "@/lib/utils";
+import {
+  DoctorSchedule, DoctorException, generateSlots, GeneratedSlot,
+} from "@/lib/scheduleSlots";
 
 type Appointment = {
   id: string;
