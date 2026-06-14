@@ -5,7 +5,7 @@ import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
 import InvoiceServicesSection from "@/components/billing/InvoiceServicesSection";
 import StoreItemsSection from "@/components/billing/StoreItemsSection";
-import AppShell from "@/components/layout/AppShell";
+import SettingsShell from "@/components/layout/SettingsShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -548,7 +548,7 @@ export default function Settings() {
   };
 
   return (
-    <AppShell title="Settings">
+    <SettingsShell title="Settings">
       <div className="mb-6">
         <h1 className="font-display text-2xl font-bold text-foreground">Settings</h1>
         <p className="text-sm text-muted-foreground">Manage your clinic, profile, and security</p>
@@ -1176,7 +1176,7 @@ export default function Settings() {
           </div>
         </div>
       )}
-    </AppShell>
+    </SettingsShell>
   );
 }
 

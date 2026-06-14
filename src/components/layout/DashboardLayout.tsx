@@ -1,6 +1,6 @@
 import { ReactNode, useEffect } from "react";
 import { requestPushPermission } from "@/lib/pushNotifications";
-import AppShell from "./AppShell";
+import ConsultShell from "./ConsultShell";
 
 export default function DashboardLayout({
   children,
@@ -16,5 +16,5 @@ export default function DashboardLayout({
     return () => clearTimeout(timer);
   }, []);
 
-  return <AppShell title={title}>{children}</AppShell>;
+  return <ConsultShell title={title}>{children}</ConsultShell>;
 }

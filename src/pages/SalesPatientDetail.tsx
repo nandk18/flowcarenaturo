@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import TopBar from "@/components/layout/TopBar";
+import SalesShell from "@/components/layout/SalesShell";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -395,12 +395,7 @@ export default function SalesPatientDetail() {
       <div className="flex flex-1 items-center justify-center text-muted-foreground py-20">Loading...</div>
     );
     if (fromConsult) return <DashboardLayout>{loadingBody}</DashboardLayout>;
-    return (
-      <div className="flex min-h-screen flex-col bg-background">
-        <TopBar />
-        {loadingBody}
-      </div>
-    );
+    return <SalesShell title="Patient">{loadingBody}</SalesShell>;
   }
 
   const phoneDigits = patient.phone ? patient.phone.replace(/[^\d]/g, "") : "";
@@ -659,12 +654,7 @@ export default function SalesPatientDetail() {
     return <DashboardLayout>{content}</DashboardLayout>;
   }
 
-  return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <TopBar />
-      {content}
-    </div>
-  );
+  return <SalesShell title={patient.name}>{content}</SalesShell>;
 }
 
 function Field({ label, value }: { label: string; value: string }) {
