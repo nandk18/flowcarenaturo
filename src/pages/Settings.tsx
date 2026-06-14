@@ -792,9 +792,10 @@ export default function Settings() {
             </Button>
           </CardContent>
         </Card>
+        )}
 
         {/* Invite Staff (Admin only) */}
-        {profile?.role === "admin" && (
+        {showStaff && profile?.role === "admin" && (
           <Card className="rounded-2xl border-0 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-display">
