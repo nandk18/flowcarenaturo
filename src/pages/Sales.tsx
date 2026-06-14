@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Users, Phone, UserPlus, Home as HomeIcon, LogOut } from "lucide-react";
-import SidebarLogo from "@/components/SidebarLogo";
-import AppShell from "@/components/layout/AppShell";
+import { Users, Phone, UserPlus } from "lucide-react";
+import SalesShell from "@/components/layout/SalesShell";
 import { useClinic } from "@/hooks/useClinic";
 
 import { Button } from "@/components/ui/button";
@@ -1027,7 +1026,7 @@ export default function Sales() {
   const sectionTitle = SIDEBAR_ITEMS.find((s) => s.id === active)?.label ?? "Sales";
 
   return (
-    <AppShell title={`Sales · ${sectionTitle}`}>
+    <SalesShell title={`Sales · ${sectionTitle}`}>
       {!clinicId ? (
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
           Loading clinic...
@@ -1047,7 +1046,7 @@ export default function Sales() {
           <LeadForm clinicId={clinicId} initial={editing} onSaved={handleSaved} />
         </div>
       )}
-    </AppShell>
+    </SalesShell>
   );
 }
 
