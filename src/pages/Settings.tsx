@@ -670,6 +670,7 @@ export default function Settings() {
 
 
         {/* Billing Settings */}
+        {showBillingConfig && (
         <Card className="rounded-2xl border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display">
