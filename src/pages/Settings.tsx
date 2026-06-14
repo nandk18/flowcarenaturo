@@ -884,7 +884,7 @@ export default function Settings() {
 
 
         {/* Developer (Admin only) */}
-        {profile?.role === "admin" && (
+        {showClinic && profile?.role === "admin" && (
           <Card className="rounded-2xl border-0 shadow-sm overflow-hidden">
             <button
               onClick={() => setDevExpanded(v => !v)}
