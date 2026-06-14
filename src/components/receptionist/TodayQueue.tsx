@@ -21,6 +21,7 @@ export default function TodayQueue() {
   const { profile } = useAuth();
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [walkInOpen, setWalkInOpen] = useState(false);
 
   const fetchVisits = useCallback(async () => {
     if (!profile?.clinic_id) return;
