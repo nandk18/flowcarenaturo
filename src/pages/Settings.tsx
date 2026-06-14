@@ -590,7 +590,7 @@ export default function Settings() {
       <div className="space-y-6 max-w-2xl">
         {/* Clinic Details */}
         {showClinic && (
-        <>
+
 
         {/* Clinic Details */}
         <Card className="rounded-2xl border-0 shadow-sm">
