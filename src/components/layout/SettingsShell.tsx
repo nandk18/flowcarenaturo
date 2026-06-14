@@ -35,7 +35,7 @@ const NAV: ShellNavGroup[] = [
     items: [
       { to: "/settings/services", icon: Receipt, label: "Invoice Services" },
       { to: "/settings/store-items", icon: ShoppingBag, label: "Store Items" },
-      { to: "/settings/billing-config", icon: SlidersHorizontal, label: "Billing Config" },
+      { to: "/settings/billing", icon: SlidersHorizontal, label: "Billing" },
     ],
   },
   {

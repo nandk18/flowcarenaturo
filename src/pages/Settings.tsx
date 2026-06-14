@@ -49,7 +49,7 @@ export default function Settings() {
     staff: "Staff Members",
     services: "Invoice Services",
     "store-items": "Store Items",
-    "billing-config": "Billing Config",
+    billing: "Billing",
     analytics: "Analytics",
     templates: "Templates",
     integrations: subsection === "whatsapp" ? "WhatsApp Integration" : subsection === "sms" ? "SMS Integration" : "Integrations",
@@ -575,8 +575,8 @@ export default function Settings() {
   const showStaff = section === "staff";
   const showServices = section === "services";
   const showStoreItems = section === "store-items";
-  const showBillingConfig = section === "billing-config";
-  const builtSections = new Set(["clinic", "staff", "services", "store-items", "billing-config"]);
+  const showBilling = section === "billing";
+  const builtSections = new Set(["clinic", "staff", "services", "store-items", "billing"]);
   const isComingSoon = !builtSections.has(section);
 
   return (
@@ -670,7 +670,7 @@ export default function Settings() {
 
 
         {/* Billing Settings */}
-        {showBillingConfig && (
+        {showBilling && (
         <Card className="rounded-2xl border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display">
