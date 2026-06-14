@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import TopBar from "@/components/layout/TopBar";
+import SalesShell from "@/components/layout/SalesShell";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -659,12 +659,7 @@ export default function SalesPatientDetail() {
     return <DashboardLayout>{content}</DashboardLayout>;
   }
 
-  return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <TopBar />
-      {content}
-    </div>
-  );
+  return <SalesShell title={patient.name}>{content}</SalesShell>;
 }
 
 function Field({ label, value }: { label: string; value: string }) {
