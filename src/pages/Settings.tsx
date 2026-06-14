@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload, Code2, ClipboardList, ChevronDown, ChevronUp, Database, AlertTriangle, Download, ArrowLeft } from "lucide-react";
+import { Building2, User, Save, Loader2, UserPlus, Send, Shield, Users, Trash2, Globe, Pencil, FileDown, Upload, Code2, ClipboardList, ChevronDown, ChevronUp, Database, AlertTriangle, Download, ArrowLeft, Settings as SettingsIcon } from "lucide-react";
 
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import { clientCache, CACHE_KEYS } from "@/lib/clientCache";
@@ -41,6 +41,20 @@ export default function Settings() {
   const { user, profile } = useAuth();
   const { clinic, doctor, loading, refetch } = useClinic();
   const navigate = useNavigate();
+  const { section: sectionParam, subsection } = useParams<{ section?: string; subsection?: string }>();
+  const section = sectionParam || "clinic";
+  const sectionTitles: Record<string, string> = {
+    clinic: "Clinic Profile",
+    hours: "Opening Hours",
+    staff: "Staff Members",
+    services: "Invoice Services",
+    "store-items": "Store Items",
+    "billing-config": "Billing Config",
+    analytics: "Analytics",
+    templates: "Templates",
+    integrations: subsection === "whatsapp" ? "WhatsApp Integration" : subsection === "sms" ? "SMS Integration" : "Integrations",
+  };
+  const sectionTitle = sectionTitles[section] || "Settings";
   const [saving, setSaving] = useState(false);
   const { log: auditLog } = useAuditLog();
 
@@ -547,17 +561,37 @@ export default function Settings() {
     receptionist: "bg-warning/10 text-warning",
   };
 
+  const ComingSoon = ({ label }: { label: string }) => (
+    <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
+        <SettingsIcon className="h-8 w-8 text-primary" />
+      </div>
+      <h2 className="font-display text-xl font-semibold text-foreground">{label}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">Coming Soon</p>
+    </div>
+  );
+
+  const showClinic = section === "clinic";
+  const showStaff = section === "staff";
+  const showServices = section === "services";
+  const showStoreItems = section === "store-items";
+  const showBillingConfig = section === "billing-config";
+  const builtSections = new Set(["clinic", "staff", "services", "store-items", "billing-config"]);
+  const isComingSoon = !builtSections.has(section);
+
   return (
-    <SettingsShell title="Settings">
+    <SettingsShell title={`Settings · ${sectionTitle}`}>
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-foreground">Settings</h1>
-        <p className="text-sm text-muted-foreground">Manage your clinic, profile, and security</p>
+        <h1 className="font-display text-2xl font-bold text-foreground">{sectionTitle}</h1>
       </div>
 
+      {isComingSoon && <ComingSoon label={sectionTitle} />}
 
       <div className="space-y-6 max-w-2xl">
         {/* Clinic Details */}
+        {showClinic && (
         <Card className="rounded-2xl border-0 shadow-sm">
+
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display">
               <Building2 className="h-5 w-5 text-primary" /> Clinic Details
@@ -602,8 +636,10 @@ export default function Settings() {
             </Button>
           </CardContent>
         </Card>
+        )}
 
         {/* Quick links to other admin tools */}
+        {showClinic && (
         <Card className="rounded-2xl border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display">
@@ -614,24 +650,27 @@ export default function Settings() {
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Button variant="outline" className="justify-start" onClick={() => navigate("/dashboard/templates")}>
+            <Button variant="outline" className="justify-start" onClick={() => navigate("/settings/templates")}>
               <ClipboardList className="mr-2 h-4 w-4" /> Templates
             </Button>
             <Button variant="outline" className="justify-start" onClick={() => navigate("/dashboard/billing")}>
               <Receipt className="mr-2 h-4 w-4" /> Billing
             </Button>
-            <Button variant="outline" className="justify-start" onClick={() => navigate("/dashboard/analytics")}>
+            <Button variant="outline" className="justify-start" onClick={() => navigate("/settings/analytics")}>
               <Database className="mr-2 h-4 w-4" /> Analytics
             </Button>
           </CardContent>
         </Card>
+        )}
 
 
-        <InvoiceServicesSection />
+        {showServices && <InvoiceServicesSection />}
 
-        <StoreItemsSection />
+        {showStoreItems && <StoreItemsSection />}
+
 
         {/* Billing Settings */}
+        {showBillingConfig && (
         <Card className="rounded-2xl border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display">
@@ -683,9 +722,10 @@ export default function Settings() {
             </Button>
           </CardContent>
         </Card>
+        )}
 
         {/* Doctor Profile (only for doctor/admin roles) */}
-        {profile?.role === "admin" && (
+        {showClinic && profile?.role === "admin" && (
           <Card className="rounded-2xl border-0 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-display">
@@ -734,6 +774,7 @@ export default function Settings() {
         )}
 
         {/* Security */}
+        {showClinic && (
         <Card className="rounded-2xl border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display">
@@ -751,9 +792,10 @@ export default function Settings() {
             </Button>
           </CardContent>
         </Card>
+        )}
 
         {/* Invite Staff (Admin only) */}
-        {profile?.role === "admin" && (
+        {showStaff && profile?.role === "admin" && (
           <Card className="rounded-2xl border-0 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-display">
@@ -776,7 +818,7 @@ export default function Settings() {
         )}
 
         {/* Team Management */}
-        {profile?.role === "admin" && (
+        {showStaff && profile?.role === "admin" && (
           <Card className="rounded-2xl border-0 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-display">
@@ -842,7 +884,7 @@ export default function Settings() {
 
 
         {/* Developer (Admin only) */}
-        {profile?.role === "admin" && (
+        {showClinic && profile?.role === "admin" && (
           <Card className="rounded-2xl border-0 shadow-sm overflow-hidden">
             <button
               onClick={() => setDevExpanded(v => !v)}
@@ -1023,7 +1065,7 @@ export default function Settings() {
         )}
 
         {/* Danger Zone (Admin only) */}
-        {profile?.role === "admin" && (
+        {showClinic && profile?.role === "admin" && (
           <Card className="border-destructive/30">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-destructive">
