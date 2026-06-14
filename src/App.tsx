@@ -262,6 +262,10 @@ function AppRoutes() {
       <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
       <Route path="/dashboard/appointments" element={<AppointmentsPage />} />
       <Route path="/settings" element={<Navigate to="/settings/clinic" replace />} />
+      <Route path="/settings/templates" element={<TemplatesPage />} />
+      <Route path="/settings/analytics" element={<AnalyticsPage />} />
+      <Route path="/settings/billing-config" element={<BillingPage />} />
+      <Route path="/settings/billing-config/:invoiceId" element={<InvoiceDetailPage />} />
       <Route path="/settings/:section" element={<Settings />} />
       <Route path="/settings/:section/:subsection" element={<Settings />} />
       <Route path="/dashboard/settings" element={<Navigate to="/settings/clinic" replace />} />
