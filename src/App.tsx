@@ -245,8 +245,11 @@ function AppRoutes() {
       <Route path="/sales/call-task" element={<Sales />} />
       <Route path="/sales/add-lead" element={<Sales />} />
       <Route path="/sales/patient/:patientId" element={<SalesPatientDetail />} />
+      <Route path="/sales/patient/:patientId/edit" element={<SalesPatientDetail />} />
       <Route path="/treatment" element={<Treatment />} />
-      <Route path="/consult" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/consult" element={<Navigate to="/consult/dashboard" replace />} />
+      <Route path="/consult/dashboard" element={<AdminDashboard />} />
+      <Route path="/consult/queue" element={<AdminDashboard />} />
       <Route path="/consult/appointments" element={<AppointmentsPage />} />
       <Route path="/consult/appointments/new" element={<AppointmentsPage />} />
       <Route path="/consult/patients" element={<ConsultPatients />} />
@@ -258,8 +261,10 @@ function AppRoutes() {
       <Route path="/dashboard/templates" element={<TemplatesPage />} />
       <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
       <Route path="/dashboard/appointments" element={<AppointmentsPage />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="/dashboard/settings" element={<Navigate to="/settings" replace />} />
+      <Route path="/settings" element={<Navigate to="/settings/clinic" replace />} />
+      <Route path="/settings/:section" element={<Settings />} />
+      <Route path="/settings/:section/:subsection" element={<Settings />} />
+      <Route path="/dashboard/settings" element={<Navigate to="/settings/clinic" replace />} />
       <Route path="/dashboard/billing" element={<BillingPage />} />
       <Route path="/dashboard/billing/:invoiceId" element={<InvoiceDetailPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
