@@ -33,6 +33,11 @@ const NAV: ShellNavGroup[] = [
         icon: Clock,
         label: "Queue",
       },
+      {
+        to: "/consult/availability",
+        icon: CalendarRange,
+        label: "Availability",
+      },
     ],
   },
 ];
