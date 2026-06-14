@@ -429,6 +429,105 @@ export type Database = {
           },
         ]
       }
+      doctor_exceptions: {
+        Row: {
+          affects_appointments: boolean | null
+          clinic_id: string | null
+          created_at: string | null
+          doctor_id: string | null
+          exception_date: string
+          id: string
+          reason: string | null
+          type: string | null
+        }
+        Insert: {
+          affects_appointments?: boolean | null
+          clinic_id?: string | null
+          created_at?: string | null
+          doctor_id?: string | null
+          exception_date: string
+          id?: string
+          reason?: string | null
+          type?: string | null
+        }
+        Update: {
+          affects_appointments?: boolean | null
+          clinic_id?: string | null
+          created_at?: string | null
+          doctor_id?: string | null
+          exception_date?: string
+          id?: string
+          reason?: string | null
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_exceptions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_exceptions_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_schedules: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          day_of_week: number | null
+          doctor_id: string | null
+          id: string
+          is_active: boolean | null
+          sessions: Json
+          slot_duration_minutes: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          day_of_week?: number | null
+          doctor_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          sessions?: Json
+          slot_duration_minutes?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          day_of_week?: number | null
+          doctor_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          sessions?: Json
+          slot_duration_minutes?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_schedules_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_schedules_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctors: {
         Row: {
           availability: string | null
