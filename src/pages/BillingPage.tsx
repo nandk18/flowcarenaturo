@@ -265,7 +265,7 @@ export default function BillingPage() {
                           <span className="font-mono text-xs text-muted-foreground">{inv.invoice_number}</span>
                           <StatusBadge status={inv.status} />
                         </div>
-                        <p className="font-semibold">{inv.patients?.name}</p>
+                        {inv.patients && <PatientLink patientId={inv.patients.id}>{inv.patients.name}</PatientLink>}
                         <p className="text-xs text-primary">{inv.patients?.healthcare_id}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {inv.doctors?.name || "—"} · {new Date(inv.invoice_date).toLocaleDateString("en-IN")}
