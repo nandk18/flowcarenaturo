@@ -18,7 +18,7 @@ export default function ComingSoon({ tag, title, description, Icon, accentClass 
     <div className="flex min-h-screen flex-col bg-background">
       <TopBar />
       <div className="mx-auto w-full max-w-6xl px-4 pt-6 sm:px-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/home")}>
+        <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to home
         </Button>
       </div>

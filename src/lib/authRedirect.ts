@@ -41,5 +41,5 @@ export async function ensureProfileAndGetPostAuthRoute(userId: string) {
 
   if (clinicError) throw clinicError;
 
-  return clinic?.onboarding_complete ? "/home" : "/onboarding";
+  return clinic?.onboarding_complete ? "/dashboard" : "/onboarding";
 }

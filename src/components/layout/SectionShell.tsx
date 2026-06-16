@@ -108,7 +108,7 @@ function InnerSidebar({
           type="button"
           onClick={() => {
             closeIfMobile();
-            navigate("/home");
+            navigate("/dashboard");
           }}
           className="flex items-center gap-2 rounded-md px-1.5 py-1 text-left hover:bg-sidebar-accent/50"
         >
@@ -175,7 +175,7 @@ function InnerSidebar({
                 className="h-9 w-9 text-sidebar-foreground/70 hover:text-sidebar-foreground"
                 onClick={() => {
                   closeIfMobile();
-                  navigate("/home");
+                  navigate("/dashboard");
                 }}
                 aria-label="Home"
               >
