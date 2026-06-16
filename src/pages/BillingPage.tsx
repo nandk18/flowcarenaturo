@@ -347,7 +347,7 @@ export default function BillingPage() {
                 {invoices.filter((i) => Number(i.outstanding_amount) > 0).slice(0, 20).map((i) => (
                   <div key={i.id} className="flex justify-between border-b pb-1">
                     <div>
-                      <p className="font-medium">{i.patients?.name}</p>
+                      {i.patients && <PatientLink patientId={i.patients.id}>{i.patients.name}</PatientLink>}
                       <p className="text-xs text-muted-foreground font-mono">{i.invoice_number}</p>
                     </div>
                     <div className="text-right">
