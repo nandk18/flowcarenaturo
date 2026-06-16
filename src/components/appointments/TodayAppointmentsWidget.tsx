@@ -117,7 +117,7 @@ export default function TodayAppointmentsWidget() {
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <Clock className="h-4 w-4 text-primary flex-shrink-0" />
                   <span className="font-mono text-xs font-bold text-primary">{appt.appointment_time.substring(0, 5)}</span>
-                  <span className="text-sm font-medium truncate">{appt.patient?.name}</span>
+                  {appt.patient && <PatientLink patientId={appt.patient.id} className="text-sm truncate">{appt.patient.name}</PatientLink>}
                   <span className="text-xs text-muted-foreground truncate">{formatDoctorName(appt.doctor?.name)}</span>
                   <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30 flex-shrink-0">Appt</Badge>
                 </div>
