@@ -91,7 +91,7 @@ export default function InvoiceDetailPage() {
           <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
             <div>
               <p className="text-xs uppercase text-muted-foreground mb-1">Bill To</p>
-              <p className="font-semibold">{invoice.patients?.name}</p>
+              {invoice.patients && <PatientLink patientId={invoice.patients.id} className="font-semibold">{invoice.patients.name}</PatientLink>}
               <p className="text-xs text-primary">{invoice.patients?.healthcare_id}</p>
               <p className="text-xs text-muted-foreground">{invoice.patients?.phone}</p>
             </div>
