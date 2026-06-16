@@ -44,6 +44,15 @@ import {
   Receipt,
   Calendar,
   User,
+  Share2,
+  Coffee,
+  Cigarette,
+  Wine,
+  Moon,
+  Utensils,
+  ClipboardList,
+  Scissors,
+  Activity,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
