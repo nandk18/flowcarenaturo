@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, Calendar, ChevronDown, FileText, Pill, ExternalLink, Loader2, Phone, Mail, AlertTriangle, Activity, Trash2, Pencil } from "lucide-react";
+import { ArrowLeft, Calendar, ChevronDown, FileText, Pill, ExternalLink, Loader2, Phone, Mail, AlertTriangle, Activity, Trash2, Pencil, Share2, Coffee, Cigarette, Wine, Moon, Utensils, ClipboardList, Scissors } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import VitalsTrends from "@/components/vitals/VitalsTrends";
 import { renderClinicalNotes } from "@/lib/templateFields";
@@ -17,11 +17,15 @@ import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 import { openPrescription } from "@/lib/prescriptionUtils";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 type Patient = {
   id: string; name: string; healthcare_id: string | null; gender: string | null;
   dob: string | null; phone: string | null; email: string | null;
   blood_group: string | null; allergies: any; chronic_conditions: any;
+  food_habits: string | null; smoking: string | null; alcohol: string | null;
+  sleep_hours: number | null; dinner_time: string | null;
+  medication_history: string | null; past_surgery_details: string | null;
 };
 
 type HistoryVisit = {
