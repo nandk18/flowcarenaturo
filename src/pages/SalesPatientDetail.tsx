@@ -482,6 +482,9 @@ export default function SalesPatientDetail() {
             >
               <CalendarPlus className="mr-1.5 h-4 w-4" /> Add Appointment
             </Button>
+            <Button variant="outline" onClick={handleSendFormLink} disabled={sendingLink}>
+              <Share2 className="mr-1.5 h-4 w-4" /> {sendingLink ? "Generating..." : "Send Form Link"}
+            </Button>
             <Button variant="outline" onClick={() => setEditOpen(true)}>
               <Pencil className="mr-1.5 h-4 w-4" /> Edit Patient
             </Button>
