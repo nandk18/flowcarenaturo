@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { requestPushPermission } from "@/lib/pushNotifications";
-import ConsultShell from "./ConsultShell";
+import MainShell from "./MainShell";
 import SettingsShell from "./SettingsShell";
 
 export default function DashboardLayout({
@@ -24,5 +24,5 @@ export default function DashboardLayout({
     return <SettingsShell title={title}>{children}</SettingsShell>;
   }
 
-  return <ConsultShell title={title}>{children}</ConsultShell>;
+  return <MainShell title={title}>{children}</MainShell>;
 }
