@@ -1058,6 +1058,51 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          patient_id: string | null
+          type: string
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          patient_id?: string | null
+          type: string
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          patient_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_documents: {
         Row: {
           clinic_id: string | null
@@ -1119,9 +1164,61 @@ export type Database = {
           },
         ]
       }
+      patient_form_tokens: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          patient_id: string | null
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          patient_id?: string | null
+          token?: string
+          used_at?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          patient_id?: string | null
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_form_tokens_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_form_tokens_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           address: string | null
+          alcohol: string | null
           allergies: Json | null
           assigned_to: string | null
           blood_group: string | null
@@ -1130,24 +1227,31 @@ export type Database = {
           clinic_id: string
           convenient_time: string | null
           created_at: string | null
+          dinner_time: string | null
           dob: string | null
           email: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           emergency_contact_relation: string | null
           first_name: string | null
+          food_habits: string | null
           gender: string | null
           healthcare_id: string | null
           id: string
           last_name: string | null
           lead_source: string | null
           lead_status: string | null
+          medication_history: string | null
           name: string
+          past_surgery_details: string | null
           phone: string | null
           sla_breach_days: number | null
+          sleep_hours: number | null
+          smoking: string | null
         }
         Insert: {
           address?: string | null
+          alcohol?: string | null
           allergies?: Json | null
           assigned_to?: string | null
           blood_group?: string | null
@@ -1156,24 +1260,31 @@ export type Database = {
           clinic_id: string
           convenient_time?: string | null
           created_at?: string | null
+          dinner_time?: string | null
           dob?: string | null
           email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relation?: string | null
           first_name?: string | null
+          food_habits?: string | null
           gender?: string | null
           healthcare_id?: string | null
           id?: string
           last_name?: string | null
           lead_source?: string | null
           lead_status?: string | null
+          medication_history?: string | null
           name: string
+          past_surgery_details?: string | null
           phone?: string | null
           sla_breach_days?: number | null
+          sleep_hours?: number | null
+          smoking?: string | null
         }
         Update: {
           address?: string | null
+          alcohol?: string | null
           allergies?: Json | null
           assigned_to?: string | null
           blood_group?: string | null
@@ -1182,21 +1293,27 @@ export type Database = {
           clinic_id?: string
           convenient_time?: string | null
           created_at?: string | null
+          dinner_time?: string | null
           dob?: string | null
           email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relation?: string | null
           first_name?: string | null
+          food_habits?: string | null
           gender?: string | null
           healthcare_id?: string | null
           id?: string
           last_name?: string | null
           lead_source?: string | null
           lead_status?: string | null
+          medication_history?: string | null
           name?: string
+          past_surgery_details?: string | null
           phone?: string | null
           sla_breach_days?: number | null
+          sleep_hours?: number | null
+          smoking?: string | null
         }
         Relationships: [
           {
@@ -1541,6 +1658,10 @@ export type Database = {
         }
         Returns: string
       }
+      complete_patient_form: {
+        Args: { p_token: string; p_updates: Json }
+        Returns: boolean
+      }
       ensure_current_user_profile: {
         Args: never
         Returns: {
@@ -1572,6 +1693,10 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       update_sla_breach_days: { Args: never; Returns: undefined }
+      validate_patient_form_token: {
+        Args: { p_token: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "doctor" | "receptionist" | "lab" | "super_admin"
