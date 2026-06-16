@@ -224,6 +224,35 @@ export default function PatientDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Lifestyle & Medical History */}
+      <div className="grid gap-4 sm:grid-cols-2 mb-6">
+        <Card className="shadow-card">
+          <CardContent className="p-4 space-y-2">
+            <h3 className="font-display font-semibold mb-2">Lifestyle & Habits</h3>
+            {patient.food_habits ? <p className="text-sm flex items-center gap-2"><Coffee className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Diet:</span> <span className="capitalize">{patient.food_habits}</span></p> : null}
+            {patient.smoking ? <p className="text-sm flex items-center gap-2"><Cigarette className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Smoking:</span> <span className="capitalize">{patient.smoking}</span></p> : null}
+            {patient.alcohol ? <p className="text-sm flex items-center gap-2"><Wine className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Alcohol:</span> <span className="capitalize">{patient.alcohol}</span></p> : null}
+            {patient.sleep_hours != null ? <p className="text-sm flex items-center gap-2"><Moon className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Sleep:</span> {patient.sleep_hours}h / night</p> : null}
+            {patient.dinner_time ? <p className="text-sm flex items-center gap-2"><Utensils className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Dinner:</span> {String(patient.dinner_time).substring(0, 5)}</p> : null}
+            {!patient.food_habits && !patient.smoking && !patient.alcohol && patient.sleep_hours == null && !patient.dinner_time && (
+              <p className="text-sm text-muted-foreground italic">No lifestyle info recorded. Use "Send Form Link" to ask the patient.</p>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardContent className="p-4 space-y-2">
+            <h3 className="font-display font-semibold mb-2">Medical History</h3>
+            {patient.medication_history ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><Pill className="h-3.5 w-3.5" /> Current medication</div><p>{patient.medication_history}</p></div> : null}
+            {patient.past_surgery_details ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><Scissors className="h-3.5 w-3.5" /> Past surgery</div><p>{patient.past_surgery_details}</p></div> : null}
+            {Array.isArray(patient.allergies) && patient.allergies.length > 0 ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><AlertTriangle className="h-3.5 w-3.5" /> Allergies</div><p>{patient.allergies.join(", ")}</p></div> : null}
+            {Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length > 0 ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><ClipboardList className="h-3.5 w-3.5" /> Chronic</div><p>{patient.chronic_conditions.join(", ")}</p></div> : null}
+            {!patient.medication_history && !patient.past_surgery_details && !(Array.isArray(patient.allergies) && patient.allergies.length) && !(Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length) && (
+              <p className="text-sm text-muted-foreground italic">No medical history recorded.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Vitals Trends */}
       {patientId && <VitalsTrends patientId={patientId} />}
 
