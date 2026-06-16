@@ -86,6 +86,15 @@ type Patient = {
   sla_breach_days: number | null;
   created_at: string | null;
   convenient_time: string | null;
+  food_habits: string | null;
+  smoking: string | null;
+  alcohol: string | null;
+  sleep_hours: number | null;
+  dinner_time: string | null;
+  medication_history: string | null;
+  past_surgery_details: string | null;
+  allergies: any;
+  chronic_conditions: any;
 };
 
 type Note = {
