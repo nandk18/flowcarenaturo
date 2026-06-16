@@ -166,6 +166,7 @@ export default function InvoiceDetailPage() {
           )}
           <Button variant="outline" onClick={share}><Share2 className="w-4 h-4 mr-1" /> Share</Button>
           <Button variant="outline" onClick={() => printInvoice(buildInvoiceHtml(invoice, clinic))}><Printer className="w-4 h-4 mr-1" /> Print</Button>
+          <Button variant="outline" onClick={() => downloadInvoicePdf(invoice, clinic)}><FileDown className="w-4 h-4 mr-1" /> Download PDF</Button>
           {role === "admin" && invoice.status !== "cancelled" && (
             <Button variant="destructive" onClick={handleCancel}><XCircle className="w-4 h-4 mr-1" /> Cancel Invoice</Button>
           )}
