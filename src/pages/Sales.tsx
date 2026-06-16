@@ -771,7 +771,7 @@ function CallSection({
   );
 }
 
-function CallTask({ clinicId }: { clinicId: string }) {
+export function CallTask({ clinicId }: { clinicId: string }) {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [rows, setRows] = useState<Patient[]>([]);
