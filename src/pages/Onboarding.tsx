@@ -102,7 +102,7 @@ export default function Onboarding() {
         await supabase.from("clinics").update({ onboarding_complete: true }).eq("id", prof.clinic_id);
       }
       toast.success("Setup complete! Welcome to FlowCare.");
-      navigate("/home");
+      navigate("/dashboard");
       window.location.reload();
     } catch (err: any) {
       toast.error(err.message);

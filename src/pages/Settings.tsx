@@ -537,7 +537,7 @@ export default function Settings() {
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <header className="sticky top-0 z-40 flex h-16 w-full items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur sm:px-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/home")} aria-label="Back to home">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} aria-label="Back to home">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="font-display text-lg font-semibold">Settings</h1>
