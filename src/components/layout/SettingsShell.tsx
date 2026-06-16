@@ -11,6 +11,7 @@ import {
   MessageCircle,
   MessageSquare,
   CalendarClock,
+  Upload,
 } from "lucide-react";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
 
@@ -35,6 +36,12 @@ const NAV: ShellNavGroup[] = [
   {
     label: "Users",
     items: [{ to: "/settings/staff", icon: Users, label: "Staff Members" }],
+  },
+  {
+    label: "Patients",
+    items: [
+      { to: "/settings/patient-import", icon: Upload, label: "Patient Import" },
+    ],
   },
   {
     label: "Billing",
