@@ -44,6 +44,15 @@ import {
   Receipt,
   Calendar,
   User,
+  Share2,
+  Coffee,
+  Cigarette,
+  Wine,
+  Moon,
+  Utensils,
+  ClipboardList,
+  Scissors,
+  Activity,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -52,6 +61,7 @@ import { cn } from "@/lib/utils";
 import { LeadForm } from "./Sales";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 import EditVisitSheet from "@/components/doctor/EditVisitSheet";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 type LeadStatus = "attempt1" | "attempt2" | "attempt3" | "closed" | "current";
 
@@ -76,6 +86,15 @@ type Patient = {
   sla_breach_days: number | null;
   created_at: string | null;
   convenient_time: string | null;
+  food_habits: string | null;
+  smoking: string | null;
+  alcohol: string | null;
+  sleep_hours: number | null;
+  dinner_time: string | null;
+  medication_history: string | null;
+  past_surgery_details: string | null;
+  allergies: any;
+  chronic_conditions: any;
 };
 
 type Note = {
@@ -221,6 +240,38 @@ export default function SalesPatientDetail() {
   const [saving, setSaving] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
+  const [sendingLink, setSendingLink] = useState(false);
+
+  const handleSendFormLink = async () => {
+    if (!patient) return;
+    setSendingLink(true);
+    try {
+      const token = crypto.randomUUID().replace(/-/g, "");
+      const expires = new Date();
+      expires.setDate(expires.getDate() + 7);
+      const { error } = await supabase.from("patient_form_tokens").insert({
+        clinic_id: patient.clinic_id,
+        patient_id: patient.id,
+        token,
+        expires_at: expires.toISOString(),
+        is_active: true,
+      } as any);
+      if (error) throw error;
+      const url = `${window.location.origin}/patient-form/${token}`;
+      const msg = `Hi ${patient.name}, please fill in your details for your upcoming visit: ${url}\n\nThis link is valid for 7 days.`;
+      if (patient.phone) {
+        openWhatsApp(patient.phone, msg);
+        toast.success("WhatsApp opened with form link");
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Form link copied to clipboard (no phone on file)");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate form link");
+    } finally {
+      setSendingLink(false);
+    }
+  };
 
   const loadPatient = async () => {
     if (!patientId) return;
@@ -431,6 +482,9 @@ export default function SalesPatientDetail() {
             >
               <CalendarPlus className="mr-1.5 h-4 w-4" /> Add Appointment
             </Button>
+            <Button variant="outline" onClick={handleSendFormLink} disabled={sendingLink}>
+              <Share2 className="mr-1.5 h-4 w-4" /> {sendingLink ? "Generating..." : "Send Form Link"}
+            </Button>
             <Button variant="outline" onClick={() => setEditOpen(true)}>
               <Pencil className="mr-1.5 h-4 w-4" /> Edit Patient
             </Button>
@@ -537,7 +591,50 @@ export default function SalesPatientDetail() {
                     <p className="mt-3 text-sm text-muted-foreground">Not provided</p>
                   )}
                 </section>
+
+                <section className="rounded-2xl border bg-card p-5 shadow-card">
+                  <h2 className="font-display text-base font-semibold flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-muted-foreground" /> Lifestyle & Habits
+                  </h2>
+                  {patient.food_habits || patient.smoking || patient.alcohol || patient.sleep_hours || patient.dinner_time ? (
+                    <dl className="mt-4 space-y-3 text-sm">
+                      <div className="flex items-center gap-2"><Utensils className="h-3.5 w-3.5 text-muted-foreground" /><Field label="Diet" value={patient.food_habits ?? "—"} /></div>
+                      <div className="flex items-center gap-2"><Cigarette className="h-3.5 w-3.5 text-muted-foreground" /><Field label="Smoking" value={patient.smoking ?? "—"} /></div>
+                      <div className="flex items-center gap-2"><Wine className="h-3.5 w-3.5 text-muted-foreground" /><Field label="Alcohol" value={patient.alcohol ?? "—"} /></div>
+                      <div className="flex items-center gap-2"><Moon className="h-3.5 w-3.5 text-muted-foreground" /><Field label="Sleep (hrs)" value={patient.sleep_hours != null ? String(patient.sleep_hours) : "—"} /></div>
+                      <div className="flex items-center gap-2"><Coffee className="h-3.5 w-3.5 text-muted-foreground" /><Field label="Dinner Time" value={patient.dinner_time ?? "—"} /></div>
+                    </dl>
+                  ) : (
+                    <p className="mt-3 text-sm text-muted-foreground italic">No lifestyle info recorded. Use "Send Form Link" to ask the patient.</p>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border bg-card p-5 shadow-card">
+                  <h2 className="font-display text-base font-semibold flex items-center gap-2">
+                    <ClipboardList className="h-4 w-4 text-muted-foreground" /> Medical History
+                  </h2>
+                  {patient.medication_history || patient.past_surgery_details || (Array.isArray(patient.allergies) && patient.allergies.length) || (Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length) ? (
+                    <dl className="mt-4 space-y-3 text-sm">
+                      <Field label="Current Medications" value={patient.medication_history ?? "—"} />
+                      <div className="flex items-start gap-2">
+                        <Scissors className="mt-1 h-3.5 w-3.5 text-muted-foreground" />
+                        <Field label="Past Surgeries" value={patient.past_surgery_details ?? "—"} />
+                      </div>
+                      <Field
+                        label="Allergies"
+                        value={Array.isArray(patient.allergies) && patient.allergies.length ? patient.allergies.join(", ") : "—"}
+                      />
+                      <Field
+                        label="Chronic Conditions"
+                        value={Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length ? patient.chronic_conditions.join(", ") : "—"}
+                      />
+                    </dl>
+                  ) : (
+                    <p className="mt-3 text-sm text-muted-foreground italic">No medical history recorded. Use "Send Form Link" to collect it.</p>
+                  )}
+                </section>
               </div>
+
 
               <div className="space-y-6 lg:col-span-7">
                 <section className="rounded-2xl border bg-card p-5 shadow-card">
