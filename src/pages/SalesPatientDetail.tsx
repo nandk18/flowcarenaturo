@@ -210,7 +210,7 @@ export default function SalesPatientDetail() {
   const location = useLocation();
   const { profile } = useAuth();
   const fromConsult = location.pathname.startsWith("/consult/");
-  const backTo = fromConsult ? "/consult/patients" : "/sales/leads";
+  const backTo = "/patients";
   const [patient, setPatient] = useState<Patient | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
