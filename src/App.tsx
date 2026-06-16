@@ -13,18 +13,18 @@ import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
 import DoctorConsultationPage from "./pages/DoctorConsultationPage";
 import AdminDashboard from "./pages/AdminDashboard";
-import PatientsPage from "./pages/PatientsPage";
 import PatientDetailPage from "./pages/PatientDetailPage";
+import SalesPatientDetail from "./pages/SalesPatientDetail";
 import Settings from "./pages/Settings";
 import TemplatesPage from "./pages/TemplatesPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
-import AppointmentsPage from "./pages/AppointmentsPage";
 import DoctorSchedulePage from "./pages/DoctorSchedulePage";
 import AvailabilityPage from "./pages/AvailabilityPage";
-import Home from "./pages/Home";
-import Sales from "./pages/Sales";
-import SalesPatientDetail from "./pages/SalesPatientDetail";
-import Treatment from "./pages/Treatment";
+import PatientsListPage from "./pages/PatientsListPage";
+import PatientAddPage from "./pages/PatientAddPage";
+import CallTaskPage from "./pages/CallTaskPage";
+import PatientImportPage from "./pages/PatientImportPage";
+import PatientFormPublic from "./pages/PatientFormPublic";
 
 import SuperAdmin from "./pages/SuperAdmin";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -35,7 +35,6 @@ import BillingPage from "./pages/BillingPage";
 import InvoiceDetailPage from "./pages/InvoiceDetailPage";
 import PublicInvoiceViewer from "./pages/PublicInvoiceViewer";
 import NotFound from "./pages/NotFound";
-import ConsultPatients from "./pages/ConsultPatients";
 import CookieConsent from "./components/CookieConsent";
 import TestWhatsApp from "./pages/__TestWhatsApp";
 import { useEffect, useState } from "react";
@@ -43,7 +42,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { ensureProfileAndGetPostAuthRoute } from "@/lib/authRedirect";
 import { Loader2 } from "lucide-react";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 5 * 60 * 1000 },
+  },
+});
 
 const isPublicRoute = (path: string) =>
   path === "/auth/callback" ||
@@ -57,7 +60,8 @@ const isPublicRoute = (path: string) =>
   path === "/dpa" ||
   path === "/security" ||
   path.startsWith("/invoice/") ||
-  path.startsWith("/rx/");
+  path.startsWith("/rx/") ||
+  path.startsWith("/patient-form/");
 
 const isAuthEntryRoute = (path: string) => path === "/" || path === "/auth" || path === "/login";
 
@@ -127,7 +131,7 @@ function AppRoutes() {
     );
   }
 
-  // Public-only routes (no auth required, render outside the main gate)
+  // Public-only routes (no auth required)
   if (
     path === "/auth/callback" ||
     path === "/accept-invite" ||
@@ -136,7 +140,8 @@ function AppRoutes() {
     path === "/terms" ||
     path === "/dpa" ||
     path === "/security" ||
-    path.startsWith("/invoice/")
+    path.startsWith("/invoice/") ||
+    path.startsWith("/patient-form/")
   ) {
     return (
       <Routes>
@@ -148,6 +153,7 @@ function AppRoutes() {
         <Route path="/dpa" element={<DataProcessingAgreement />} />
         <Route path="/security" element={<SecurityPage />} />
         <Route path="/invoice/:invoiceId" element={<PublicInvoiceViewer />} />
+        <Route path="/patient-form/:token" element={<PatientFormPublic />} />
       </Routes>
     );
   }
@@ -199,7 +205,6 @@ function AppRoutes() {
     );
   }
 
-  // Anyone other than admin/super_admin is rejected — only those two roles are supported.
   if (profile.role !== "admin") {
     return (
       <Routes>
@@ -241,48 +246,78 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/rx/:prescriptionId" element={<PrescriptionViewer />} />
-      <Route path="/home" element={<Home />} />
-      <Route path="/sales" element={<Navigate to="/sales/leads" replace />} />
-      <Route path="/sales/leads" element={<Sales />} />
-      <Route path="/sales/call-task" element={<Sales />} />
-      <Route path="/sales/add-lead" element={<Sales />} />
-      <Route path="/sales/patient/:patientId" element={<SalesPatientDetail />} />
-      <Route path="/sales/patient/:patientId/edit" element={<SalesPatientDetail />} />
-      <Route path="/treatment" element={<Treatment />} />
-      <Route path="/consult" element={<Navigate to="/consult/dashboard" replace />} />
-      <Route path="/consult/dashboard" element={<AdminDashboard />} />
-      <Route path="/consult/queue" element={<AdminDashboard />} />
-      <Route path="/consult/appointments" element={<AppointmentsPage />} />
-      <Route path="/consult/appointments/new" element={<AppointmentsPage />} />
-      <Route path="/consult/patients" element={<ConsultPatients />} />
-      <Route path="/consult/patients/:patientId" element={<SalesPatientDetail />} />
-      <Route path="/consult/availability" element={<AvailabilityPage />} />
+
+      {/* Dashboard */}
       <Route path="/dashboard" element={<AdminDashboard />} />
       <Route path="/dashboard/consultation/:visitId" element={<DoctorConsultationPage />} />
-      <Route path="/dashboard/patients" element={<PatientsPage />} />
-      <Route path="/dashboard/patients/:patientId" element={<PatientDetailPage />} />
-      <Route path="/dashboard/templates" element={<TemplatesPage />} />
-      <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
-      <Route path="/dashboard/appointments" element={<AppointmentsPage />} />
+
+      {/* Patients */}
+      <Route path="/patients" element={<PatientsListPage />} />
+      <Route path="/patients/add" element={<PatientAddPage />} />
+      <Route path="/patients/:patientId" element={<SalesPatientDetail />} />
+      <Route path="/patients/:patientId/edit" element={<SalesPatientDetail />} />
+
+      {/* Availability */}
+      <Route path="/availability" element={<AvailabilityPage />} />
+
+      {/* Tasks */}
+      <Route path="/tasks/call-task" element={<CallTaskPage />} />
+      <Route path="/tasks" element={<Navigate to="/tasks/call-task" replace />} />
+
+      {/* Billing detail (reachable from Settings → Billing) */}
+      <Route path="/dashboard/billing/:invoiceId" element={<InvoiceDetailPage />} />
+
+      {/* Settings */}
       <Route path="/settings" element={<Navigate to="/settings/clinic" replace />} />
       <Route path="/settings/templates" element={<TemplatesPage />} />
       <Route path="/settings/analytics" element={<AnalyticsPage />} />
       <Route path="/settings/billing-config" element={<BillingPage />} />
       <Route path="/settings/billing-config/:invoiceId" element={<InvoiceDetailPage />} />
       <Route path="/settings/doctor-schedule" element={<DoctorSchedulePage />} />
+      <Route path="/settings/patient-import" element={<PatientImportPage />} />
       <Route path="/settings/:section" element={<Settings />} />
       <Route path="/settings/:section/:subsection" element={<Settings />} />
-      <Route path="/dashboard/settings" element={<Navigate to="/settings/clinic" replace />} />
-      <Route path="/dashboard/billing" element={<BillingPage />} />
-      <Route path="/dashboard/billing/:invoiceId" element={<InvoiceDetailPage />} />
+
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/" element={<Navigate to="/home" replace />} />
-      <Route path="/auth" element={<Navigate to="/home" replace />} />
-      <Route path="/login" element={<Navigate to="/home" replace />} />
-      <Route path="/onboarding" element={<Navigate to="/home" replace />} />
+
+      {/* Legacy redirects */}
+      <Route path="/home" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/sales" element={<Navigate to="/patients" replace />} />
+      <Route path="/sales/leads" element={<Navigate to="/patients" replace />} />
+      <Route path="/sales/call-task" element={<Navigate to="/tasks/call-task" replace />} />
+      <Route path="/sales/add-lead" element={<Navigate to="/patients/add" replace />} />
+      <Route path="/sales/patient/:patientId" element={<LegacyPatientRedirect />} />
+      <Route path="/sales/patient/:patientId/edit" element={<LegacyPatientRedirect />} />
+      <Route path="/consult" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/consult/dashboard" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/consult/queue" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/consult/appointments" element={<Navigate to="/availability" replace />} />
+      <Route path="/consult/appointments/new" element={<Navigate to="/availability" replace />} />
+      <Route path="/consult/patients" element={<Navigate to="/patients" replace />} />
+      <Route path="/consult/patients/:patientId" element={<LegacyPatientRedirect />} />
+      <Route path="/consult/availability" element={<Navigate to="/availability" replace />} />
+      <Route path="/treatment" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/dashboard/patients" element={<Navigate to="/patients" replace />} />
+      <Route path="/dashboard/patients/:patientId" element={<LegacyPatientRedirect />} />
+      <Route path="/dashboard/templates" element={<Navigate to="/settings/templates" replace />} />
+      <Route path="/dashboard/analytics" element={<Navigate to="/settings/analytics" replace />} />
+      <Route path="/dashboard/appointments" element={<Navigate to="/availability" replace />} />
+      <Route path="/dashboard/billing" element={<Navigate to="/settings/billing-config" replace />} />
+      <Route path="/dashboard/settings" element={<Navigate to="/settings/clinic" replace />} />
+
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/onboarding" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
+}
+
+function LegacyPatientRedirect() {
+  const { pathname } = useLocation();
+  const id = pathname.split("/").filter(Boolean).pop();
+  return <Navigate to={`/patients/${id}`} replace />;
 }
 
 const App = () => (
