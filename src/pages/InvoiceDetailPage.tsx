@@ -8,10 +8,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import StatusBadge from "@/components/billing/StatusBadge";
 import RecordPaymentModal from "@/components/billing/RecordPaymentModal";
-import { Printer, Share2, Plus, XCircle, ArrowLeft } from "lucide-react";
+import { Printer, Share2, Plus, XCircle, ArrowLeft, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { openWhatsApp, buildInvoiceMessage } from "@/lib/whatsapp";
 import { printInvoice, buildInvoiceHtml } from "@/lib/invoiceUtils";
+import { downloadInvoicePdf } from "@/lib/invoicePdf";
+import PatientLink from "@/components/PatientLink";
 
 export default function InvoiceDetailPage() {
   const { invoiceId } = useParams();
