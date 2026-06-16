@@ -142,15 +142,21 @@ export default function PatientDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
         <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/patients")}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Patients
         </Button>
-        {isAdmin && (
-          <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteOpen(true)}>
-            <Trash2 className="mr-2 h-4 w-4" /> Delete Patient
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleSendFormLink} disabled={sendingLink}>
+            {sendingLink ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}
+            Send Form Link
           </Button>
-        )}
+          {isAdmin && (
+            <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" /> Delete
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Patient Header */}
