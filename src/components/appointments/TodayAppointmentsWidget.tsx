@@ -36,7 +36,7 @@ export default function TodayAppointmentsWidget() {
     const today = format(new Date(), "yyyy-MM-dd");
     const { data } = await (supabase as any)
       .from("appointments")
-      .select("id, clinic_id, patient_id, doctor_id, appointment_time, status, reason, patients(name, healthcare_id), doctors(name)")
+      .select("id, clinic_id, patient_id, doctor_id, appointment_time, status, reason, patients(id, name, healthcare_id), doctors(name)")
       .eq("clinic_id", profile.clinic_id)
       .eq("appointment_date", today)
       .in("status", ["scheduled", "confirmed"])
