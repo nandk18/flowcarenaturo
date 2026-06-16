@@ -61,6 +61,7 @@ import { cn } from "@/lib/utils";
 import { LeadForm } from "./Sales";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 import EditVisitSheet from "@/components/doctor/EditVisitSheet";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 type LeadStatus = "attempt1" | "attempt2" | "attempt3" | "closed" | "current";
 
