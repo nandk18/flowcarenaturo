@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import SalesShell from "@/components/layout/SalesShell";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -394,8 +393,7 @@ export default function SalesPatientDetail() {
     const loadingBody = (
       <div className="flex flex-1 items-center justify-center text-muted-foreground py-20">Loading...</div>
     );
-    if (fromConsult) return <DashboardLayout>{loadingBody}</DashboardLayout>;
-    return <SalesShell title="Patient">{loadingBody}</SalesShell>;
+    return <DashboardLayout>{loadingBody}</DashboardLayout>;
   }
 
   const phoneDigits = patient.phone ? patient.phone.replace(/[^\d]/g, "") : "";
@@ -650,11 +648,7 @@ export default function SalesPatientDetail() {
     </>
   );
 
-  if (fromConsult) {
-    return <DashboardLayout>{content}</DashboardLayout>;
-  }
-
-  return <SalesShell title={patient.name}>{content}</SalesShell>;
+  return <DashboardLayout title={patient.name}>{content}</DashboardLayout>;
 }
 
 function Field({ label, value }: { label: string; value: string }) {
