@@ -591,7 +591,50 @@ export default function SalesPatientDetail() {
                     <p className="mt-3 text-sm text-muted-foreground">Not provided</p>
                   )}
                 </section>
+
+                <section className="rounded-2xl border bg-card p-5 shadow-card">
+                  <h2 className="font-display text-base font-semibold flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-muted-foreground" /> Lifestyle & Habits
+                  </h2>
+                  {patient.food_habits || patient.smoking || patient.alcohol || patient.sleep_hours || patient.dinner_time ? (
+                    <dl className="mt-4 space-y-3 text-sm">
+                      <div className="flex items-center gap-2"><Utensils className="h-3.5 w-3.5 text-muted-foreground" /><Field label="Diet" value={patient.food_habits ?? "—"} /></div>
+                      <div className="flex items-center gap-2"><Cigarette className="h-3.5 w-3.5 text-muted-foreground" /><Field label="Smoking" value={patient.smoking ?? "—"} /></div>
+                      <div className="flex items-center gap-2"><Wine className="h-3.5 w-3.5 text-muted-foreground" /><Field label="Alcohol" value={patient.alcohol ?? "—"} /></div>
+                      <div className="flex items-center gap-2"><Moon className="h-3.5 w-3.5 text-muted-foreground" /><Field label="Sleep (hrs)" value={patient.sleep_hours != null ? String(patient.sleep_hours) : "—"} /></div>
+                      <div className="flex items-center gap-2"><Coffee className="h-3.5 w-3.5 text-muted-foreground" /><Field label="Dinner Time" value={patient.dinner_time ?? "—"} /></div>
+                    </dl>
+                  ) : (
+                    <p className="mt-3 text-sm text-muted-foreground italic">No lifestyle info recorded. Use "Send Form Link" to ask the patient.</p>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border bg-card p-5 shadow-card">
+                  <h2 className="font-display text-base font-semibold flex items-center gap-2">
+                    <ClipboardList className="h-4 w-4 text-muted-foreground" /> Medical History
+                  </h2>
+                  {patient.medication_history || patient.past_surgery_details || (Array.isArray(patient.allergies) && patient.allergies.length) || (Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length) ? (
+                    <dl className="mt-4 space-y-3 text-sm">
+                      <Field label="Current Medications" value={patient.medication_history ?? "—"} />
+                      <div className="flex items-start gap-2">
+                        <Scissors className="mt-1 h-3.5 w-3.5 text-muted-foreground" />
+                        <Field label="Past Surgeries" value={patient.past_surgery_details ?? "—"} />
+                      </div>
+                      <Field
+                        label="Allergies"
+                        value={Array.isArray(patient.allergies) && patient.allergies.length ? patient.allergies.join(", ") : "—"}
+                      />
+                      <Field
+                        label="Chronic Conditions"
+                        value={Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length ? patient.chronic_conditions.join(", ") : "—"}
+                      />
+                    </dl>
+                  ) : (
+                    <p className="mt-3 text-sm text-muted-foreground italic">No medical history recorded. Use "Send Form Link" to collect it.</p>
+                  )}
+                </section>
               </div>
+
 
               <div className="space-y-6 lg:col-span-7">
                 <section className="rounded-2xl border bg-card p-5 shadow-card">
