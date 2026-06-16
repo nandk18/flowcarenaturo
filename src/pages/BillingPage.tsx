@@ -13,6 +13,7 @@ import StatusBadge from "@/components/billing/StatusBadge";
 import CreateInvoiceModal from "@/components/billing/CreateInvoiceModal";
 import RecordPaymentModal from "@/components/billing/RecordPaymentModal";
 import { Eye, Plus, Share2, Receipt, Download } from "lucide-react";
+import PatientLink from "@/components/PatientLink";
 import { toast } from "sonner";
 import { openWhatsApp, buildInvoiceMessage } from "@/lib/whatsapp";
 import {
