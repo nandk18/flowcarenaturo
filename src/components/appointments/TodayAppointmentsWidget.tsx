@@ -11,6 +11,8 @@ import { formatDoctorName } from "@/lib/utils";
 import CheckInModal, { type CheckInData } from "@/components/queue/CheckInModal";
 import { format } from "date-fns";
 
+import PatientLink from "@/components/PatientLink";
+
 type Appointment = {
   id: string;
   clinic_id: string;
@@ -19,7 +21,7 @@ type Appointment = {
   appointment_time: string;
   status: string;
   reason: string | null;
-  patient?: { name: string; healthcare_id: string | null };
+  patient?: { id: string; name: string; healthcare_id: string | null };
   doctor?: { name: string };
 };
 
