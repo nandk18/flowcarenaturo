@@ -8,10 +8,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import StatusBadge from "@/components/billing/StatusBadge";
 import RecordPaymentModal from "@/components/billing/RecordPaymentModal";
-import { Printer, Share2, Plus, XCircle, ArrowLeft } from "lucide-react";
+import { Printer, Share2, Plus, XCircle, ArrowLeft, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { openWhatsApp, buildInvoiceMessage } from "@/lib/whatsapp";
 import { printInvoice, buildInvoiceHtml } from "@/lib/invoiceUtils";
+import { downloadInvoicePdf } from "@/lib/invoicePdf";
+import PatientLink from "@/components/PatientLink";
 
 export default function InvoiceDetailPage() {
   const { invoiceId } = useParams();
@@ -89,7 +91,7 @@ export default function InvoiceDetailPage() {
           <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
             <div>
               <p className="text-xs uppercase text-muted-foreground mb-1">Bill To</p>
-              <p className="font-semibold">{invoice.patients?.name}</p>
+              {invoice.patients && <PatientLink patientId={invoice.patients.id} className="font-semibold">{invoice.patients.name}</PatientLink>}
               <p className="text-xs text-primary">{invoice.patients?.healthcare_id}</p>
               <p className="text-xs text-muted-foreground">{invoice.patients?.phone}</p>
             </div>
@@ -164,6 +166,7 @@ export default function InvoiceDetailPage() {
           )}
           <Button variant="outline" onClick={share}><Share2 className="w-4 h-4 mr-1" /> Share</Button>
           <Button variant="outline" onClick={() => printInvoice(buildInvoiceHtml(invoice, clinic))}><Printer className="w-4 h-4 mr-1" /> Print</Button>
+          <Button variant="outline" onClick={() => downloadInvoicePdf(invoice, clinic)}><FileDown className="w-4 h-4 mr-1" /> Download PDF</Button>
           {role === "admin" && invoice.status !== "cancelled" && (
             <Button variant="destructive" onClick={handleCancel}><XCircle className="w-4 h-4 mr-1" /> Cancel Invoice</Button>
           )}

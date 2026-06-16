@@ -13,6 +13,7 @@ import StatusBadge from "@/components/billing/StatusBadge";
 import CreateInvoiceModal from "@/components/billing/CreateInvoiceModal";
 import RecordPaymentModal from "@/components/billing/RecordPaymentModal";
 import { Eye, Plus, Share2, Receipt, Download } from "lucide-react";
+import PatientLink from "@/components/PatientLink";
 import { toast } from "sonner";
 import { openWhatsApp, buildInvoiceMessage } from "@/lib/whatsapp";
 import {
@@ -264,7 +265,7 @@ export default function BillingPage() {
                           <span className="font-mono text-xs text-muted-foreground">{inv.invoice_number}</span>
                           <StatusBadge status={inv.status} />
                         </div>
-                        <p className="font-semibold">{inv.patients?.name}</p>
+                        {inv.patients && <PatientLink patientId={inv.patients.id}>{inv.patients.name}</PatientLink>}
                         <p className="text-xs text-primary">{inv.patients?.healthcare_id}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {inv.doctors?.name || "—"} · {new Date(inv.invoice_date).toLocaleDateString("en-IN")}
@@ -346,7 +347,7 @@ export default function BillingPage() {
                 {invoices.filter((i) => Number(i.outstanding_amount) > 0).slice(0, 20).map((i) => (
                   <div key={i.id} className="flex justify-between border-b pb-1">
                     <div>
-                      <p className="font-medium">{i.patients?.name}</p>
+                      {i.patients && <PatientLink patientId={i.patients.id}>{i.patients.name}</PatientLink>}
                       <p className="text-xs text-muted-foreground font-mono">{i.invoice_number}</p>
                     </div>
                     <div className="text-right">

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, Calendar, ChevronDown, FileText, Pill, ExternalLink, Loader2, Phone, Mail, AlertTriangle, Activity, Trash2, Pencil } from "lucide-react";
+import { ArrowLeft, Calendar, ChevronDown, FileText, Pill, ExternalLink, Loader2, Phone, Mail, AlertTriangle, Activity, Trash2, Pencil, Share2, Coffee, Cigarette, Wine, Moon, Utensils, ClipboardList, Scissors } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import VitalsTrends from "@/components/vitals/VitalsTrends";
 import { renderClinicalNotes } from "@/lib/templateFields";
@@ -17,11 +17,15 @@ import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 import { openPrescription } from "@/lib/prescriptionUtils";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 type Patient = {
   id: string; name: string; healthcare_id: string | null; gender: string | null;
   dob: string | null; phone: string | null; email: string | null;
   blood_group: string | null; allergies: any; chronic_conditions: any;
+  food_habits: string | null; smoking: string | null; alcohol: string | null;
+  sleep_hours: number | null; dinner_time: string | null;
+  medication_history: string | null; past_surgery_details: string | null;
 };
 
 type HistoryVisit = {
@@ -43,10 +47,41 @@ export default function PatientDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editingVisit, setEditingVisit] = useState<any>(null);
+  const [sendingLink, setSendingLink] = useState(false);
   const { log: auditLog } = useAuditLog();
 
   const isAdmin = profile?.role === "admin";
   const canEdit = profile?.role === "admin";
+
+  const handleSendFormLink = async () => {
+    if (!patient || !profile?.clinic_id) return;
+    setSendingLink(true);
+    try {
+      const token = crypto.randomUUID().replace(/-/g, "");
+      const expires = new Date();
+      expires.setDate(expires.getDate() + 7);
+      const { error } = await supabase.from("patient_form_tokens").insert({
+        clinic_id: profile.clinic_id,
+        patient_id: patient.id,
+        token,
+        expires_at: expires.toISOString(),
+        is_active: true,
+      } as any);
+      if (error) throw error;
+      const url = `${window.location.origin}/patient-form/${token}`;
+      const msg = `Hi ${patient.name}, please fill in your details for your upcoming visit: ${url}\n\nThis link is valid for 7 days.`;
+      if (patient.phone) {
+        openWhatsApp(patient.phone, msg);
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast({ title: "Form link copied", description: "Patient has no phone — link copied to clipboard." });
+      }
+    } catch (err: any) {
+      toast({ title: "Failed to send", description: err.message, variant: "destructive" });
+    } finally {
+      setSendingLink(false);
+    }
+  };
 
   const getAge = (dob: string | null) => {
     if (!dob) return null;
@@ -138,15 +173,21 @@ export default function PatientDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
         <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/patients")}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Patients
         </Button>
-        {isAdmin && (
-          <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteOpen(true)}>
-            <Trash2 className="mr-2 h-4 w-4" /> Delete Patient
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleSendFormLink} disabled={sendingLink}>
+            {sendingLink ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}
+            Send Form Link
           </Button>
-        )}
+          {isAdmin && (
+            <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" /> Delete
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Patient Header */}
@@ -182,6 +223,35 @@ export default function PatientDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Lifestyle & Medical History */}
+      <div className="grid gap-4 sm:grid-cols-2 mb-6">
+        <Card className="shadow-card">
+          <CardContent className="p-4 space-y-2">
+            <h3 className="font-display font-semibold mb-2">Lifestyle & Habits</h3>
+            {patient.food_habits ? <p className="text-sm flex items-center gap-2"><Coffee className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Diet:</span> <span className="capitalize">{patient.food_habits}</span></p> : null}
+            {patient.smoking ? <p className="text-sm flex items-center gap-2"><Cigarette className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Smoking:</span> <span className="capitalize">{patient.smoking}</span></p> : null}
+            {patient.alcohol ? <p className="text-sm flex items-center gap-2"><Wine className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Alcohol:</span> <span className="capitalize">{patient.alcohol}</span></p> : null}
+            {patient.sleep_hours != null ? <p className="text-sm flex items-center gap-2"><Moon className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Sleep:</span> {patient.sleep_hours}h / night</p> : null}
+            {patient.dinner_time ? <p className="text-sm flex items-center gap-2"><Utensils className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Dinner:</span> {String(patient.dinner_time).substring(0, 5)}</p> : null}
+            {!patient.food_habits && !patient.smoking && !patient.alcohol && patient.sleep_hours == null && !patient.dinner_time && (
+              <p className="text-sm text-muted-foreground italic">No lifestyle info recorded. Use "Send Form Link" to ask the patient.</p>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardContent className="p-4 space-y-2">
+            <h3 className="font-display font-semibold mb-2">Medical History</h3>
+            {patient.medication_history ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><Pill className="h-3.5 w-3.5" /> Current medication</div><p>{patient.medication_history}</p></div> : null}
+            {patient.past_surgery_details ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><Scissors className="h-3.5 w-3.5" /> Past surgery</div><p>{patient.past_surgery_details}</p></div> : null}
+            {Array.isArray(patient.allergies) && patient.allergies.length > 0 ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><AlertTriangle className="h-3.5 w-3.5" /> Allergies</div><p>{patient.allergies.join(", ")}</p></div> : null}
+            {Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length > 0 ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><ClipboardList className="h-3.5 w-3.5" /> Chronic</div><p>{patient.chronic_conditions.join(", ")}</p></div> : null}
+            {!patient.medication_history && !patient.past_surgery_details && !(Array.isArray(patient.allergies) && patient.allergies.length) && !(Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length) && (
+              <p className="text-sm text-muted-foreground italic">No medical history recorded.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Vitals Trends */}
       {patientId && <VitalsTrends patientId={patientId} />}

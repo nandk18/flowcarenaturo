@@ -25,6 +25,8 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { AlertTriangle } from "lucide-react";
 import {
   ArrowLeft,
   MessageCircle,
@@ -145,27 +147,42 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
   const [ecPhone, setEcPhone] = useState(initial?.emergency_contact_phone ?? "");
   const [ecRelation, setEcRelation] = useState(initial?.emergency_contact_relation ?? "");
   const [address, setAddress] = useState(initial?.address ?? "");
+  const [foodHabits, setFoodHabits] = useState((initial as any)?.food_habits ?? "");
+  const [smoking, setSmoking] = useState((initial as any)?.smoking ?? "");
+  const [alcohol, setAlcohol] = useState((initial as any)?.alcohol ?? "");
+  const [sleepHours, setSleepHours] = useState<string>((initial as any)?.sleep_hours?.toString() ?? "");
+  const [dinnerTime, setDinnerTime] = useState((initial as any)?.dinner_time ?? "");
+  const [medicationHistory, setMedicationHistory] = useState((initial as any)?.medication_history ?? "");
+  const [pastSurgery, setPastSurgery] = useState((initial as any)?.past_surgery_details ?? "");
+  const [allergiesText, setAllergiesText] = useState(Array.isArray((initial as any)?.allergies) ? (initial as any).allergies.join(", ") : "");
+  const [chronicText, setChronicText] = useState(Array.isArray((initial as any)?.chronic_conditions) ? (initial as any).chronic_conditions.join(", ") : "");
+  const [duplicates, setDuplicates] = useState<{ id: string; name: string; phone: string | null }[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const isEdit = Boolean(initial);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!firstName.trim()) {
-      toast.error("First name is required");
-      return;
+  const checkDuplicates = async (): Promise<boolean> => {
+    if (isEdit) return false;
+    const normalized = normalizePhone(phone);
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    const { data } = await supabase
+      .from("patients")
+      .select("id, name, phone")
+      .eq("clinic_id", clinicId)
+      .or(`phone.eq.${normalized},name.ilike.${fullName}`)
+      .limit(5);
+    if (data && data.length > 0) {
+      setDuplicates(data as any);
+      return true;
     }
-    if (!phone.trim() || phone.trim() === "+91") {
-      toast.error("Phone number is required");
-      return;
-    }
-    if (!clinicId) {
-      toast.error("Clinic not loaded yet. Please wait and try again.");
-      return;
-    }
+    return false;
+  };
+
+  const performSave = async () => {
     setSubmitting(true);
     const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-    const payload = {
+    const toList = (s: string) => s.split(",").map(x => x.trim()).filter(Boolean);
+    const payload: any = {
       clinic_id: clinicId,
       name: fullName,
       first_name: firstName.trim(),
@@ -181,29 +198,28 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
       emergency_contact_name: ecName.trim() || null,
       emergency_contact_phone: ecPhone ? normalizePhone(ecPhone) : null,
       emergency_contact_relation: ecRelation.trim() || null,
+      food_habits: foodHabits || null,
+      smoking: smoking || null,
+      alcohol: alcohol || null,
+      sleep_hours: sleepHours ? Number(sleepHours) : null,
+      dinner_time: dinnerTime || null,
+      medication_history: medicationHistory.trim() || null,
+      past_surgery_details: pastSurgery.trim() || null,
+      allergies: allergiesText ? toList(allergiesText) : [],
+      chronic_conditions: chronicText ? toList(chronicText) : [],
     };
 
     try {
       let result;
       if (isEdit && initial) {
-        result = await supabase
-          .from("patients")
-          .update(payload)
-          .eq("id", initial.id)
-          .select()
-          .single();
+        result = await supabase.from("patients").update(payload).eq("id", initial.id).select().single();
       } else {
-        result = await supabase
-          .from("patients")
-          .insert({
-            ...payload,
-            lead_status: "attempt1",
-            call_due_date: new Date().toISOString().slice(0, 10),
-          })
-          .select()
-          .single();
+        result = await supabase.from("patients").insert({
+          ...payload,
+          lead_status: "attempt1",
+          call_due_date: new Date().toISOString().slice(0, 10),
+        }).select().single();
       }
-
       if (result.error || !result.data) {
         toast.error(result.error?.message ?? "Failed to save");
         return;
@@ -214,10 +230,22 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
       toast.error(err?.message ?? "Failed to save lead");
     } finally {
       setSubmitting(false);
+      setDuplicates([]);
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firstName.trim()) { toast.error("First name is required"); return; }
+    if (!phone.trim() || phone.trim() === "+91") { toast.error("Phone number is required"); return; }
+    if (!clinicId) { toast.error("Clinic not loaded. Please wait."); return; }
+    const hasDup = await checkDuplicates();
+    if (hasDup) return;
+    await performSave();
+  };
+
   return (
+    <>
     <form onSubmit={handleSubmit} className="grid gap-5 rounded-2xl border bg-card p-6 shadow-card">
       <h2 className="font-display text-xl font-semibold">
         {isEdit ? "Edit Patient" : "Add a Lead"}
@@ -238,19 +266,13 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="convenientTime">Convenient Time to Call</Label>
-          <Input
-            id="convenientTime"
-            value={convenientTime}
-            onChange={(e) => setConvenientTime(e.target.value)}
-            placeholder="e.g. Morning 9-11am, Evening after 6pm"
-          />
+          <Input id="convenientTime" value={convenientTime} onChange={(e) => setConvenientTime(e.target.value)} placeholder="e.g. Morning 9-11am" />
         </div>
         <div className="space-y-1.5">
           <Label>Lead Source</Label>
           <Select value={leadSource} onValueChange={setLeadSource}>
             <SelectTrigger><SelectValue placeholder="Select lead source" /></SelectTrigger>
             <SelectContent>
-              
               <SelectItem value="Instagram">Instagram</SelectItem>
               <SelectItem value="Phone">Phone</SelectItem>
               <SelectItem value="WhatsApp">WhatsApp</SelectItem>
@@ -270,18 +292,14 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
           <Label>Gender</Label>
           <Select value={gender} onValueChange={setGender}>
             <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
-            <SelectContent>
-              {GENDERS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-            </SelectContent>
+            <SelectContent>{GENDERS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="space-y-1.5">
           <Label>Blood Group</Label>
           <Select value={bloodGroup} onValueChange={setBloodGroup}>
             <SelectTrigger><SelectValue placeholder="Select blood group" /></SelectTrigger>
-            <SelectContent>
-              {BLOOD_GROUPS.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-            </SelectContent>
+            <SelectContent>{BLOOD_GROUPS.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
           </Select>
         </div>
       </div>
@@ -303,7 +321,77 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
 
       <div className="space-y-1.5">
         <Label htmlFor="address">Address</Label>
-        <Textarea id="address" rows={3} value={address} onChange={(e) => setAddress(e.target.value)} />
+        <Textarea id="address" rows={2} value={address} onChange={(e) => setAddress(e.target.value)} />
+      </div>
+
+      <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
+        <h3 className="font-display font-semibold">Lifestyle & Habits</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label>Food Habits</Label>
+            <Select value={foodHabits} onValueChange={setFoodHabits}>
+              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="vegetarian">Vegetarian</SelectItem>
+                <SelectItem value="non-vegetarian">Non-vegetarian</SelectItem>
+                <SelectItem value="vegan">Vegan</SelectItem>
+                <SelectItem value="eggetarian">Eggetarian</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Smoking</Label>
+            <Select value={smoking} onValueChange={setSmoking}>
+              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="never">Never</SelectItem>
+                <SelectItem value="occasional">Occasional</SelectItem>
+                <SelectItem value="regular">Regular</SelectItem>
+                <SelectItem value="former">Former</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Alcohol</Label>
+            <Select value={alcohol} onValueChange={setAlcohol}>
+              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="never">Never</SelectItem>
+                <SelectItem value="occasional">Occasional</SelectItem>
+                <SelectItem value="regular">Regular</SelectItem>
+                <SelectItem value="former">Former</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="sleep">Sleep Hours / night</Label>
+            <Input id="sleep" type="number" step="0.5" min="0" max="24" value={sleepHours} onChange={(e) => setSleepHours(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="dinner">Usual Dinner Time</Label>
+            <Input id="dinner" type="time" value={dinnerTime} onChange={(e) => setDinnerTime(e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
+        <h3 className="font-display font-semibold">Medical History</h3>
+        <div className="space-y-1.5">
+          <Label htmlFor="allergies">Allergies (comma separated)</Label>
+          <Input id="allergies" value={allergiesText} onChange={(e) => setAllergiesText(e.target.value)} placeholder="penicillin, dust" />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="chronic">Chronic Conditions (comma separated)</Label>
+          <Input id="chronic" value={chronicText} onChange={(e) => setChronicText(e.target.value)} placeholder="diabetes, hypertension" />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="meds">Current Medication</Label>
+          <Textarea id="meds" rows={2} value={medicationHistory} onChange={(e) => setMedicationHistory(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="surgery">Past Surgery Details</Label>
+          <Textarea id="surgery" rows={2} value={pastSurgery} onChange={(e) => setPastSurgery(e.target.value)} />
+        </div>
       </div>
 
       <div className="flex justify-end">
@@ -312,6 +400,32 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
         </Button>
       </div>
     </form>
+
+    <Dialog open={duplicates.length > 0} onOpenChange={(o) => !o && setDuplicates([])}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-amber-700">
+            <AlertTriangle className="h-5 w-5" /> Possible duplicate
+          </DialogTitle>
+          <DialogDescription>
+            A patient with this name or phone already exists. Continue anyway?
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          {duplicates.map((m) => (
+            <div key={m.id} className="rounded-md border p-3 text-sm">
+              <div className="font-semibold">{m.name}</div>
+              <div className="text-muted-foreground">{m.phone}</div>
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setDuplicates([])}>Cancel</Button>
+          <Button onClick={() => { setDuplicates([]); performSave(); }} disabled={submitting}>Save anyway</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 
