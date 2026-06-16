@@ -47,10 +47,41 @@ export default function PatientDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editingVisit, setEditingVisit] = useState<any>(null);
+  const [sendingLink, setSendingLink] = useState(false);
   const { log: auditLog } = useAuditLog();
 
   const isAdmin = profile?.role === "admin";
   const canEdit = profile?.role === "admin";
+
+  const handleSendFormLink = async () => {
+    if (!patient || !profile?.clinic_id) return;
+    setSendingLink(true);
+    try {
+      const token = crypto.randomUUID().replace(/-/g, "");
+      const expires = new Date();
+      expires.setDate(expires.getDate() + 7);
+      const { error } = await supabase.from("patient_form_tokens").insert({
+        clinic_id: profile.clinic_id,
+        patient_id: patient.id,
+        token,
+        expires_at: expires.toISOString(),
+        is_active: true,
+      } as any);
+      if (error) throw error;
+      const url = `${window.location.origin}/patient-form/${token}`;
+      const msg = `Hi ${patient.name}, please fill in your details for your upcoming visit: ${url}\n\nThis link is valid for 7 days.`;
+      if (patient.phone) {
+        openWhatsApp(patient.phone, msg);
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast({ title: "Form link copied", description: "Patient has no phone — link copied to clipboard." });
+      }
+    } catch (err: any) {
+      toast({ title: "Failed to send", description: err.message, variant: "destructive" });
+    } finally {
+      setSendingLink(false);
+    }
+  };
 
   const getAge = (dob: string | null) => {
     if (!dob) return null;
