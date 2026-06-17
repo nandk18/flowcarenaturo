@@ -1,0 +1,270 @@
+import { useEffect, useMemo, useState, useCallback } from "react";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import { Plus, Pencil, Trash2, Download } from "lucide-react";
+import { toast } from "sonner";
+import { format, startOfWeek, startOfMonth } from "date-fns";
+
+const CATEGORIES = ["Supplies", "Equipment", "Utilities", "Staff", "Marketing", "Miscellaneous"];
+
+type Expense = {
+  id: string;
+  title: string;
+  category: string | null;
+  amount: number | null;
+  expense_date: string | null;
+  notes: string | null;
+  created_by: string | null;
+  creator_name?: string | null;
+};
+
+type RangeKey = "today" | "week" | "month" | "custom";
+
+export default function ExpenseListPage() {
+  const { profile } = useAuth();
+  const clinicId = profile?.clinic_id;
+  const [rows, setRows] = useState<Expense[]>([]);
+  const [range, setRange] = useState<RangeKey>("today");
+  const [from, setFrom] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [to, setTo] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Expense | null>(null);
+
+  const computeRange = useCallback(() => {
+    const today = new Date();
+    if (range === "today") return { f: format(today, "yyyy-MM-dd"), t: format(today, "yyyy-MM-dd") };
+    if (range === "week") return { f: format(startOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd"), t: format(today, "yyyy-MM-dd") };
+    if (range === "month") return { f: format(startOfMonth(today), "yyyy-MM-dd"), t: format(today, "yyyy-MM-dd") };
+    return { f: from, t: to };
+  }, [range, from, to]);
+
+  const load = useCallback(async () => {
+    if (!clinicId) return;
+    const { f, t } = computeRange();
+    const { data } = await supabase
+      .from("expense_list")
+      .select("*")
+      .eq("clinic_id", clinicId)
+      .gte("expense_date", f)
+      .lte("expense_date", t)
+      .order("expense_date", { ascending: false });
+    const list = (data ?? []) as Expense[];
+    const ids = Array.from(new Set(list.map((r) => r.created_by).filter(Boolean))) as string[];
+    if (ids.length) {
+      const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+      const map = new Map((profs ?? []).map((p: any) => [p.id, p.full_name]));
+      list.forEach((r) => { r.creator_name = r.created_by ? map.get(r.created_by) ?? null : null; });
+    }
+    setRows(list);
+  }, [clinicId, computeRange]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const total = useMemo(() => rows.reduce((s, r) => s + (Number(r.amount) || 0), 0), [rows]);
+  const byCategory = useMemo(() => {
+    const map: Record<string, number> = {};
+    rows.forEach((r) => { const k = r.category || "Miscellaneous"; map[k] = (map[k] || 0) + (Number(r.amount) || 0); });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [rows]);
+
+  const remove = async (id: string) => {
+    if (!confirm("Delete this expense?")) return;
+    await supabase.from("expense_list").delete().eq("id", id);
+    load();
+  };
+
+  const exportCsv = () => {
+    const headers = ["Date", "Title", "Category", "Amount", "Notes", "Added by"];
+    const lines = [headers.join(",")];
+    rows.forEach((r) => {
+      lines.push([r.expense_date, JSON.stringify(r.title), r.category ?? "", r.amount ?? 0, JSON.stringify(r.notes ?? ""), JSON.stringify(r.creator_name ?? "")].join(","));
+    });
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `expenses_${format(new Date(), "yyyyMMdd")}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <DashboardLayout title="Expense List">
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-4 shadow-card">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="font-display text-xl font-semibold mr-2">Expense List</h1>
+            <Select value={range} onValueChange={(v) => setRange(v as RangeKey)}>
+              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="week">This Week</SelectItem>
+                <SelectItem value="month">This Month</SelectItem>
+                <SelectItem value="custom">Custom</SelectItem>
+              </SelectContent>
+            </Select>
+            {range === "custom" && (
+              <>
+                <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-[140px]" />
+                <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-[140px]" />
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="text-right text-sm">
+              <div className="text-xs text-muted-foreground">Total</div>
+              <div className="font-display text-lg font-bold">₹{total.toFixed(2)}</div>
+            </div>
+            <Button variant="outline" size="sm" onClick={exportCsv}><Download className="mr-1 h-3.5 w-3.5" /> CSV</Button>
+            <Button onClick={() => { setEditing(null); setOpen(true); }}>
+              <Plus className="mr-1 h-3.5 w-3.5" /> Add Expense
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border bg-card shadow-card overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead className="text-right">Amount (₹)</TableHead>
+                <TableHead>Notes</TableHead>
+                <TableHead>Added by</TableHead>
+                <TableHead className="w-[100px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="py-10 text-center text-muted-foreground">No expenses</TableCell></TableRow>
+              ) : rows.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="text-sm">{r.expense_date}</TableCell>
+                  <TableCell className="text-sm font-medium">{r.title}</TableCell>
+                  <TableCell className="text-sm">{r.category ?? "—"}</TableCell>
+                  <TableCell className="text-right font-mono">₹{Number(r.amount ?? 0).toFixed(2)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground max-w-[240px] truncate">{r.notes ?? "—"}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{r.creator_name ?? "—"}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing(r); setOpen(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove(r.id)}><Trash2 className="h-3.5 w-3.5 text-red-500" /></Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {byCategory.length > 0 && (
+          <div className="rounded-2xl border bg-card p-5 shadow-card">
+            <h2 className="mb-3 font-display text-base font-semibold">Summary by category</h2>
+            <ul className="space-y-2">
+              {byCategory.map(([cat, amt]) => {
+                const pct = total ? (amt / total) * 100 : 0;
+                return (
+                  <li key={cat}>
+                    <div className="flex justify-between text-sm">
+                      <span>{cat}</span>
+                      <span className="font-medium">₹{amt.toFixed(2)}</span>
+                    </div>
+                    <div className="mt-1 h-1.5 rounded-full bg-muted">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      <ExpenseModal
+        open={open}
+        onClose={() => setOpen(false)}
+        initial={editing}
+        clinicId={clinicId ?? ""}
+        userId={profile?.id ?? null}
+        onSaved={() => { setOpen(false); load(); }}
+      />
+    </DashboardLayout>
+  );
+}
+
+function ExpenseModal({
+  open, onClose, initial, clinicId, userId, onSaved,
+}: {
+  open: boolean; onClose: () => void; initial: Expense | null;
+  clinicId: string; userId: string | null; onSaved: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("Supplies");
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setTitle(initial?.title ?? "");
+      setCategory(initial?.category ?? "Supplies");
+      setAmount(initial?.amount != null ? String(initial.amount) : "");
+      setDate(initial?.expense_date ?? format(new Date(), "yyyy-MM-dd"));
+      setNotes(initial?.notes ?? "");
+    }
+  }, [open, initial]);
+
+  const save = async () => {
+    if (!title.trim()) { toast.error("Title required"); return; }
+    if (!amount || isNaN(Number(amount))) { toast.error("Amount required"); return; }
+    setBusy(true);
+    const payload = {
+      clinic_id: clinicId,
+      title: title.trim(),
+      category,
+      amount: Number(amount),
+      expense_date: date,
+      notes: notes.trim() || null,
+      created_by: userId,
+    };
+    const res = initial
+      ? await supabase.from("expense_list").update(payload).eq("id", initial.id)
+      : await supabase.from("expense_list").insert(payload);
+    setBusy(false);
+    if (res.error) { toast.error(res.error.message); return; }
+    toast.success(initial ? "Expense updated" : "Expense added");
+    onSaved();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>{initial ? "Edit Expense" : "Add Expense"}</DialogTitle></DialogHeader>
+        <div className="grid gap-3">
+          <div><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Category</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Amount (₹) *</Label><Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+          </div>
+          <div><Label>Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+          <div><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Save"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
