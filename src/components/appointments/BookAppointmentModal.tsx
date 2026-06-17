@@ -33,6 +33,9 @@ type Props = {
   initialDoctorId?: string;
   initialPatientId?: string;
   lockDate?: boolean;
+  lockPatient?: boolean;
+  /** When true (dashboard walk-in flow) AND date is today, show CheckIn modal after booking. */
+  walkInFlow?: boolean;
 };
 
 export default function BookAppointmentModal({
@@ -44,7 +47,10 @@ export default function BookAppointmentModal({
   initialDoctorId,
   initialPatientId,
   lockDate,
+  lockPatient: lockPatientProp,
+  walkInFlow,
 }: Props) {
+  const [lockPatient, setLockPatient] = useState(!!lockPatientProp);
   const { profile } = useAuth();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
