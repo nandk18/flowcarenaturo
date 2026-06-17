@@ -277,6 +277,7 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
               <SelectItem value="Phone">Phone</SelectItem>
               <SelectItem value="WhatsApp">WhatsApp</SelectItem>
               <SelectItem value="YuvaLife">YuvaLife</SelectItem>
+              <SelectItem value="Friend">Friend</SelectItem>
             </SelectContent>
           </Select>
         </div>
