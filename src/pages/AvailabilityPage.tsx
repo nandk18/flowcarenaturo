@@ -40,6 +40,10 @@ const statusDot: Record<string, string> = {
 
 export default function AvailabilityPage() {
   const { profile } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const presetPatientId = searchParams.get("patient") ?? undefined;
+  const shouldAutoOpen = searchParams.get("book") === "1" || !!presetPatientId;
+
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [doctorId, setDoctorId] = useState("");
   const [view, setView] = useState<View>("month");
@@ -47,7 +51,16 @@ export default function AvailabilityPage() {
   const [appts, setAppts] = useState<Appt[]>([]);
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalInit, setModalInit] = useState<{ date?: string; time?: string } | null>(null);
+  const [modalInit, setModalInit] = useState<{ date?: string; time?: string; patientId?: string; lockPatient?: boolean } | null>(null);
+
+  // Auto-open modal when ?patient= present
+  useEffect(() => {
+    if (shouldAutoOpen) {
+      setModalInit({ patientId: presetPatientId, lockPatient: !!presetPatientId });
+      setModalOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Range to fetch based on view
   const { rangeStart, rangeEnd } = useMemo(() => {
