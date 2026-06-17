@@ -720,8 +720,11 @@ export default function SalesPatientDetail() {
           <TabsContent value="appointments" className="mt-6">
             <AppointmentsTab
               patientId={patient.id}
+              clinicId={patient.clinic_id}
+              patientName={patient.name}
               appointments={appointments}
               onAdd={() => navigate(`/availability?patient=${patient.id}&book=1`)}
+              onChanged={loadAppointments}
             />
           </TabsContent>
         </Tabs>
