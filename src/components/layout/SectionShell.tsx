@@ -24,8 +24,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import SessionTimeoutWarning from "@/components/SessionTimeoutWarning";
-import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import { cn } from "@/lib/utils";
+
 
 export type ShellNavItem = {
   to: string;
