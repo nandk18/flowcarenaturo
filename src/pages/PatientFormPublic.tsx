@@ -14,6 +14,28 @@ import {
 } from "@/components/ui/select";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import {
+  normalizeAlcohol,
+  normalizeSmoking,
+  normalizeFoodHabits,
+} from "@/lib/lifestyleNormalize";
+
+const ALCOHOL_OPTIONS = [
+  { value: "none", label: "None / Never" },
+  { value: "occasional", label: "Occasional" },
+  { value: "regular", label: "Regular" },
+];
+const SMOKING_OPTIONS = [
+  { value: "non_smoker", label: "Non Smoker" },
+  { value: "occasional", label: "Occasional" },
+  { value: "regular", label: "Regular" },
+];
+const FOOD_OPTIONS = [
+  { value: "vegetarian", label: "Vegetarian" },
+  { value: "non_vegetarian", label: "Non Vegetarian" },
+  { value: "vegan", label: "Vegan" },
+  { value: "eggetarian", label: "Eggetarian" },
+];
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 
