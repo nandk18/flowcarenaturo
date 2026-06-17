@@ -1242,22 +1242,33 @@ function InvoicesTab({ patientName, invoices }: { patientName: string; invoices:
 
 function AppointmentsTab({
   patientId,
+  clinicId,
+  patientName,
   appointments,
   onAdd,
+  onChanged,
 }: {
   patientId: string;
+  clinicId: string;
+  patientName: string;
   appointments: AppointmentRow[];
   onAdd: () => void;
+  onChanged: () => void;
 }) {
+  const { profile } = useAuth();
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<"all" | "upcoming" | "past" | "cancelled">("all");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
+  const [startAppt, setStartAppt] = useState<AppointmentRow | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
 
   const sorted = useMemo(() => {
+    const todayList = appointments.filter((a) => a.appointment_date === today && a.status !== "cancelled");
     const upcoming = appointments
-      .filter((a) => a.appointment_date >= today && a.status !== "cancelled")
+      .filter((a) => a.appointment_date > today && a.status !== "cancelled")
       .sort((a, b) => a.appointment_date.localeCompare(b.appointment_date));
     const past = appointments
       .filter((a) => a.appointment_date < today && a.status !== "cancelled")
@@ -1265,10 +1276,10 @@ function AppointmentsTab({
     const cancelled = appointments.filter((a) => a.status === "cancelled");
 
     switch (filter) {
-      case "upcoming": return upcoming;
+      case "upcoming": return [...todayList, ...upcoming];
       case "past": return past;
       case "cancelled": return cancelled;
-      default: return [...upcoming, ...past, ...cancelled];
+      default: return [...todayList, ...upcoming, ...past, ...cancelled];
     }
   }, [appointments, filter, today]);
 
@@ -1276,6 +1287,97 @@ function AppointmentsTab({
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const pageRows = sorted.slice((page - 1) * pageSize, page * pageSize);
+
+  const findVisit = async (apptDate: string) => {
+    const { data } = await supabase
+      .from("visits")
+      .select("id, status")
+      .eq("clinic_id", clinicId)
+      .eq("patient_id", patientId)
+      .eq("visit_date", apptDate)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return data as { id: string; status: string } | null;
+  };
+
+  const startConsultation = async (a: AppointmentRow, prereq: CheckInData | null) => {
+    if (!profile?.clinic_id) return;
+    setBusyId(a.id);
+    try {
+      let visit = await findVisit(a.appointment_date);
+      if (!visit) {
+        const { data: last } = await supabase.from("visits")
+          .select("token_number").eq("clinic_id", clinicId)
+          .eq("visit_date", a.appointment_date).order("token_number", { ascending: false }).limit(1).maybeSingle();
+        const nextToken = ((last as any)?.token_number ?? 0) + 1;
+        const payload: any = {
+          clinic_id: clinicId,
+          patient_id: patientId,
+          doctor_id: a.doctor_id,
+          token_number: nextToken,
+          chief_complaint: prereq?.chief_complaint || a.reason || null,
+          status: "in_progress",
+          visit_date: a.appointment_date,
+        };
+        if (prereq) {
+          payload.lifestyle = prereq.lifestyle;
+          payload.height_cm = prereq.height_cm;
+          payload.weight_kg = prereq.weight_kg;
+          payload.captured_at_reception = true;
+        }
+        const { data: created, error } = await supabase.from("visits").insert(payload).select("id").single();
+        if (error) { toast.error(error.message); return; }
+        visit = { id: created!.id, status: "in_progress" };
+      } else if (visit.status !== "in_progress") {
+        await supabase.from("visits").update({ status: "in_progress" }).eq("id", visit.id);
+      }
+      await supabase.from("appointments").update({ status: "in_progress" }).eq("id", a.id);
+      onChanged();
+      navigate(`/dashboard/consultation/${visit.id}`);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const continueConsultation = async (a: AppointmentRow) => {
+    const v = await findVisit(a.appointment_date);
+    if (v) navigate(`/dashboard/consultation/${v.id}`);
+    else toast.error("No consultation found");
+  };
+
+  const renderAction = (a: AppointmentRow) => {
+    const status = a.status ?? "scheduled";
+    if (status === "cancelled") {
+      return <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-[10px]">Cancelled</Badge>;
+    }
+    if (status === "completed") {
+      return (
+        <Button size="sm" variant="outline" onClick={() => continueConsultation(a)}>
+          <Eye className="mr-1 h-3 w-3" /> View Summary
+        </Button>
+      );
+    }
+    if (status === "in_progress") {
+      return (
+        <Button size="sm" variant="outline" className="text-[#1D9E75] border-[#1D9E75]/40" onClick={() => continueConsultation(a)}>
+          <Play className="mr-1 h-3 w-3" /> Continue Consultation
+        </Button>
+      );
+    }
+    // scheduled
+    if (a.appointment_date > today) {
+      return <Badge variant="outline" className="bg-info/15 text-info border-info/30 text-[10px]">Upcoming</Badge>;
+    }
+    if (a.appointment_date < today) {
+      return <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-[10px]">Missed</Badge>;
+    }
+    return (
+      <Button size="sm" className="bg-[#1D9E75] hover:bg-[#178a66] text-white" disabled={busyId === a.id} onClick={() => setStartAppt(a)}>
+        <ArrowRight className="mr-1 h-3 w-3" /> Start Consultation
+      </Button>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -1305,9 +1407,9 @@ function AppointmentsTab({
             <TableRow>
               <TableHead>Date & Time</TableHead>
               <TableHead>Doctor</TableHead>
-              <TableHead>Type</TableHead>
+              <TableHead>Reason</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Notes</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1331,9 +1433,7 @@ function AppointmentsTab({
                     APPT_STATUS_STYLES[a.status ?? "scheduled"] ?? APPT_STATUS_STYLES.scheduled
                   )}>{a.status ?? "scheduled"}</span>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground max-w-[280px] truncate">
-                  {a.notes ? a.notes.slice(0, 60) + (a.notes.length > 60 ? "..." : "") : "—"}
-                </TableCell>
+                <TableCell className="text-right">{renderAction(a)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -1363,6 +1463,18 @@ function AppointmentsTab({
           </div>
         )}
       </div>
+
+      <CheckInModal
+        open={!!startAppt}
+        patientName={patientName}
+        appointmentTime={startAppt?.appointment_time?.substring(0, 5)}
+        onClose={() => setStartAppt(null)}
+        onConfirm={async (data) => {
+          if (startAppt) await startConsultation(startAppt, data);
+          setStartAppt(null);
+        }}
+      />
     </div>
   );
 }
+
