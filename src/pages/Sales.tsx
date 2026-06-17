@@ -1087,7 +1087,9 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride }: { clinicI
       <div className="flex flex-wrap gap-2">
         <Pill icon="🔴" label="Overdue" count={overdue.length} cls="bg-red-50 text-red-700 border-red-200" />
         <Pill icon="🟡" label="Due Today" count={dueToday.length} cls="bg-yellow-50 text-yellow-800 border-yellow-200" />
-        <Pill icon="✅" label="Done Today" count={doneToday} cls="bg-green-50 text-green-700 border-green-200" />
+        <button type="button" onClick={onDoneClick} className={cn(!onDoneClick && "pointer-events-none")}>
+          <Pill icon="✅" label="Done Today" count={doneTodayOverride ?? doneToday} cls={cn("bg-green-50 text-green-700 border-green-200", onDoneClick && "cursor-pointer hover:bg-green-100")} />
+        </button>
       </div>
 
       <CallSection title="Overdue" color="red" rows={overdue} onAction={handleAction} />
