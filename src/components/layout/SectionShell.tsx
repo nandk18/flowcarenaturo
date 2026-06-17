@@ -1,6 +1,7 @@
 import { ReactNode, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Home as HomeIcon, LogOut, type LucideIcon } from "lucide-react";
+import { Settings as SettingsIcon, type LucideIcon } from "lucide-react";
+
 import {
   Sidebar,
   SidebarContent,
