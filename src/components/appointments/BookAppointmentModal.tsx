@@ -181,14 +181,19 @@ export default function BookAppointmentModal({
       if (error) throw error;
       await supabase.from("patients").update({ lead_status: "current" }).eq("id", patientId);
       toast.success("Appointment booked");
-      setBookedAppt({
-        id: data!.id,
-        patientName: selectedPatient?.name ?? "",
-        time,
-        patientId,
-        doctorId,
-      });
+      const today = format(new Date(), "yyyy-MM-dd");
+      const shouldCheckIn = !!walkInFlow && date === today;
+      if (shouldCheckIn) {
+        setBookedAppt({
+          id: data!.id,
+          patientName: selectedPatient?.name ?? "",
+          time,
+          patientId,
+          doctorId,
+        });
+      }
       onBooked?.();
+      if (!shouldCheckIn) onClose();
     } catch (err: any) {
       toast.error(err.message ?? "Failed to book");
     } finally {
