@@ -14,6 +14,28 @@ import {
 } from "@/components/ui/select";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import {
+  normalizeAlcohol,
+  normalizeSmoking,
+  normalizeFoodHabits,
+} from "@/lib/lifestyleNormalize";
+
+const ALCOHOL_OPTIONS = [
+  { value: "none", label: "None / Never" },
+  { value: "occasional", label: "Occasional" },
+  { value: "regular", label: "Regular" },
+];
+const SMOKING_OPTIONS = [
+  { value: "non_smoker", label: "Non Smoker" },
+  { value: "occasional", label: "Occasional" },
+  { value: "regular", label: "Regular" },
+];
+const FOOD_OPTIONS = [
+  { value: "vegetarian", label: "Vegetarian" },
+  { value: "non_vegetarian", label: "Non Vegetarian" },
+  { value: "vegan", label: "Vegan" },
+  { value: "eggetarian", label: "Eggetarian" },
+];
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 
@@ -104,6 +126,15 @@ export default function PatientFormPublic() {
     fd.forEach((v, k) => {
       if (v) updates[k] = v.toString();
     });
+
+    // Normalize lifestyle values to satisfy DB check constraints
+    const alc = normalizeAlcohol(updates.alcohol);
+    const smk = normalizeSmoking(updates.smoking);
+    const food = normalizeFoodHabits(updates.food_habits);
+    if (alc === null) delete updates.alcohol; else updates.alcohol = alc;
+    if (smk === null) delete updates.smoking; else updates.smoking = smk;
+    if (food === null) delete updates.food_habits; else updates.food_habits = food;
+
     const { data, error } = await (supabase as any).rpc("complete_patient_form", {
       p_token: token,
       p_updates: updates,
@@ -179,19 +210,19 @@ export default function PatientFormPublic() {
               name="food_habits"
               label="Food Habits"
               defaultValue={patient.food_habits}
-              options={["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian"]}
+              options={FOOD_OPTIONS}
             />
             <SelectField
               name="smoking"
               label="Smoking"
               defaultValue={patient.smoking}
-              options={["Non-Smoker", "Occasional", "Regular"]}
+              options={SMOKING_OPTIONS}
             />
             <SelectField
               name="alcohol"
               label="Alcohol"
               defaultValue={patient.alcohol}
-              options={["None", "Occasional", "Regular"]}
+              options={ALCOHOL_OPTIONS}
             />
             <Field
               name="sleep_hours"
@@ -278,8 +309,11 @@ function SelectField({
   name: string;
   label: string;
   defaultValue?: any;
-  options: string[];
+  options: Array<string | { value: string; label: string }>;
 }) {
+  const normalized = options.map((o) =>
+    typeof o === "string" ? { value: o, label: o } : o
+  );
   const [val, setVal] = useState<string>(defaultValue ?? "");
   return (
     <div className="space-y-1">
@@ -287,12 +321,12 @@ function SelectField({
       <input type="hidden" name={name} value={val} />
       <Select value={val} onValueChange={setVal}>
         <SelectTrigger>
-          <SelectValue placeholder="Select" />
+          <SelectValue placeholder="Select..." />
         </SelectTrigger>
         <SelectContent>
-          {options.map((o) => (
-            <SelectItem key={o} value={o}>
-              {o}
+          {normalized.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
             </SelectItem>
           ))}
         </SelectContent>

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Users, Phone, UserPlus } from "lucide-react";
 import SalesShell from "@/components/layout/SalesShell";
 import { useClinic } from "@/hooks/useClinic";
+import { normalizeAlcohol, normalizeSmoking, normalizeFoodHabits } from "@/lib/lifestyleNormalize";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -198,9 +199,9 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
       emergency_contact_name: ecName.trim() || null,
       emergency_contact_phone: ecPhone ? normalizePhone(ecPhone) : null,
       emergency_contact_relation: ecRelation.trim() || null,
-      food_habits: foodHabits || null,
-      smoking: smoking || null,
-      alcohol: alcohol || null,
+      food_habits: normalizeFoodHabits(foodHabits),
+      smoking: normalizeSmoking(smoking),
+      alcohol: normalizeAlcohol(alcohol),
       sleep_hours: sleepHours ? Number(sleepHours) : null,
       dinner_time: dinnerTime || null,
       medication_history: medicationHistory.trim() || null,
@@ -331,10 +332,10 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
           <div className="space-y-1.5">
             <Label>Food Habits</Label>
             <Select value={foodHabits} onValueChange={setFoodHabits}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="vegetarian">Vegetarian</SelectItem>
-                <SelectItem value="non-vegetarian">Non-vegetarian</SelectItem>
+                <SelectItem value="non_vegetarian">Non Vegetarian</SelectItem>
                 <SelectItem value="vegan">Vegan</SelectItem>
                 <SelectItem value="eggetarian">Eggetarian</SelectItem>
               </SelectContent>
@@ -343,24 +344,22 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
           <div className="space-y-1.5">
             <Label>Smoking</Label>
             <Select value={smoking} onValueChange={setSmoking}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="never">Never</SelectItem>
+                <SelectItem value="non_smoker">Non Smoker</SelectItem>
                 <SelectItem value="occasional">Occasional</SelectItem>
                 <SelectItem value="regular">Regular</SelectItem>
-                <SelectItem value="former">Former</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
             <Label>Alcohol</Label>
             <Select value={alcohol} onValueChange={setAlcohol}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="never">Never</SelectItem>
+                <SelectItem value="none">None / Never</SelectItem>
                 <SelectItem value="occasional">Occasional</SelectItem>
                 <SelectItem value="regular">Regular</SelectItem>
-                <SelectItem value="former">Former</SelectItem>
               </SelectContent>
             </Select>
           </div>
