@@ -5,10 +5,11 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Stethoscope, ArrowRight, Plus, Calendar, CheckCircle2, Clock, Users } from "lucide-react";
+import { Stethoscope, ArrowRight, Plus, Calendar, CheckCircle2, Clock, Users, Eye, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PatientLink from "@/components/PatientLink";
 import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
+import CheckInModal, { type CheckInData } from "@/components/queue/CheckInModal";
 import { format } from "date-fns";
 import { formatDoctorName } from "@/lib/utils";
 
