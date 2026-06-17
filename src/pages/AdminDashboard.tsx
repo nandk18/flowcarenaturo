@@ -101,30 +101,72 @@ export default function AdminDashboard() {
   const completedCount = appts.filter((a) => a.status === "completed").length;
   const pendingCount = appts.filter((a) => a.status === "scheduled" || a.status === "confirmed").length;
 
-  const handleStart = async (appt: Appt) => {
+  // Determine display status: if a visit exists today for the patient, use its status
+  const getDisplay = (appt: Appt): DisplayStatus => {
+    if (appt.status === "completed") return "completed";
+    if (appt.status === "cancelled") return "cancelled";
+    const v = visitsToday.find((x) => x.patient_id === appt.patient_id);
+    if (v?.status === "in_progress") return "in_progress";
+    if (v?.status === "completed") return "completed";
+    if (v?.status === "waiting") return "waiting";
+    return "scheduled";
+  };
+
+  // Walk-in flow: open CheckIn prerequisites then create visit + open consultation
+  const [startAppt, setStartAppt] = useState<Appt | null>(null);
+
+  const startConsultation = async (appt: Appt, prereq: CheckInData | null) => {
     if (!profile?.clinic_id) return;
-    // Find or create visit
     let visit = visitsToday.find((v) => v.patient_id === appt.patient_id);
     if (!visit) {
       const { data: last } = await supabase.from("visits")
         .select("token_number").eq("clinic_id", profile.clinic_id)
         .eq("visit_date", today).order("token_number", { ascending: false }).limit(1).maybeSingle();
       const nextToken = ((last as any)?.token_number ?? 0) + 1;
-      const { data: created, error } = await supabase.from("visits").insert({
+      const payload: any = {
         clinic_id: profile.clinic_id,
         patient_id: appt.patient_id,
         doctor_id: appt.doctor_id,
         token_number: nextToken,
-        chief_complaint: appt.reason,
+        chief_complaint: prereq?.chief_complaint || appt.reason || null,
         status: "in_progress",
         visit_date: today,
-      } as any).select("id").single();
+      };
+      if (prereq) {
+        payload.lifestyle = prereq.lifestyle;
+        payload.height_cm = prereq.height_cm;
+        payload.weight_kg = prereq.weight_kg;
+        payload.captured_at_reception = true;
+      }
+      const { data: created, error } = await supabase.from("visits").insert(payload).select("id").single();
       if (error) return;
       visit = { id: created!.id, patient_id: appt.patient_id, status: "in_progress" };
     } else if (visit.status === "waiting") {
       await supabase.from("visits").update({ status: "in_progress" }).eq("id", visit.id);
     }
+    await supabase.from("appointments").update({ status: "in_progress" }).eq("id", appt.id);
     navigate(`/dashboard/consultation/${visit.id}`);
+  };
+
+  const handleAction = (appt: Appt) => {
+    const display = getDisplay(appt);
+    if (display === "completed") {
+      const v = visitsToday.find((x) => x.patient_id === appt.patient_id);
+      if (v) navigate(`/dashboard/consultation/${v.id}`);
+      return;
+    }
+    if (display === "in_progress") {
+      const v = visitsToday.find((x) => x.patient_id === appt.patient_id);
+      if (v) navigate(`/dashboard/consultation/${v.id}`);
+      return;
+    }
+    if (display === "waiting") {
+      // Walk-in already has prereqs (or skipped) — go straight in
+      void startConsultation(appt, null);
+      return;
+    }
+    // Scheduled → prompt prerequisites first
+    setStartAppt(appt);
   };
 
   return (
@@ -160,26 +202,39 @@ export default function AdminDashboard() {
         </CardContent></Card>
       ) : (
         <div className="space-y-2">
-          {appts.map((appt) => (
-            <Card key={appt.id} className="shadow-card">
-              <CardContent className="flex items-center gap-3 p-3">
-                <span className="font-mono text-xs font-bold text-primary w-14">{appt.appointment_time?.substring(0, 5)}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    {appt.patient && <PatientLink patientId={appt.patient.id} className="truncate font-medium">{appt.patient.name}</PatientLink>}
-                    <Badge variant="outline" className={`text-[10px] capitalize ${statusBadge(appt.status)}`}>{appt.status?.replace("_", " ")}</Badge>
+          {appts.map((appt) => {
+            const display = getDisplay(appt);
+            return (
+              <Card key={appt.id} className="shadow-card">
+                <CardContent className="flex items-center gap-3 p-3">
+                  <span className="font-mono text-xs font-bold text-primary w-14">{appt.appointment_time?.substring(0, 5)}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {appt.patient && <PatientLink patientId={appt.patient.id} className="truncate">{appt.patient.name}</PatientLink>}
+                      <Badge variant="outline" className={`text-[10px] ${statusStyle(display)}`}>{statusLabel(display)}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {formatDoctorName(appt.doctor?.name)}
+                      {appt.reason && ` · ${appt.reason}`}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {formatDoctorName(appt.doctor?.name)}
-                    {appt.reason && ` · ${appt.reason}`}
-                  </p>
-                </div>
-                <Button size="sm" onClick={() => handleStart(appt)} disabled={appt.status === "completed" || appt.status === "cancelled"}>
-                  <ArrowRight className="mr-1 h-3 w-3" /> Start Consultation
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                  {display === "completed" ? (
+                    <Button size="sm" variant="outline" onClick={() => handleAction(appt)}>
+                      <Eye className="mr-1 h-3 w-3" /> View Summary
+                    </Button>
+                  ) : display === "in_progress" ? (
+                    <Button size="sm" variant="outline" onClick={() => handleAction(appt)}>
+                      <Play className="mr-1 h-3 w-3" /> Continue Consultation
+                    </Button>
+                  ) : display === "cancelled" ? null : (
+                    <Button size="sm" onClick={() => handleAction(appt)}>
+                      <ArrowRight className="mr-1 h-3 w-3" /> Start Consultation
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -189,6 +244,18 @@ export default function AdminDashboard() {
         onBooked={fetchAll}
         initialDate={today}
         lockDate
+        walkInFlow
+      />
+
+      <CheckInModal
+        open={!!startAppt}
+        patientName={startAppt?.patient?.name ?? ""}
+        appointmentTime={startAppt?.appointment_time?.substring(0, 5)}
+        onClose={() => setStartAppt(null)}
+        onConfirm={async (data) => {
+          if (startAppt) await startConsultation(startAppt, data);
+          setStartAppt(null);
+        }}
       />
     </DashboardLayout>
   );
