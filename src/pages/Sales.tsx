@@ -577,6 +577,7 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
               <SelectItem value="Phone">Phone</SelectItem>
               <SelectItem value="WhatsApp">WhatsApp</SelectItem>
               <SelectItem value="YuvaLife">YuvaLife</SelectItem>
+              <SelectItem value="Friend">Friend</SelectItem>
             </SelectContent>
           </Select>
         </div>
