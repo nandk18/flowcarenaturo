@@ -239,6 +239,53 @@ export type Database = {
           },
         ]
       }
+      clinic_checklists: {
+        Row: {
+          check_date: string | null
+          checked_at: string | null
+          checked_by: string | null
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          is_checked: boolean | null
+          order_index: number | null
+          title: string
+          type: string
+        }
+        Insert: {
+          check_date?: string | null
+          checked_at?: string | null
+          checked_by?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_checked?: boolean | null
+          order_index?: number | null
+          title: string
+          type: string
+        }
+        Update: {
+          check_date?: string | null
+          checked_at?: string | null
+          checked_by?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_checked?: boolean | null
+          order_index?: number | null
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_checklists_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_labs: {
         Row: {
           added_at: string | null
@@ -612,6 +659,50 @@ export type Database = {
             columns: ["prescription_id"]
             isOneToOne: false
             referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_list: {
+        Row: {
+          amount: number | null
+          category: string | null
+          clinic_id: string | null
+          created_at: string | null
+          created_by: string | null
+          expense_date: string | null
+          id: string
+          notes: string | null
+          title: string
+        }
+        Insert: {
+          amount?: number | null
+          category?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expense_date?: string | null
+          id?: string
+          notes?: string | null
+          title: string
+        }
+        Update: {
+          amount?: number | null
+          category?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expense_date?: string | null
+          id?: string
+          notes?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_list_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
         ]
@@ -1551,6 +1642,56 @@ export type Database = {
           },
         ]
       }
+      todo_list: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          done_at: string | null
+          done_by: string | null
+          due_date: string | null
+          id: string
+          is_done: boolean | null
+          priority: string | null
+          title: string
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          due_date?: string | null
+          id?: string
+          is_done?: boolean | null
+          priority?: string | null
+          title: string
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          due_date?: string | null
+          id?: string
+          is_done?: boolean | null
+          priority?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "todo_list_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -1700,7 +1841,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "doctor" | "receptionist" | "lab" | "super_admin"
-      lead_source_type: "instagram" | "phone" | "whatsapp" | "yuvalife"
+      lead_source_type:
+        | "instagram"
+        | "phone"
+        | "whatsapp"
+        | "yuvalife"
+        | "friend"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1829,7 +1975,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "doctor", "receptionist", "lab", "super_admin"],
-      lead_source_type: ["instagram", "phone", "whatsapp", "yuvalife"],
+      lead_source_type: [
+        "instagram",
+        "phone",
+        "whatsapp",
+        "yuvalife",
+        "friend",
+      ],
     },
   },
 } as const
