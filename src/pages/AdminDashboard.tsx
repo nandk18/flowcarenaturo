@@ -30,14 +30,25 @@ type Visit = {
   status: string;
 };
 
-const statusBadge = (s: string) => {
+type DisplayStatus = "waiting" | "scheduled" | "in_progress" | "completed" | "cancelled";
+
+const statusStyle = (s: DisplayStatus) => {
   switch (s) {
     case "completed": return "bg-success/15 text-success border-success/30";
-    case "in_progress": return "bg-info/15 text-info border-info/30";
-    case "cancelled": return "bg-destructive/15 text-destructive border-destructive/30";
-    default: return "bg-warning/15 text-warning border-warning/30";
+    case "in_progress": return "bg-[#1D9E75]/15 text-[#1D9E75] border-[#1D9E75]/30";
+    case "cancelled": return "bg-muted text-muted-foreground border-border";
+    case "waiting": return "bg-warning/15 text-warning border-warning/30";
+    case "scheduled": return "bg-info/15 text-info border-info/30";
   }
 };
+
+const statusLabel = (s: DisplayStatus) => ({
+  waiting: "Waiting",
+  scheduled: "Scheduled",
+  in_progress: "In Progress",
+  completed: "Completed",
+  cancelled: "Cancelled",
+}[s]);
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
