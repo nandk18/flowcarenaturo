@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Users, UserPlus, CalendarDays, Phone } from "lucide-react";
+import { Users, UserPlus, CalendarDays, Phone, Sun, Moon, Receipt, CheckSquare } from "lucide-react";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
 import GlobalSearch from "./GlobalSearch";
 import NotificationBell from "./NotificationBell";
@@ -24,7 +24,13 @@ const NAV: ShellNavGroup[] = [
   },
   {
     label: "Tasks",
-    items: [{ to: "/tasks/call-task", icon: Phone, label: "Call Task" }],
+    items: [
+      { to: "/tasks/call-task", icon: Phone, label: "Call Task" },
+      { to: "/tasks/opening-checklist", icon: Sun, label: "Opening Checklist" },
+      { to: "/tasks/closing-checklist", icon: Moon, label: "Closing Checklist" },
+      { to: "/tasks/expense-list", icon: Receipt, label: "Expense List" },
+      { to: "/tasks/todo-list", icon: CheckSquare, label: "To Do List" },
+    ],
   },
 ];
 
