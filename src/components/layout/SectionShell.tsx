@@ -70,10 +70,9 @@ function InnerSidebar({
 }) {
   const { state, setOpen, isMobile, setOpenMobile } = useSidebar();
   const { clinic } = useClinic();
-  const { profile, signOut, user } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { log } = useAuditLog();
   const collapsed = state === "collapsed";
 
   // Responsive: ≥1024 open, 768-1023 icon-collapsed, mobile uses Sheet.
@@ -86,11 +85,6 @@ function InnerSidebar({
     return () => mql.removeEventListener("change", apply);
   }, [setOpen]);
 
-  const handleSignOut = async () => {
-    await log(AUDIT_ACTIONS.LOGOUT, "auth", user?.id, user?.email);
-    await signOut();
-    navigate("/login");
-  };
 
   const closeIfMobile = () => {
     if (isMobile) setOpenMobile(false);
