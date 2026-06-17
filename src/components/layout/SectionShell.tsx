@@ -176,28 +176,14 @@ function InnerSidebar({
                 className="h-9 w-9 text-sidebar-foreground/70 hover:text-sidebar-foreground"
                 onClick={() => {
                   closeIfMobile();
-                  navigate("/dashboard");
+                  navigate("/settings/clinic");
                 }}
-                aria-label="Home"
+                aria-label="Settings"
               >
-                <HomeIcon className="h-4 w-4" />
+                <SettingsIcon className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right">Home</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 text-sidebar-foreground/70 hover:text-sidebar-foreground"
-                onClick={handleSignOut}
-                aria-label="Sign out"
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Sign out</TooltipContent>
+            <TooltipContent side="right">Settings</TooltipContent>
           </Tooltip>
           {!collapsed && (
             <span className="ml-auto truncate text-[10px] text-muted-foreground">
@@ -206,6 +192,7 @@ function InnerSidebar({
           )}
         </div>
       </SidebarFooter>
+
     </Sidebar>
   );
 }
