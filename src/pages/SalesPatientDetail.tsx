@@ -65,6 +65,8 @@ import { openWhatsApp } from "@/lib/whatsapp";
 import CheckInModal, { type CheckInData } from "@/components/queue/CheckInModal";
 import { ArrowRight, Play, Eye } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
+
 type LeadStatus = "attempt1" | "attempt2" | "attempt3" | "closed" | "current";
 
 type Patient = {
