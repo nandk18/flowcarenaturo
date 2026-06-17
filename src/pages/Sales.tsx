@@ -332,10 +332,10 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
           <div className="space-y-1.5">
             <Label>Food Habits</Label>
             <Select value={foodHabits} onValueChange={setFoodHabits}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="vegetarian">Vegetarian</SelectItem>
-                <SelectItem value="non-vegetarian">Non-vegetarian</SelectItem>
+                <SelectItem value="non_vegetarian">Non Vegetarian</SelectItem>
                 <SelectItem value="vegan">Vegan</SelectItem>
                 <SelectItem value="eggetarian">Eggetarian</SelectItem>
               </SelectContent>
@@ -344,24 +344,22 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
           <div className="space-y-1.5">
             <Label>Smoking</Label>
             <Select value={smoking} onValueChange={setSmoking}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="never">Never</SelectItem>
+                <SelectItem value="non_smoker">Non Smoker</SelectItem>
                 <SelectItem value="occasional">Occasional</SelectItem>
                 <SelectItem value="regular">Regular</SelectItem>
-                <SelectItem value="former">Former</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
             <Label>Alcohol</Label>
             <Select value={alcohol} onValueChange={setAlcohol}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="never">Never</SelectItem>
+                <SelectItem value="none">None / Never</SelectItem>
                 <SelectItem value="occasional">Occasional</SelectItem>
                 <SelectItem value="regular">Regular</SelectItem>
-                <SelectItem value="former">Former</SelectItem>
               </SelectContent>
             </Select>
           </div>
