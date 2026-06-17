@@ -887,7 +887,7 @@ function CallSection({
   );
 }
 
-export function CallTask({ clinicId }: { clinicId: string }) {
+export function CallTask({ clinicId, onDoneClick, doneTodayOverride }: { clinicId: string; onDoneClick?: () => void; doneTodayOverride?: number }) {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [rows, setRows] = useState<Patient[]>([]);
