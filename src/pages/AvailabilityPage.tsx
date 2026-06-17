@@ -180,11 +180,20 @@ export default function AvailabilityPage() {
 
       <BookAppointmentModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          if (searchParams.get("patient") || searchParams.get("book")) {
+            searchParams.delete("patient");
+            searchParams.delete("book");
+            setSearchParams(searchParams, { replace: true });
+          }
+        }}
         onBooked={fetchAppts}
         initialDoctorId={doctorId || undefined}
         initialDate={modalInit?.date}
         initialTime={modalInit?.time}
+        initialPatientId={modalInit?.patientId}
+        lockPatient={modalInit?.lockPatient}
       />
     </MainShell>
   );
