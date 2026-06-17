@@ -133,10 +133,10 @@ export default function PatientFormPublic() {
             <Field name="first_name" label="First Name" defaultValue={patient.first_name} />
             <Field name="last_name" label="Last Name" defaultValue={patient.last_name} />
             <Field
-              name="date_of_birth"
+              name="dob"
               type="date"
               label="Date of Birth"
-              defaultValue={patient.dob ?? patient.date_of_birth}
+              defaultValue={patient.dob}
             />
             <SelectField
               name="gender"
