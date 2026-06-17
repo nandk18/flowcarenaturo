@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import MainShell from "@/components/layout/MainShell";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +40,10 @@ const statusDot: Record<string, string> = {
 
 export default function AvailabilityPage() {
   const { profile } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const presetPatientId = searchParams.get("patient") ?? undefined;
+  const shouldAutoOpen = searchParams.get("book") === "1" || !!presetPatientId;
+
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [doctorId, setDoctorId] = useState("");
   const [view, setView] = useState<View>("month");
@@ -46,7 +51,16 @@ export default function AvailabilityPage() {
   const [appts, setAppts] = useState<Appt[]>([]);
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalInit, setModalInit] = useState<{ date?: string; time?: string } | null>(null);
+  const [modalInit, setModalInit] = useState<{ date?: string; time?: string; patientId?: string; lockPatient?: boolean } | null>(null);
+
+  // Auto-open modal when ?patient= present
+  useEffect(() => {
+    if (shouldAutoOpen) {
+      setModalInit({ patientId: presetPatientId, lockPatient: !!presetPatientId });
+      setModalOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Range to fetch based on view
   const { rangeStart, rangeEnd } = useMemo(() => {
@@ -166,11 +180,20 @@ export default function AvailabilityPage() {
 
       <BookAppointmentModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          if (searchParams.get("patient") || searchParams.get("book")) {
+            searchParams.delete("patient");
+            searchParams.delete("book");
+            setSearchParams(searchParams, { replace: true });
+          }
+        }}
         onBooked={fetchAppts}
         initialDoctorId={doctorId || undefined}
         initialDate={modalInit?.date}
         initialTime={modalInit?.time}
+        initialPatientId={modalInit?.patientId}
+        lockPatient={modalInit?.lockPatient}
       />
     </MainShell>
   );

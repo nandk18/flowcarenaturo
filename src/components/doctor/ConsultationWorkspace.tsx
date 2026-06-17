@@ -345,6 +345,16 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
 
       await supabase.from("visits").update({ status: "completed", doctor_id: doctorRow.id }).eq("id", visit.id);
 
+      // Mirror completion on today's appointment for this patient
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        await supabase.from("appointments")
+          .update({ status: "completed" })
+          .eq("patient_id", visit.patient_id)
+          .eq("appointment_date", today)
+          .in("status", ["scheduled", "confirmed", "in_progress"]);
+      } catch { /* non-fatal */ }
+
       // Save default template for doctor (both name and id)
       if (selectedTemplate) {
         await supabase.from("doctors").update({
