@@ -126,6 +126,15 @@ export default function PatientFormPublic() {
     fd.forEach((v, k) => {
       if (v) updates[k] = v.toString();
     });
+
+    // Normalize lifestyle values to satisfy DB check constraints
+    const alc = normalizeAlcohol(updates.alcohol);
+    const smk = normalizeSmoking(updates.smoking);
+    const food = normalizeFoodHabits(updates.food_habits);
+    if (alc === null) delete updates.alcohol; else updates.alcohol = alc;
+    if (smk === null) delete updates.smoking; else updates.smoking = smk;
+    if (food === null) delete updates.food_habits; else updates.food_habits = food;
+
     const { data, error } = await (supabase as any).rpc("complete_patient_form", {
       p_token: token,
       p_updates: updates,
