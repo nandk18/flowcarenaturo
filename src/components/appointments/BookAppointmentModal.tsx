@@ -241,31 +241,51 @@ export default function BookAppointmentModal({
 
           <div className="grid gap-4 py-2">
             <div className="space-y-2">
-              <Label>Patient *</Label>
-              <Popover open={patientOpen} onOpenChange={setPatientOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox" className="w-full justify-between">
-                    {selectedPatient ? `${selectedPatient.name}${selectedPatient.phone ? ` · ${selectedPatient.phone}` : ""}` : "Search by name or phone…"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                  <Command shouldFilter={false}>
-                    <CommandInput placeholder="Search patient…" value={patientSearch} onValueChange={setPatientSearch} />
-                    <CommandList>
-                      <CommandEmpty>No patients found.</CommandEmpty>
-                      <CommandGroup>
-                        {patients.map((p) => (
-                          <CommandItem key={p.id} value={p.id} onSelect={() => { setPatientId(p.id); setPatientOpen(false); }}>
-                            <Check className={cn("mr-2 h-4 w-4", patientId === p.id ? "opacity-100" : "opacity-0")} />
-                            {p.name} {p.phone && <span className="ml-auto text-xs text-muted-foreground">{p.phone}</span>}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <div className="flex items-center justify-between">
+                <Label>Patient *</Label>
+                {lockPatient && selectedPatient && (
+                  <button
+                    type="button"
+                    onClick={() => setLockPatient(false)}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    change
+                  </button>
+                )}
+              </div>
+              {lockPatient && selectedPatient ? (
+                <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                  <span className="font-medium">{selectedPatient.name}</span>
+                  {selectedPatient.phone && (
+                    <span className="ml-2 text-xs text-muted-foreground">{selectedPatient.phone}</span>
+                  )}
+                </div>
+              ) : (
+                <Popover open={patientOpen} onOpenChange={setPatientOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" className="w-full justify-between">
+                      {selectedPatient ? `${selectedPatient.name}${selectedPatient.phone ? ` · ${selectedPatient.phone}` : ""}` : "Search by name or phone…"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command shouldFilter={false}>
+                      <CommandInput placeholder="Search patient…" value={patientSearch} onValueChange={setPatientSearch} />
+                      <CommandList>
+                        <CommandEmpty>No patients found.</CommandEmpty>
+                        <CommandGroup>
+                          {patients.map((p) => (
+                            <CommandItem key={p.id} value={p.id} onSelect={() => { setPatientId(p.id); setPatientOpen(false); }}>
+                              <Check className={cn("mr-2 h-4 w-4", patientId === p.id ? "opacity-100" : "opacity-0")} />
+                              {p.name} {p.phone && <span className="ml-auto text-xs text-muted-foreground">{p.phone}</span>}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
