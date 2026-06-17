@@ -23,6 +23,10 @@ import AvailabilityPage from "./pages/AvailabilityPage";
 import PatientsListPage from "./pages/PatientsListPage";
 import PatientAddPage from "./pages/PatientAddPage";
 import CallTaskPage from "./pages/CallTaskPage";
+import OpeningChecklistPage from "./pages/OpeningChecklistPage";
+import ClosingChecklistPage from "./pages/ClosingChecklistPage";
+import ExpenseListPage from "./pages/ExpenseListPage";
+import TodoListPage from "./pages/TodoListPage";
 import PatientImportPage from "./pages/PatientImportPage";
 import PatientFormPublic from "./pages/PatientFormPublic";
 
