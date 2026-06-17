@@ -1,6 +1,7 @@
 import { ReactNode, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Home as HomeIcon, LogOut, type LucideIcon } from "lucide-react";
+import { Settings as SettingsIcon, type LucideIcon } from "lucide-react";
+
 import {
   Sidebar,
   SidebarContent,
@@ -23,8 +24,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import SessionTimeoutWarning from "@/components/SessionTimeoutWarning";
-import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import { cn } from "@/lib/utils";
+
 
 export type ShellNavItem = {
   to: string;
@@ -69,10 +70,9 @@ function InnerSidebar({
 }) {
   const { state, setOpen, isMobile, setOpenMobile } = useSidebar();
   const { clinic } = useClinic();
-  const { profile, signOut, user } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { log } = useAuditLog();
   const collapsed = state === "collapsed";
 
   // Responsive: ≥1024 open, 768-1023 icon-collapsed, mobile uses Sheet.
@@ -85,11 +85,6 @@ function InnerSidebar({
     return () => mql.removeEventListener("change", apply);
   }, [setOpen]);
 
-  const handleSignOut = async () => {
-    await log(AUDIT_ACTIONS.LOGOUT, "auth", user?.id, user?.email);
-    await signOut();
-    navigate("/login");
-  };
 
   const closeIfMobile = () => {
     if (isMobile) setOpenMobile(false);
@@ -175,28 +170,14 @@ function InnerSidebar({
                 className="h-9 w-9 text-sidebar-foreground/70 hover:text-sidebar-foreground"
                 onClick={() => {
                   closeIfMobile();
-                  navigate("/dashboard");
+                  navigate("/settings/clinic");
                 }}
-                aria-label="Home"
+                aria-label="Settings"
               >
-                <HomeIcon className="h-4 w-4" />
+                <SettingsIcon className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right">Home</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 text-sidebar-foreground/70 hover:text-sidebar-foreground"
-                onClick={handleSignOut}
-                aria-label="Sign out"
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Sign out</TooltipContent>
+            <TooltipContent side="right">Settings</TooltipContent>
           </Tooltip>
           {!collapsed && (
             <span className="ml-auto truncate text-[10px] text-muted-foreground">
@@ -205,6 +186,7 @@ function InnerSidebar({
           )}
         </div>
       </SidebarFooter>
+
     </Sidebar>
   );
 }
