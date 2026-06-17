@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Users, Phone, UserPlus } from "lucide-react";
 import SalesShell from "@/components/layout/SalesShell";
 import { useClinic } from "@/hooks/useClinic";
+import { normalizeAlcohol, normalizeSmoking, normalizeFoodHabits } from "@/lib/lifestyleNormalize";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
