@@ -13,21 +13,52 @@ import * as XLSX from "xlsx";
 type Row = Record<string, any>;
 type RowResult = { row: number; name: string; status: "inserted" | "skipped" | "error"; reason?: string };
 
-const REQUIRED = ["first_name", "phone"];
-const COLUMNS = [
-  "first_name", "last_name", "phone", "email", "gender", "dob", "blood_group",
-  "address", "lead_source", "convenient_time",
-  "food_habits", "smoking", "alcohol", "sleep_hours", "dinner_time",
-  "medication_history", "past_surgery_details",
-  "allergies", "chronic_conditions",
-];
+const REQUIRED = ["name", "phoneNumber"];
+const TEMPLATE_COLUMNS = ["name", "email", "phoneNumber", "dob", "gender"];
 
 const normalizePhone = (p: string) => {
-  const digits = String(p || "").replace(/\D/g, "");
+  const raw = String(p || "").trim();
+  if (!raw) return "";
+  if (raw.startsWith("+")) return raw.replace(/\s+/g, "");
+  const digits = raw.replace(/\D/g, "");
   if (!digits) return "";
   if (digits.startsWith("91") && digits.length === 12) return `+${digits}`;
   if (digits.length === 10) return `+91${digits}`;
-  return digits.startsWith("+") ? digits : `+${digits}`;
+  return `+${digits}`;
+};
+
+const parseDob = (v: any): string | null => {
+  if (v === null || v === undefined || v === "") return null;
+  if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+  const s = String(v).trim();
+  if (!s) return null;
+  // Strip T... suffix
+  const cleaned = s.split("T")[0];
+  // Accept YYYY-MM-DD or YYYY/MM/DD
+  const m = cleaned.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (m) {
+    const [_, y, mo, d] = m;
+    return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+  const dt = new Date(cleaned);
+  if (!isNaN(dt.getTime())) return dt.toISOString().slice(0, 10);
+  return null;
+};
+
+const mapGender = (v: any): string | null => {
+  const s = String(v || "").trim().toLowerCase();
+  if (s === "male") return "Male";
+  if (s === "female") return "Female";
+  if (s === "other") return "Other";
+  return null;
+};
+
+const splitName = (v: any): { first: string; last: string | null } => {
+  const s = String(v || "").trim().replace(/\s+/g, " ");
+  if (!s) return { first: "", last: null };
+  const idx = s.indexOf(" ");
+  if (idx === -1) return { first: s, last: null };
+  return { first: s.slice(0, idx), last: s.slice(idx + 1) || null };
 };
 
 export default function PatientImportPage() {
@@ -55,9 +86,9 @@ export default function PatientImportPage() {
     } else if (ext === "xlsx" || ext === "xls") {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const wb = XLSX.read(e.target?.result, { type: "binary" });
+        const wb = XLSX.read(e.target?.result, { type: "binary", cellDates: true });
         const sheet = wb.Sheets[wb.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json<Row>(sheet, { defval: "" });
+        const data = XLSX.utils.sheet_to_json<Row>(sheet, { defval: "", raw: false });
         setRows(data);
         setHeaders(Object.keys(data[0] || {}));
       };
@@ -69,14 +100,13 @@ export default function PatientImportPage() {
 
   const downloadTemplate = () => {
     const sample = [{
-      first_name: "Jane", last_name: "Doe", phone: "+919876543210", email: "jane@example.com",
-      gender: "female", dob: "1990-05-15", blood_group: "O+", address: "123 Main St",
-      lead_source: "Instagram", convenient_time: "Evening",
-      food_habits: "vegetarian", smoking: "never", alcohol: "never", sleep_hours: 7, dinner_time: "20:00",
-      medication_history: "", past_surgery_details: "",
-      allergies: "penicillin, dust", chronic_conditions: "",
+      name: "Yuva Bharat",
+      email: "yuva@example.com",
+      phoneNumber: "+919876543210",
+      dob: "1990-05-15",
+      gender: "Male",
     }];
-    const csv = Papa.unparse({ fields: COLUMNS, data: sample });
+    const csv = Papa.unparse({ fields: TEMPLATE_COLUMNS, data: sample });
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = "patients-template.csv"; a.click();
@@ -102,16 +132,16 @@ export default function PatientImportPage() {
 
       for (let j = 0; j < batch.length; j++) {
         const r = batch[j];
-        const rowNum = i + j + 2; // header is row 1
-        const first = String(r.first_name || "").trim();
-        const phone = normalizePhone(String(r.phone || ""));
-        const name = `${first} ${String(r.last_name || "").trim()}`.trim();
+        const rowNum = i + j + 2;
+        const { first, last } = splitName(r.name);
+        const phone = normalizePhone(r.phoneNumber);
+        const fullName = [first, last].filter(Boolean).join(" ");
+
         if (!first || !phone) {
-          out.push({ row: rowNum, name: name || "(blank)", status: "error", reason: "Missing first_name or phone" });
+          out.push({ row: rowNum, name: fullName || "(blank)", status: "error", reason: "Missing name or phoneNumber" });
           continue;
         }
 
-        // duplicate check by phone within clinic
         const { data: existing } = await supabase
           .from("patients")
           .select("id")
@@ -119,37 +149,23 @@ export default function PatientImportPage() {
           .eq("phone", phone)
           .limit(1);
         if (existing && existing.length) {
-          out.push({ row: rowNum, name, status: "skipped", reason: "Duplicate phone" });
+          out.push({ row: rowNum, name: fullName, status: "skipped", reason: "Duplicate phone" });
           continue;
         }
 
-        const toList = (v: any) => String(v || "").split(",").map(s => s.trim()).filter(Boolean);
         toInsert.push({
           clinic_id: profile.clinic_id,
-          name,
+          name: fullName,
           first_name: first,
-          last_name: String(r.last_name || "").trim() || null,
+          last_name: last,
           phone,
-          email: r.email || null,
-          gender: r.gender || null,
-          dob: r.dob || null,
-          blood_group: r.blood_group || null,
-          address: r.address || null,
-          lead_source: r.lead_source || null,
-          convenient_time: r.convenient_time || null,
-          food_habits: r.food_habits || null,
-          smoking: r.smoking || null,
-          alcohol: r.alcohol || null,
-          sleep_hours: r.sleep_hours ? Number(r.sleep_hours) : null,
-          dinner_time: r.dinner_time || null,
-          medication_history: r.medication_history || null,
-          past_surgery_details: r.past_surgery_details || null,
-          allergies: r.allergies ? toList(r.allergies) : [],
-          chronic_conditions: r.chronic_conditions ? toList(r.chronic_conditions) : [],
+          email: r.email ? String(r.email).trim() || null : null,
+          gender: mapGender(r.gender),
+          dob: parseDob(r.dob),
           lead_status: "attempt1",
           call_due_date: new Date().toISOString().slice(0, 10),
         });
-        rowMeta.push({ row: rowNum, name });
+        rowMeta.push({ row: rowNum, name: fullName });
       }
 
       if (toInsert.length) {
@@ -179,7 +195,8 @@ export default function PatientImportPage() {
           <div>
             <h2 className="font-display text-lg font-semibold">Upload CSV or Excel</h2>
             <p className="text-sm text-muted-foreground">
-              Required columns: <code className="text-foreground">first_name</code>, <code className="text-foreground">phone</code>. All other columns optional.
+              Columns: <code className="text-foreground">name</code>, <code className="text-foreground">email</code>, <code className="text-foreground">phoneNumber</code>, <code className="text-foreground">dob</code>, <code className="text-foreground">gender</code>.
+              Required: <code className="text-foreground">name</code> and <code className="text-foreground">phoneNumber</code>. <code>createdAt</code> is ignored.
             </p>
           </div>
 
@@ -192,7 +209,7 @@ export default function PatientImportPage() {
           {rows.length > 0 && (
             <div className="rounded-lg border bg-muted/30 p-3 text-sm">
               <p className="font-medium">{rows.length} rows detected · {headers.length} columns</p>
-              <p className="text-xs text-muted-foreground mt-1">First row: {rows[0]?.first_name} {rows[0]?.last_name} ({rows[0]?.phone})</p>
+              <p className="text-xs text-muted-foreground mt-1">First row: {rows[0]?.name} ({rows[0]?.phoneNumber})</p>
               <Button className="mt-3" onClick={startImport} disabled={importing}>
                 {importing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing…</> : <>Start import</>}
               </Button>
