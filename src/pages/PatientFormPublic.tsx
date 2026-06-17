@@ -210,19 +210,19 @@ export default function PatientFormPublic() {
               name="food_habits"
               label="Food Habits"
               defaultValue={patient.food_habits}
-              options={["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian"]}
+              options={FOOD_OPTIONS}
             />
             <SelectField
               name="smoking"
               label="Smoking"
               defaultValue={patient.smoking}
-              options={["Non-Smoker", "Occasional", "Regular"]}
+              options={SMOKING_OPTIONS}
             />
             <SelectField
               name="alcohol"
               label="Alcohol"
               defaultValue={patient.alcohol}
-              options={["None", "Occasional", "Regular"]}
+              options={ALCOHOL_OPTIONS}
             />
             <Field
               name="sleep_hours"
