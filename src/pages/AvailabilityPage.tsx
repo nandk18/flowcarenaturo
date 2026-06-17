@@ -1,461 +1,305 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import ConsultShell from "@/components/layout/ConsultShell";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import MainShell from "@/components/layout/MainShell";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import {
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Loader2,
-  Search,
+  ChevronLeft, ChevronRight, Plus,
 } from "lucide-react";
 import {
-  addDays,
-  addMonths,
-  endOfMonth,
-  format,
-  isSameDay,
-  startOfMonth,
-  startOfWeek,
+  addDays, addMonths, addWeeks, endOfMonth, endOfWeek, format, isSameDay,
+  isSameMonth, startOfMonth, startOfWeek,
 } from "date-fns";
-import {
-  DoctorException,
-  DoctorSchedule,
-  ExistingAppointment,
-  GeneratedSlot,
-  generateSlots,
-  getDaySummary,
-} from "@/lib/scheduleSlots";
-import { formatDoctorName } from "@/lib/utils";
+import { cn, formatDoctorName } from "@/lib/utils";
+import PatientLink from "@/components/PatientLink";
+import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
 
 type Doctor = { id: string; name: string };
+type Appt = {
+  id: string;
+  appointment_date: string;
+  appointment_time: string;
+  status: string;
+  reason: string | null;
+  patient: { id: string; name: string } | null;
+};
+type View = "day" | "week" | "month";
 
-const COLOR: Record<string, string> = {
-  available: "bg-success/15 text-success border-success/30 hover:bg-success/25",
-  partial: "bg-warning/15 text-warning border-warning/30 hover:bg-warning/25",
-  full: "bg-destructive/15 text-destructive border-destructive/30",
-  off: "bg-muted text-muted-foreground border-border",
-  past: "bg-muted/50 text-muted-foreground/60 border-border",
+const statusDot: Record<string, string> = {
+  scheduled: "bg-info",
+  confirmed: "bg-primary",
+  completed: "bg-success",
+  cancelled: "bg-destructive",
 };
 
 export default function AvailabilityPage() {
   const { profile } = useAuth();
-  const navigate = useNavigate();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [doctorId, setDoctorId] = useState("");
-  const [month, setMonth] = useState(() => startOfMonth(new Date()));
-  const [schedules, setSchedules] = useState<DoctorSchedule[]>([]);
-  const [exceptions, setExceptions] = useState<DoctorException[]>([]);
-  const [appts, setAppts] = useState<
-    (ExistingAppointment & { appointment_date: string })[]
-  >([]);
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [view, setView] = useState<View>("month");
+  const [cursor, setCursor] = useState<Date>(new Date());
+  const [appts, setAppts] = useState<Appt[]>([]);
 
-  // search-availability
-  const [searchFrom, setSearchFrom] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [searchTo, setSearchTo] = useState(
-    format(addMonths(new Date(), 1), "yyyy-MM-dd"),
-  );
-  const [searchN, setSearchN] = useState(10);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalInit, setModalInit] = useState<{ date?: string; time?: string } | null>(null);
+
+  // Range to fetch based on view
+  const { rangeStart, rangeEnd } = useMemo(() => {
+    if (view === "day") return { rangeStart: cursor, rangeEnd: cursor };
+    if (view === "week") return {
+      rangeStart: startOfWeek(cursor, { weekStartsOn: 1 }),
+      rangeEnd: endOfWeek(cursor, { weekStartsOn: 1 }),
+    };
+    return {
+      rangeStart: startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 }),
+      rangeEnd: endOfWeek(endOfMonth(cursor), { weekStartsOn: 1 }),
+    };
+  }, [view, cursor]);
 
   useEffect(() => {
     if (!profile?.clinic_id) return;
-    supabase
-      .from("doctors")
-      .select("id, name")
-      .eq("clinic_id", profile.clinic_id)
-      .order("name")
+    supabase.from("doctors").select("id, name").eq("clinic_id", profile.clinic_id).order("name")
       .then(({ data }) => {
-        if (data && data.length) {
-          setDoctors(data);
-          setDoctorId((p) => p || data[0].id);
-        }
+        const list = (data ?? []) as Doctor[];
+        setDoctors(list);
+        if (!doctorId && list[0]) setDoctorId(list[0].id);
       });
   }, [profile?.clinic_id]);
 
+  const fetchAppts = useCallback(async () => {
+    if (!profile?.clinic_id || !doctorId) { setAppts([]); return; }
+    const { data } = await supabase.from("appointments")
+      .select("id, appointment_date, appointment_time, status, reason, patients(id, name)")
+      .eq("clinic_id", profile.clinic_id)
+      .eq("doctor_id", doctorId)
+      .gte("appointment_date", format(rangeStart, "yyyy-MM-dd"))
+      .lte("appointment_date", format(rangeEnd, "yyyy-MM-dd"))
+      .order("appointment_time");
+    setAppts((data ?? []).map((a: any) => ({
+      ...a,
+      patient: Array.isArray(a.patients) ? a.patients[0] : a.patients,
+    })));
+  }, [profile?.clinic_id, doctorId, rangeStart, rangeEnd]);
+
+  useEffect(() => { fetchAppts(); }, [fetchAppts]);
+
+  // Realtime
   useEffect(() => {
-    if (!doctorId || !profile?.clinic_id) return;
-    setLoading(true);
-    const monthStart = format(startOfMonth(month), "yyyy-MM-dd");
-    const monthEnd = format(endOfMonth(month), "yyyy-MM-dd");
-    (async () => {
-      const [sched, exc, ap] = await Promise.all([
-        (supabase as any)
-          .from("doctor_schedules")
-          .select("*")
-          .eq("doctor_id", doctorId),
-        (supabase as any)
-          .from("doctor_exceptions")
-          .select("*")
-          .eq("doctor_id", doctorId)
-          .gte("exception_date", monthStart)
-          .lte("exception_date", monthEnd),
-        supabase
-          .from("appointments")
-          .select(
-            "id, appointment_date, appointment_time, status, patients(id, name, phone)",
-          )
-          .eq("doctor_id", doctorId)
-          .gte("appointment_date", monthStart)
-          .lte("appointment_date", monthEnd),
-      ]);
-      setSchedules(sched.data || []);
-      setExceptions(exc.data || []);
-      setAppts(
-        (ap.data || []).map((a: any) => ({
-          id: a.id,
-          appointment_date: a.appointment_date,
-          appointment_time: a.appointment_time,
-          status: a.status,
-          patient: Array.isArray(a.patients) ? a.patients[0] : a.patients,
-        })),
-      );
-      setLoading(false);
-    })();
-  }, [doctorId, month, profile?.clinic_id]);
+    if (!profile?.clinic_id) return;
+    const ch = supabase.channel("availability-appts")
+      .on("postgres_changes", { event: "*", schema: "public", table: "appointments", filter: `clinic_id=eq.${profile.clinic_id}` }, () => fetchAppts())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [profile?.clinic_id, fetchAppts]);
 
-  const dayCells = useMemo(() => {
-    const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
-    const cells: Date[] = [];
-    for (let i = 0; i < 42; i++) cells.push(addDays(start, i));
-    return cells;
-  }, [month]);
-
-  const dataForDate = (dateStr: string) => {
-    const dow = new Date(dateStr + "T00:00:00").getDay();
-    const schedule = schedules.find((s) => s.day_of_week === dow) || null;
-    const exception =
-      exceptions.find((e) => e.exception_date === dateStr) || null;
-    const dayAppts = appts.filter((a) => a.appointment_date === dateStr);
-    return { schedule, exception, appointments: dayAppts };
-  };
-
-  const slotsForSelected = useMemo<GeneratedSlot[]>(() => {
-    if (!selectedDay) return [];
-    const { schedule, exception, appointments } = dataForDate(selectedDay);
-    return generateSlots({
-      schedule,
-      exception,
-      appointments,
-      date: selectedDay,
-    }).slots;
-  }, [selectedDay, schedules, exceptions, appts]);
-
-  const goBook = (date?: string, time?: string) => {
-    const params = new URLSearchParams();
-    if (doctorId) params.set("doctor_id", doctorId);
-    if (date) params.set("date", date);
-    if (time) params.set("time", time);
-    navigate(`/consult/appointments/new?${params.toString()}`);
-  };
-
-  // search availability
-  const searchResults = useMemo(() => {
-    if (!doctorId) return [];
-    const from = new Date(searchFrom + "T00:00:00");
-    const to = new Date(searchTo + "T00:00:00");
-    const out: { date: string; time: string }[] = [];
-    let cursor = new Date(from);
-    while (cursor <= to && out.length < searchN) {
-      const dateStr = format(cursor, "yyyy-MM-dd");
-      const { schedule, exception, appointments } = dataForDate(dateStr);
-      const { slots } = generateSlots({
-        schedule,
-        exception,
-        appointments,
-        date: dateStr,
-      });
-      for (const s of slots) {
-        if (s.available) {
-          out.push({ date: dateStr, time: s.time });
-          if (out.length >= searchN) break;
-        }
-      }
-      cursor = addDays(cursor, 1);
+  const apptsByDate = useMemo(() => {
+    const m = new Map<string, Appt[]>();
+    for (const a of appts) {
+      const k = a.appointment_date;
+      if (!m.has(k)) m.set(k, []);
+      m.get(k)!.push(a);
     }
-    return out;
-  }, [doctorId, searchFrom, searchTo, searchN, schedules, exceptions, appts]);
+    return m;
+  }, [appts]);
 
-  const headerRight = (
-    <Button size="sm" onClick={() => goBook()}>
-      <Plus className="mr-1 h-4 w-4" /> Book Appointment
-    </Button>
-  );
+  const goPrev = () => setCursor((c) => view === "day" ? addDays(c, -1) : view === "week" ? addWeeks(c, -1) : addMonths(c, -1));
+  const goNext = () => setCursor((c) => view === "day" ? addDays(c, 1) : view === "week" ? addWeeks(c, 1) : addMonths(c, 1));
+  const goToday = () => setCursor(new Date());
 
-  const morningSlots = slotsForSelected.filter((s) => s.group === "morning");
-  const afternoonSlots = slotsForSelected.filter(
-    (s) => s.group === "afternoon",
-  );
-  const eveningSlots = slotsForSelected.filter((s) => s.group === "evening");
+  const openBook = (date?: string, time?: string) => {
+    setModalInit({ date, time });
+    setModalOpen(true);
+  };
+
+  const headerLabel = view === "day"
+    ? format(cursor, "EEEE, MMM d, yyyy")
+    : view === "week"
+      ? `${format(startOfWeek(cursor, { weekStartsOn: 1 }), "MMM d")} – ${format(endOfWeek(cursor, { weekStartsOn: 1 }), "MMM d, yyyy")}`
+      : format(cursor, "MMMM yyyy");
 
   return (
-    <ConsultShell title="Availability" headerRight={headerRight}>
-      <div className="mb-6 flex flex-wrap items-end gap-3">
+    <MainShell title="Availability">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-2xl font-bold">Availability</h1>
+        <Button onClick={() => openBook()}>
+          <Plus className="mr-1 h-4 w-4" /> Book Appointment
+        </Button>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-end gap-3">
         <div className="space-y-1">
-          <Label>Doctor</Label>
+          <Label className="text-xs">Doctor</Label>
           <Select value={doctorId} onValueChange={setDoctorId}>
-            <SelectTrigger className="w-[240px] rounded-lg">
-              <SelectValue placeholder="Select doctor" />
-            </SelectTrigger>
+            <SelectTrigger className="w-[240px]"><SelectValue placeholder="Select doctor" /></SelectTrigger>
             <SelectContent>
-              {doctors.map((d) => (
-                <SelectItem key={d.id} value={d.id}>
-                  {formatDoctorName(d.name)}
-                </SelectItem>
-              ))}
+              {doctors.map((d) => <SelectItem key={d.id} value={d.id}>{formatDoctorName(d.name)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
+        <Button variant="outline" size="sm" onClick={goToday}>Today</Button>
+        <div className="flex rounded-md border">
+          {(["day", "week", "month"] as View[]).map((v) => (
+            <button key={v} onClick={() => setView(v)} className={cn("px-3 py-1.5 text-xs capitalize", view === v ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>{v}</button>
+          ))}
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}><ChevronLeft className="h-4 w-4" /></Button>
+          <span className="min-w-[200px] text-center font-display text-sm font-semibold">{headerLabel}</span>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={goNext}><ChevronRight className="h-4 w-4" /></Button>
+        </div>
       </div>
 
-      <Tabs defaultValue="calendar">
-        <TabsList>
-          <TabsTrigger value="calendar">Calendar</TabsTrigger>
-          <TabsTrigger value="search">
-            <Search className="mr-1 h-4 w-4" /> Search Availability
-          </TabsTrigger>
-        </TabsList>
+      {view === "month" && (
+        <MonthView cursor={cursor} apptsByDate={apptsByDate} onPickDay={(d) => { setCursor(d); setView("day"); }} />
+      )}
+      {view === "week" && (
+        <WeekView cursor={cursor} apptsByDate={apptsByDate} onPickSlot={(d, t) => openBook(d, t)} />
+      )}
+      {view === "day" && (
+        <DayView date={cursor} appts={apptsByDate.get(format(cursor, "yyyy-MM-dd")) ?? []} onPickSlot={(d, t) => openBook(d, t)} />
+      )}
 
-        <TabsContent value="calendar">
-          <div className="mb-3 flex items-center justify-between">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setMonth(addMonths(month, -1))}
+      <BookAppointmentModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onBooked={fetchAppts}
+        initialDoctorId={doctorId || undefined}
+        initialDate={modalInit?.date}
+        initialTime={modalInit?.time}
+      />
+    </MainShell>
+  );
+}
+
+function MonthView({
+  cursor, apptsByDate, onPickDay,
+}: { cursor: Date; apptsByDate: Map<string, any[]>; onPickDay: (d: Date) => void }) {
+  const cells = useMemo(() => {
+    const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 });
+    return Array.from({ length: 42 }, (_, i) => addDays(start, i));
+  }, [cursor]);
+  return (
+    <Card className="shadow-card"><CardContent className="p-3">
+      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted-foreground mb-1">
+        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => <div key={d}>{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((day) => {
+          const dateStr = format(day, "yyyy-MM-dd");
+          const items = apptsByDate.get(dateStr) ?? [];
+          const inMonth = isSameMonth(day, cursor);
+          const today = isSameDay(day, new Date());
+          const tint = items.length === 0 ? "bg-background" : items.length >= 8 ? "bg-destructive/5" : "bg-success/5";
+          return (
+            <button
+              key={dateStr}
+              onClick={() => onPickDay(day)}
+              className={cn(
+                "min-h-[96px] rounded-md border p-1 text-left text-xs flex flex-col gap-1",
+                tint,
+                !inMonth && "opacity-40",
+                today && "ring-2 ring-primary",
+              )}
             >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="font-display text-lg font-semibold">
-              {format(month, "MMMM yyyy")}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setMonth(addMonths(month, 1))}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted-foreground mb-1">
-            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-              <div key={d}>{d}</div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-1">
-            {dayCells.map((day) => {
-              const dateStr = format(day, "yyyy-MM-dd");
-              const inMonth = day.getMonth() === month.getMonth();
-              const { schedule, exception, appointments } =
-                dataForDate(dateStr);
-              const summary = getDaySummary({
-                schedule,
-                exception,
-                appointments,
-                date: dateStr,
-              });
-              const cls = COLOR[summary];
-              const selected = selectedDay === dateStr;
-              return (
-                <button
-                  key={dateStr}
-                  onClick={() => setSelectedDay(dateStr)}
-                  className={`aspect-square rounded-lg border p-1 text-xs flex flex-col items-start ${cls} ${
-                    !inMonth ? "opacity-40" : ""
-                  } ${selected ? "ring-2 ring-primary" : ""}`}
-                >
-                  <span className="font-semibold">{format(day, "d")}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <span className="inline-block h-3 w-3 rounded bg-success/40" /> Available
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="inline-block h-3 w-3 rounded bg-warning/40" /> Partial
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="inline-block h-3 w-3 rounded bg-destructive/40" /> Full
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="inline-block h-3 w-3 rounded bg-muted" /> Off / Past
-            </span>
-          </div>
-
-          {selectedDay && (
-            <Card className="mt-6 rounded-2xl border-0 shadow-sm">
-              <CardContent className="space-y-4 p-5">
-                <div className="flex items-center justify-between">
-                  <div className="font-display text-lg font-semibold">
-                    {format(new Date(selectedDay + "T00:00:00"), "EEEE, MMM d")}
+              <span className="font-semibold">{format(day, "d")}</span>
+              <div className="flex-1 space-y-0.5 overflow-hidden">
+                {items.slice(0, 3).map((a) => (
+                  <div key={a.id} className="flex items-center gap-1 truncate rounded bg-background/70 px-1 py-0.5">
+                    <span className={cn("h-1.5 w-1.5 rounded-full", statusDot[a.status] ?? "bg-muted-foreground")} />
+                    <span className="font-mono">{a.appointment_time?.substring(0, 5)}</span>
+                    <span className="truncate">{a.patient?.name ?? "—"}</span>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSelectedDay(null)}
-                  >
-                    Close
-                  </Button>
-                </div>
-                {loading ? (
-                  <div className="flex justify-center py-6">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  </div>
-                ) : slotsForSelected.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted-foreground">
-                    Doctor is not available on this date.
-                  </p>
-                ) : (
-                  <>
-                    {(
-                      [
-                        ["MORNING", morningSlots],
-                        ["AFTERNOON", afternoonSlots],
-                        ["EVENING", eveningSlots],
-                      ] as Array<[string, GeneratedSlot[]]>
-                    ).map(([label, items]) => {
-                      if (items.length === 0) return null;
-                      return (
-                        <div key={label}>
-                          <div className="mb-2 text-xs font-semibold text-muted-foreground">
-                            {label}
-                          </div>
-                          <div className="space-y-1">
-                            {items.map((s) => (
-                              <button
-                                key={s.time}
-                                disabled={!s.available && !s.appointment}
-                                onClick={() => {
-                                  if (s.appointment?.patient?.id) {
-                                    window.open(
-                                      `/consult/patients/${s.appointment.patient.id}`,
-                                      "_blank",
-                                    );
-                                  } else if (s.available) {
-                                    goBook(selectedDay, s.time);
-                                  }
-                                }}
-                                className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
-                                  s.available
-                                    ? "border-success/30 bg-success/5 hover:bg-success/10"
-                                    : s.appointment
-                                      ? "border-destructive/30 bg-destructive/5 hover:bg-destructive/10"
-                                      : "border-border bg-muted/50 text-muted-foreground"
-                                }`}
-                              >
-                                <span className="font-mono text-primary">
-                                  {s.time}
-                                </span>
-                                {s.appointment ? (
-                                  <span className="flex-1">
-                                    Booked —{" "}
-                                    {s.appointment.patient?.name || "—"}
-                                  </span>
-                                ) : s.past ? (
-                                  <span>Past</span>
-                                ) : (
-                                  <span>Available</span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </>
+                ))}
+                {items.length > 3 && <div className="text-[10px] text-muted-foreground">+{items.length - 3} more</div>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </CardContent></Card>
+  );
+}
+
+function WeekView({
+  cursor, apptsByDate, onPickSlot,
+}: { cursor: Date; apptsByDate: Map<string, Appt[]>; onPickSlot: (date: string, time: string) => void }) {
+  const days = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(cursor, { weekStartsOn: 1 }), i));
+  return (
+    <Card className="shadow-card"><CardContent className="p-3">
+      <div className="grid grid-cols-7 gap-2">
+        {days.map((day) => {
+          const dateStr = format(day, "yyyy-MM-dd");
+          const items = apptsByDate.get(dateStr) ?? [];
+          const today = isSameDay(day, new Date());
+          return (
+            <div key={dateStr} className={cn("rounded-md border p-2", today && "ring-2 ring-primary")}>
+              <div className="mb-2 text-xs font-semibold">{format(day, "EEE d")}</div>
+              <div className="space-y-1">
+                {items.length === 0 && (
+                  <button onClick={() => onPickSlot(dateStr, "")} className="w-full rounded border border-dashed py-2 text-[10px] text-muted-foreground hover:bg-muted">+ Book</button>
                 )}
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="search">
-          <div className="flex flex-wrap items-end gap-3 mb-4">
-            <div className="space-y-1">
-              <Label>From</Label>
-              <Input
-                type="date"
-                value={searchFrom}
-                min={format(new Date(), "yyyy-MM-dd")}
-                onChange={(e) => setSearchFrom(e.target.value)}
-                className="rounded-lg"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>To</Label>
-              <Input
-                type="date"
-                value={searchTo}
-                max={format(addMonths(new Date(), 3), "yyyy-MM-dd")}
-                onChange={(e) => setSearchTo(e.target.value)}
-                className="rounded-lg"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Show</Label>
-              <Select
-                value={String(searchN)}
-                onValueChange={(v) => setSearchN(Number(v))}
-              >
-                <SelectTrigger className="w-[120px] rounded-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5 slots</SelectItem>
-                  <SelectItem value="10">10 slots</SelectItem>
-                  <SelectItem value="20">20 slots</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          {searchResults.length === 0 ? (
-            <Card className="rounded-2xl border-0 shadow-sm">
-              <CardContent className="py-12 text-center text-sm text-muted-foreground">
-                No available slots in this range.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {searchResults.map((r) => (
-                <div
-                  key={`${r.date}-${r.time}`}
-                  className="flex items-center gap-3 rounded-lg border border-border bg-background p-3"
-                >
-                  <div className="w-40 text-sm">
-                    {format(
-                      new Date(r.date + "T00:00:00"),
-                      "EEE, MMM d yyyy",
-                    )}
+                {items.map((a) => (
+                  <div key={a.id} className="rounded border bg-background p-1.5 text-[11px]">
+                    <div className="flex items-center gap-1">
+                      <span className={cn("h-1.5 w-1.5 rounded-full", statusDot[a.status] ?? "bg-muted-foreground")} />
+                      <span className="font-mono">{a.appointment_time?.substring(0, 5)}</span>
+                    </div>
+                    {a.patient && <PatientLink patientId={a.patient.id} className="block truncate text-xs">{a.patient.name}</PatientLink>}
                   </div>
-                  <div className="font-mono text-primary">{r.time}</div>
-                  <div className="flex-1" />
-                  <Button size="sm" onClick={() => goBook(r.date, r.time)}>
-                    Book
-                  </Button>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
-    </ConsultShell>
+          );
+        })}
+      </div>
+    </CardContent></Card>
+  );
+}
+
+function DayView({
+  date, appts, onPickSlot,
+}: { date: Date; appts: Appt[]; onPickSlot: (date: string, time: string) => void }) {
+  const dateStr = format(date, "yyyy-MM-dd");
+  // Build 15-min slots 8:00-20:00
+  const slots: string[] = [];
+  for (let h = 8; h < 20; h++) for (const m of [0, 15, 30, 45]) slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+  const byTime = new Map<string, Appt>();
+  for (const a of appts) byTime.set(a.appointment_time?.substring(0, 5), a);
+  return (
+    <Card className="shadow-card"><CardContent className="p-3">
+      <div className="space-y-1">
+        {slots.map((t) => {
+          const a = byTime.get(t);
+          return (
+            <button
+              key={t}
+              onClick={() => !a && onPickSlot(dateStr, t)}
+              disabled={!!a}
+              className={cn(
+                "flex w-full items-center gap-3 rounded border px-3 py-2 text-left text-sm",
+                a ? "border-primary/30 bg-primary/5" : "border-dashed hover:bg-muted",
+              )}
+            >
+              <span className="w-16 font-mono text-xs text-primary">{t}</span>
+              {a ? (
+                <div className="flex flex-1 items-center gap-2">
+                  <span className={cn("h-2 w-2 rounded-full", statusDot[a.status] ?? "bg-muted-foreground")} />
+                  {a.patient && <PatientLink patientId={a.patient.id}>{a.patient.name}</PatientLink>}
+                  {a.reason && <span className="text-xs text-muted-foreground">— {a.reason}</span>}
+                  <span className="ml-auto text-[10px] uppercase text-muted-foreground">{a.status}</span>
+                </div>
+              ) : (
+                <span className="text-xs text-muted-foreground">Available — click to book</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </CardContent></Card>
   );
 }
