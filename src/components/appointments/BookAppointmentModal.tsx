@@ -74,13 +74,14 @@ export default function BookAppointmentModal({
   useEffect(() => {
     if (!open) return;
     setPatientId(initialPatientId ?? "");
+    setLockPatient(!!lockPatientProp);
     setDoctorId(initialDoctorId ?? "");
     setDate(initialDate ?? format(new Date(), "yyyy-MM-dd"));
     setTime(initialTime ?? "");
     setReason("");
     setNotes("");
     setPatientSearch("");
-  }, [open, initialPatientId, initialDoctorId, initialDate, initialTime]);
+  }, [open, initialPatientId, initialDoctorId, initialDate, initialTime, lockPatientProp]);
 
   // Load doctors
   useEffect(() => {
