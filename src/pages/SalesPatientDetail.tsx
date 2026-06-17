@@ -62,6 +62,8 @@ import { LeadForm } from "./Sales";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 import { openWhatsApp } from "@/lib/whatsapp";
+import CheckInModal, { type CheckInData } from "@/components/queue/CheckInModal";
+import { ArrowRight, Play, Eye } from "lucide-react";
 
 type LeadStatus = "attempt1" | "attempt2" | "attempt3" | "closed" | "current";
 
