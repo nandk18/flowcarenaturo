@@ -309,8 +309,11 @@ function SelectField({
   name: string;
   label: string;
   defaultValue?: any;
-  options: string[];
+  options: Array<string | { value: string; label: string }>;
 }) {
+  const normalized = options.map((o) =>
+    typeof o === "string" ? { value: o, label: o } : o
+  );
   const [val, setVal] = useState<string>(defaultValue ?? "");
   return (
     <div className="space-y-1">
@@ -318,12 +321,12 @@ function SelectField({
       <input type="hidden" name={name} value={val} />
       <Select value={val} onValueChange={setVal}>
         <SelectTrigger>
-          <SelectValue placeholder="Select" />
+          <SelectValue placeholder="Select..." />
         </SelectTrigger>
         <SelectContent>
-          {options.map((o) => (
-            <SelectItem key={o} value={o}>
-              {o}
+          {normalized.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
             </SelectItem>
           ))}
         </SelectContent>
