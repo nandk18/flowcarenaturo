@@ -139,7 +139,7 @@ export default function PatientImportPage() {
       .eq("clinic_id", profile.clinic_id)
       .order("created_at", { ascending: false })
       .limit(10);
-    setHistory((data ?? []) as ImportJob[]);
+    setHistory((data ?? []) as unknown as ImportJob[]);
   };
 
   useEffect(() => {
@@ -157,7 +157,7 @@ export default function PatientImportPage() {
             localStorage.removeItem(ACTIVE_KEY);
             return;
           }
-          setActiveJob(data as ImportJob);
+          setActiveJob(data as unknown as ImportJob);
           if (!isActive(data.status)) localStorage.removeItem(ACTIVE_KEY);
         });
     }
@@ -175,7 +175,7 @@ export default function PatientImportPage() {
         .eq("id", id)
         .maybeSingle();
       if (!data) return;
-      setActiveJob(data as ImportJob);
+      setActiveJob(data as unknown as ImportJob);
       if (!isActive(data.status)) {
         localStorage.removeItem(ACTIVE_KEY);
         loadHistory();
@@ -314,7 +314,7 @@ export default function PatientImportPage() {
       if (error || !job) throw error ?? new Error("Failed to create job");
 
       localStorage.setItem(ACTIVE_KEY, job.id);
-      setActiveJob(job as ImportJob);
+      setActiveJob(job as unknown as ImportJob);
 
       const {
         data: { session },
