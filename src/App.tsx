@@ -288,10 +288,16 @@ function AppRoutes() {
       <Route path="/settings/billing-config/:invoiceId" element={<InvoiceDetailPage />} />
       <Route path="/settings/doctor-schedule" element={<DoctorSchedulePage />} />
       <Route path="/settings/patient-import" element={<PatientImportPage />} />
+      <Route path="/settings/opening-checklist" element={<OpeningChecklistSettingsPage />} />
+      <Route path="/settings/closing-checklist" element={<ClosingChecklistSettingsPage />} />
+      <Route path="/settings/expense-categories" element={<ExpenseCategoriesSettingsPage />} />
       <Route path="/settings/:section" element={<Settings />} />
       <Route path="/settings/:section/:subsection" element={<Settings />} />
 
+      <Route path="/notifications" element={<NotificationsPage />} />
+
       <Route path="/forgot-password" element={<ForgotPassword />} />
+
 
       {/* Legacy redirects */}
       <Route path="/home" element={<Navigate to="/dashboard" replace />} />
