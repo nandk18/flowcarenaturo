@@ -99,7 +99,21 @@ export default function GlobalSearch() {
             <div className="p-3 text-sm text-muted-foreground">Searching…</div>
           )}
           {data && data.length === 0 && !isFetching && (
-            <div className="p-3 text-sm text-muted-foreground">No patients found</div>
+            <div className="p-3 text-sm">
+              <p className="mb-2 text-muted-foreground">🔍 No patients found for "{debounced.trim()}"</p>
+              <button
+                type="button"
+                onClick={() => {
+                  const t = debounced.trim();
+                  setOpen(false);
+                  setTerm("");
+                  navigate(`/patients/add?q=${encodeURIComponent(t)}`);
+                }}
+                className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                <UserPlus className="h-3.5 w-3.5" /> Add Patient
+              </button>
+            </div>
           )}
           {data?.map((p) => {
             const name =
