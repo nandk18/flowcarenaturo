@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfWeek, startOfMonth } from "date-fns";
-
-const CATEGORIES = ["Supplies", "Equipment", "Utilities", "Staff", "Marketing", "Miscellaneous"];
+import { Link } from "react-router-dom";
 
 type Expense = {
   id: string;
@@ -22,9 +22,12 @@ type Expense = {
   amount: number | null;
   expense_date: string | null;
   notes: string | null;
+  payment_type: string | null;
   created_by: string | null;
   creator_name?: string | null;
 };
+
+type Category = { id: string; name: string; is_active: boolean | null };
 
 type RangeKey = "today" | "week" | "month" | "custom";
 
@@ -32,6 +35,7 @@ export default function ExpenseListPage() {
   const { profile } = useAuth();
   const clinicId = profile?.clinic_id;
   const [rows, setRows] = useState<Expense[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [range, setRange] = useState<RangeKey>("today");
   const [from, setFrom] = useState(format(new Date(), "yyyy-MM-dd"));
   const [to, setTo] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -45,6 +49,16 @@ export default function ExpenseListPage() {
     if (range === "month") return { f: format(startOfMonth(today), "yyyy-MM-dd"), t: format(today, "yyyy-MM-dd") };
     return { f: from, t: to };
   }, [range, from, to]);
+
+  const loadCategories = useCallback(async () => {
+    if (!clinicId) return;
+    const { data } = await supabase.from("expense_categories")
+      .select("id, name, is_active")
+      .eq("clinic_id", clinicId)
+      .eq("is_active", true)
+      .order("order_index", { ascending: true });
+    setCategories((data ?? []) as Category[]);
+  }, [clinicId]);
 
   const load = useCallback(async () => {
     if (!clinicId) return;
@@ -67,12 +81,18 @@ export default function ExpenseListPage() {
   }, [clinicId, computeRange]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadCategories(); }, [loadCategories]);
 
   const total = useMemo(() => rows.reduce((s, r) => s + (Number(r.amount) || 0), 0), [rows]);
   const byCategory = useMemo(() => {
     const map: Record<string, number> = {};
     rows.forEach((r) => { const k = r.category || "Miscellaneous"; map[k] = (map[k] || 0) + (Number(r.amount) || 0); });
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [rows]);
+  const byPayment = useMemo(() => {
+    const cash = rows.filter((r) => (r.payment_type ?? "cash") === "cash").reduce((s, r) => s + (Number(r.amount) || 0), 0);
+    const upi = rows.filter((r) => r.payment_type === "upi").reduce((s, r) => s + (Number(r.amount) || 0), 0);
+    return { cash, upi };
   }, [rows]);
 
   const remove = async (id: string) => {
@@ -82,10 +102,10 @@ export default function ExpenseListPage() {
   };
 
   const exportCsv = () => {
-    const headers = ["Date", "Title", "Category", "Amount", "Notes", "Added by"];
+    const headers = ["Date", "Title", "Category", "Payment", "Amount", "Notes", "Added by"];
     const lines = [headers.join(",")];
     rows.forEach((r) => {
-      lines.push([r.expense_date, JSON.stringify(r.title), r.category ?? "", r.amount ?? 0, JSON.stringify(r.notes ?? ""), JSON.stringify(r.creator_name ?? "")].join(","));
+      lines.push([r.expense_date, JSON.stringify(r.title), r.category ?? "", r.payment_type ?? "", r.amount ?? 0, JSON.stringify(r.notes ?? ""), JSON.stringify(r.creator_name ?? "")].join(","));
     });
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -128,6 +148,16 @@ export default function ExpenseListPage() {
           </div>
         </div>
 
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border bg-card p-4 shadow-card">
+            <div className="text-xs text-muted-foreground">By Payment Type</div>
+            <div className="mt-1 flex gap-4 text-sm">
+              <span>Cash: <b>₹{byPayment.cash.toFixed(2)}</b></span>
+              <span>UPI: <b>₹{byPayment.upi.toFixed(2)}</b></span>
+            </div>
+          </div>
+        </div>
+
         <div className="rounded-2xl border bg-card shadow-card overflow-hidden">
           <Table>
             <TableHeader>
@@ -135,6 +165,7 @@ export default function ExpenseListPage() {
                 <TableHead>Date</TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Payment</TableHead>
                 <TableHead className="text-right">Amount (₹)</TableHead>
                 <TableHead>Notes</TableHead>
                 <TableHead>Added by</TableHead>
@@ -143,12 +174,17 @@ export default function ExpenseListPage() {
             </TableHeader>
             <TableBody>
               {rows.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="py-10 text-center text-muted-foreground">No expenses</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="py-10 text-center text-muted-foreground">No expenses</TableCell></TableRow>
               ) : rows.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="text-sm">{r.expense_date}</TableCell>
                   <TableCell className="text-sm font-medium">{r.title}</TableCell>
                   <TableCell className="text-sm">{r.category ?? "—"}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={r.payment_type === "upi" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-green-50 text-green-700 border-green-200"}>
+                      {(r.payment_type ?? "cash").toUpperCase()}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right font-mono">₹{Number(r.amount ?? 0).toFixed(2)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground max-w-[240px] truncate">{r.notes ?? "—"}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{r.creator_name ?? "—"}</TableCell>
@@ -190,6 +226,7 @@ export default function ExpenseListPage() {
         onClose={() => setOpen(false)}
         initial={editing}
         clinicId={clinicId ?? ""}
+        categories={categories}
         onSaved={() => { setOpen(false); load(); }}
       />
     </DashboardLayout>
@@ -197,13 +234,14 @@ export default function ExpenseListPage() {
 }
 
 function ExpenseModal({
-  open, onClose, initial, clinicId, onSaved,
+  open, onClose, initial, clinicId, categories, onSaved,
 }: {
   open: boolean; onClose: () => void; initial: Expense | null;
-  clinicId: string; onSaved: () => void;
+  clinicId: string; categories: Category[]; onSaved: () => void;
 }) {
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("Supplies");
+  const [category, setCategory] = useState("");
+  const [paymentType, setPaymentType] = useState<"cash" | "upi">("cash");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [notes, setNotes] = useState("");
@@ -212,16 +250,18 @@ function ExpenseModal({
   useEffect(() => {
     if (open) {
       setTitle(initial?.title ?? "");
-      setCategory(initial?.category ?? "Supplies");
+      setCategory(initial?.category ?? (categories[0]?.name ?? ""));
+      setPaymentType((initial?.payment_type as any) ?? "cash");
       setAmount(initial?.amount != null ? String(initial.amount) : "");
       setDate(initial?.expense_date ?? format(new Date(), "yyyy-MM-dd"));
       setNotes(initial?.notes ?? "");
     }
-  }, [open, initial]);
+  }, [open, initial, categories]);
 
   const save = async () => {
     if (!title.trim()) { toast.error("Title required"); return; }
     if (!amount || isNaN(Number(amount))) { toast.error("Amount required"); return; }
+    if (!category) { toast.error("Category required"); return; }
     setBusy(true);
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id ?? null;
@@ -229,6 +269,7 @@ function ExpenseModal({
       clinic_id: clinicId,
       title: title.trim(),
       category,
+      payment_type: paymentType,
       amount: Number(amount),
       expense_date: date,
       notes: notes.trim() || null,
@@ -250,15 +291,34 @@ function ExpenseModal({
         <div className="grid gap-3">
           <div><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>Category</Label>
-              <Select value={category} onValueChange={setCategory}>
+            <div>
+              <Label>Category *</Label>
+              {categories.length === 0 ? (
+                <p className="text-xs text-muted-foreground mt-1">
+                  No categories. <Link to="/settings/expense-categories" className="text-primary hover:underline">Configure categories in Settings</Link>
+                </p>
+              ) : (
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                </Select>
+              )}
+            </div>
+            <div>
+              <Label>Payment Type *</Label>
+              <Select value={paymentType} onValueChange={(v) => setPaymentType(v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                </SelectContent>
               </Select>
             </div>
-            <div><Label>Amount (₹) *</Label><Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
           </div>
-          <div><Label>Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Amount (₹) *</Label><Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+            <div><Label>Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+          </div>
           <div><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} /></div>
         </div>
         <DialogFooter>
