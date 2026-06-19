@@ -162,8 +162,8 @@ export default function PatientImportPage() {
           email: r.email ? String(r.email).trim() || null : null,
           gender: mapGender(r.gender),
           dob: parseDob(r.dob),
-          lead_status: "attempt1",
-          call_due_date: new Date().toISOString().slice(0, 10),
+          lead_status: "current",
+          call_due_date: null,
         });
         rowMeta.push({ row: rowNum, name: fullName });
       }
