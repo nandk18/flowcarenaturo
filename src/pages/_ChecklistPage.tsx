@@ -79,12 +79,19 @@ export default function ChecklistPage({
 
   const toggle = async (item: Item) => {
     const next = !item.is_checked;
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id ?? null;
     const patch: any = {
       is_checked: next,
       checked_at: next ? new Date().toISOString() : null,
-      checked_by: next ? profile?.id ?? null : null,
+      checked_by: next ? userId : null,
     };
-    await supabase.from("clinic_checklists").update(patch).eq("id", item.id);
+    const { error } = await supabase
+      .from("clinic_checklists")
+      .update(patch)
+      .eq("id", item.id)
+      .eq("check_date", today);
+    if (error) { toast.error(error.message); return; }
     load();
   };
 
