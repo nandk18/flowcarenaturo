@@ -73,7 +73,7 @@ export default function ConsultPatients() {
       <Dialog open={addPrefill !== null} onOpenChange={(o) => !o && setAddPrefill(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add a Lead</DialogTitle>
+            <DialogTitle>Add Patient</DialogTitle>
           </DialogHeader>
           {addPrefill !== null && clinicId && (
             <LeadForm
