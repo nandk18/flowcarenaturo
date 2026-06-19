@@ -63,7 +63,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         match: (p) => p === "/sales" || p === "/sales/leads",
       },
       { to: "/sales/call-task", icon: Phone, label: "Call Task" },
-      { to: "/sales/add-lead", icon: UserPlus, label: "Add Lead" },
+      { to: "/sales/add-lead", icon: UserPlus, label: "Add Patient" },
     ],
   },
   {
