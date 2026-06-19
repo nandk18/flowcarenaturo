@@ -55,8 +55,8 @@ export default function TodoListPage() {
     const list = (data ?? []) as Todo[];
     const ids = Array.from(new Set([...list.map((r) => r.created_by), ...list.map((r) => r.done_by)].filter(Boolean))) as string[];
     if (ids.length) {
-      const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", ids);
-      const map = new Map((profs ?? []).map((p: any) => [p.id, p.full_name]));
+      const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
+      const map = new Map((profs ?? []).map((p: any) => [p.user_id, p.full_name]));
       list.forEach((r) => {
         r.creator_name = r.created_by ? map.get(r.created_by) ?? null : null;
         r.doer_name = r.done_by ? map.get(r.done_by) ?? null : null;
@@ -81,10 +81,12 @@ export default function TodoListPage() {
 
   const toggle = async (t: Todo) => {
     const next = !t.is_done;
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id ?? null;
     await supabase.from("todo_list").update({
       is_done: next,
       done_at: next ? new Date().toISOString() : null,
-      done_by: next ? profile?.id ?? null : null,
+      done_by: next ? userId : null,
     }).eq("id", t.id);
     load();
   };
@@ -125,7 +127,6 @@ export default function TodoListPage() {
         open={open}
         onClose={() => setOpen(false)}
         clinicId={clinicId ?? ""}
-        userId={profile?.id ?? null}
         onSaved={() => { setOpen(false); load(); }}
       />
     </DashboardLayout>
@@ -186,9 +187,9 @@ function Section({
 }
 
 function TodoModal({
-  open, onClose, clinicId, userId, onSaved,
+  open, onClose, clinicId, onSaved,
 }: {
-  open: boolean; onClose: () => void; clinicId: string; userId: string | null; onSaved: () => void;
+  open: boolean; onClose: () => void; clinicId: string; onSaved: () => void;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -203,6 +204,8 @@ function TodoModal({
   const save = async () => {
     if (!title.trim()) { toast.error("Title required"); return; }
     setBusy(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id ?? null;
     const { error } = await supabase.from("todo_list").insert({
       clinic_id: clinicId,
       title: title.trim(),

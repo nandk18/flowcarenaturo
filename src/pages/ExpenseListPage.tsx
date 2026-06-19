@@ -59,8 +59,8 @@ export default function ExpenseListPage() {
     const list = (data ?? []) as Expense[];
     const ids = Array.from(new Set(list.map((r) => r.created_by).filter(Boolean))) as string[];
     if (ids.length) {
-      const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", ids);
-      const map = new Map((profs ?? []).map((p: any) => [p.id, p.full_name]));
+      const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
+      const map = new Map((profs ?? []).map((p: any) => [p.user_id, p.full_name]));
       list.forEach((r) => { r.creator_name = r.created_by ? map.get(r.created_by) ?? null : null; });
     }
     setRows(list);
@@ -190,7 +190,6 @@ export default function ExpenseListPage() {
         onClose={() => setOpen(false)}
         initial={editing}
         clinicId={clinicId ?? ""}
-        userId={profile?.id ?? null}
         onSaved={() => { setOpen(false); load(); }}
       />
     </DashboardLayout>
@@ -198,10 +197,10 @@ export default function ExpenseListPage() {
 }
 
 function ExpenseModal({
-  open, onClose, initial, clinicId, userId, onSaved,
+  open, onClose, initial, clinicId, onSaved,
 }: {
   open: boolean; onClose: () => void; initial: Expense | null;
-  clinicId: string; userId: string | null; onSaved: () => void;
+  clinicId: string; onSaved: () => void;
 }) {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Supplies");
@@ -224,6 +223,8 @@ function ExpenseModal({
     if (!title.trim()) { toast.error("Title required"); return; }
     if (!amount || isNaN(Number(amount))) { toast.error("Amount required"); return; }
     setBusy(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id ?? null;
     const payload = {
       clinic_id: clinicId,
       title: title.trim(),

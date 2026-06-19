@@ -67,8 +67,8 @@ export default function ChecklistPage({
     // Resolve checker names
     const ids = Array.from(new Set(rows.map((r) => r.checked_by).filter(Boolean))) as string[];
     if (ids.length) {
-      const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", ids);
-      const map = new Map((profs ?? []).map((p: any) => [p.id, p.full_name]));
+      const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
+      const map = new Map((profs ?? []).map((p: any) => [p.user_id, p.full_name]));
       rows.forEach((r) => { r.checker_name = r.checked_by ? map.get(r.checked_by) ?? null : null; });
     }
     setItems(rows);
@@ -79,12 +79,19 @@ export default function ChecklistPage({
 
   const toggle = async (item: Item) => {
     const next = !item.is_checked;
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id ?? null;
     const patch: any = {
       is_checked: next,
       checked_at: next ? new Date().toISOString() : null,
-      checked_by: next ? profile?.id ?? null : null,
+      checked_by: next ? userId : null,
     };
-    await supabase.from("clinic_checklists").update(patch).eq("id", item.id);
+    const { error } = await supabase
+      .from("clinic_checklists")
+      .update(patch)
+      .eq("id", item.id)
+      .eq("check_date", today);
+    if (error) { toast.error(error.message); return; }
     load();
   };
 
