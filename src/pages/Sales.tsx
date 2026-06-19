@@ -131,14 +131,14 @@ type LeadFormProps = {
   initial?: Patient | null;
   onSaved: (patient: Patient) => void;
   /** Pre-fill values when creating a brand new lead (ignored if initial is set). */
-  prefill?: { first_name?: string; last_name?: string };
+  prefill?: { first_name?: string; last_name?: string; phone?: string };
 };
 
 export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps) {
   const [leadSource, setLeadSource] = useState(initial?.lead_source ?? "");
   const [firstName, setFirstName] = useState(initial?.first_name ?? prefill?.first_name ?? "");
   const [lastName, setLastName] = useState(initial?.last_name ?? prefill?.last_name ?? "");
-  const [phone, setPhone] = useState(initial?.phone ?? "+91");
+  const [phone, setPhone] = useState(initial?.phone ?? prefill?.phone ?? "+91");
   const [convenientTime, setConvenientTime] = useState(initial?.convenient_time ?? "");
   const [dob, setDob] = useState(initial?.dob ?? "");
   const [gender, setGender] = useState(initial?.gender ?? "");
@@ -249,7 +249,7 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
     <>
     <form onSubmit={handleSubmit} className="grid gap-5 rounded-2xl border bg-card p-6 shadow-card">
       <h2 className="font-display text-xl font-semibold">
-        {isEdit ? "Edit Patient" : "Add a Lead"}
+        {isEdit ? "Edit Patient" : "Add Patient"}
       </h2>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -1101,9 +1101,9 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride }: { clinicI
 type SalesSection = "leads" | "call-task" | "add-lead";
 
 const SIDEBAR_ITEMS: { id: SalesSection; label: string; icon: typeof Users; path: string }[] = [
-  { id: "leads", label: "Lead List", icon: Users, path: "/sales/leads" },
+  { id: "leads", label: "Patient List", icon: Users, path: "/sales/leads" },
   { id: "call-task", label: "Call Task", icon: Phone, path: "/sales/call-task" },
-  { id: "add-lead", label: "Add a Lead", icon: UserPlus, path: "/sales/add-lead" },
+  { id: "add-lead", label: "Add Patient", icon: UserPlus, path: "/sales/add-lead" },
 ];
 
 export default function Sales() {

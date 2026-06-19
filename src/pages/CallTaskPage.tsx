@@ -93,24 +93,27 @@ export default function CallTaskPage() {
   useEffect(() => { loadAll(); }, [loadAll]);
 
   const markCalled = async (a: TomorrowAppt) => {
-    if (!clinicId || !profile?.id) return;
-    const note = noteMap[a.id]?.trim() || null;
+    if (!clinicId) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id ?? null;
+    const typed = noteMap[a.id]?.trim();
+    const defaultNote = `Reminder call made for appointment on ${a.appointment_time ? format(addDays(new Date(), 1), "dd MMM yyyy") + " at " + a.appointment_time.slice(0, 5) : format(addDays(new Date(), 1), "dd MMM yyyy")} with ${a.doctor?.name ?? "doctor"}`;
+    const note = typed && typed.length > 0 ? typed : defaultNote;
+
     const { error } = await supabase.from("call_logs").insert({
       patient_id: a.patient_id,
       clinic_id: clinicId,
       outcome: "follow_up",
       notes: note,
-      called_by: profile.id,
+      called_by: userId,
       called_at: new Date().toISOString(),
     });
     if (error) { toast.error(error.message); return; }
-    if (note) {
-      await supabase.from("contact_notes").insert({
-        patient_id: a.patient_id, clinic_id: clinicId, note, created_by: profile.id,
-      });
-    }
+    await supabase.from("contact_notes").insert({
+      patient_id: a.patient_id, clinic_id: clinicId, note, created_by: userId,
+    });
     setCalledMap((m) => ({ ...m, [a.patient_id]: true }));
-    toast.success("Reminder call logged");
+    toast.success("Call logged to contact notes");
     loadAll();
   };
 

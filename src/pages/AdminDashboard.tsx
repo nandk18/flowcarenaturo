@@ -5,6 +5,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Stethoscope, ArrowRight, Plus, Calendar, CheckCircle2, Clock, Users, Eye, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PatientLink from "@/components/PatientLink";
@@ -190,53 +191,14 @@ export default function AdminDashboard() {
         </Button>
       </div>
 
-      {loading ? (
-        <div className="space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />)}</div>
-      ) : appts.length === 0 ? (
-        <Card className="shadow-card"><CardContent className="flex flex-col items-center justify-center py-16">
-          <Stethoscope className="mb-4 h-16 w-16 text-muted-foreground/20" />
-          <p className="text-sm text-muted-foreground">No appointments today</p>
-          <Button variant="outline" className="mt-4" onClick={() => setBookOpen(true)}>
-            <Plus className="mr-1 h-4 w-4" /> Book Appointment
-          </Button>
-        </CardContent></Card>
-      ) : (
-        <div className="space-y-2">
-          {appts.map((appt) => {
-            const display = getDisplay(appt);
-            return (
-              <Card key={appt.id} className="shadow-card">
-                <CardContent className="flex items-center gap-3 p-3">
-                  <span className="font-mono text-xs font-bold text-primary w-14">{appt.appointment_time?.substring(0, 5)}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      {appt.patient && <PatientLink patientId={appt.patient.id} className="truncate">{appt.patient.name}</PatientLink>}
-                      <Badge variant="outline" className={`text-[10px] ${statusStyle(display)}`}>{statusLabel(display)}</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {formatDoctorName(appt.doctor?.name)}
-                      {appt.reason && ` · ${appt.reason}`}
-                    </p>
-                  </div>
-                  {display === "completed" ? (
-                    <Button size="sm" variant="outline" onClick={() => handleAction(appt)}>
-                      <Eye className="mr-1 h-3 w-3" /> View Summary
-                    </Button>
-                  ) : display === "in_progress" ? (
-                    <Button size="sm" variant="outline" onClick={() => handleAction(appt)}>
-                      <Play className="mr-1 h-3 w-3" /> Continue Consultation
-                    </Button>
-                  ) : display === "cancelled" ? null : (
-                    <Button size="sm" onClick={() => handleAction(appt)}>
-                      <ArrowRight className="mr-1 h-3 w-3" /> Start Consultation
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      <ConsultationTabs
+        appts={appts}
+        loading={loading}
+        getDisplay={getDisplay}
+        handleAction={handleAction}
+        onBook={() => setBookOpen(true)}
+      />
+
 
       <BookAppointmentModal
         open={bookOpen}
@@ -276,3 +238,85 @@ function StatCard({ icon: Icon, label, value, color }: { icon: any; label: strin
     </Card>
   );
 }
+
+function ConsultationTabs({
+  appts, loading, getDisplay, handleAction, onBook,
+}: {
+  appts: Appt[];
+  loading: boolean;
+  getDisplay: (a: Appt) => DisplayStatus;
+  handleAction: (a: Appt) => void;
+  onBook: () => void;
+}) {
+  const [tab, setTab] = useState<"active" | "completed">("active");
+  const active = appts.filter((a) => {
+    const d = getDisplay(a);
+    return d === "scheduled" || d === "in_progress" || d === "waiting";
+  });
+  const completed = appts.filter((a) => getDisplay(a) === "completed");
+  const list = tab === "active" ? active : completed;
+
+  return (
+    <>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-3">
+        <TabsList>
+          <TabsTrigger value="active">Active ({active.length})</TabsTrigger>
+          <TabsTrigger value="completed">Completed ({completed.length})</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {loading ? (
+        <div className="space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />)}</div>
+      ) : list.length === 0 ? (
+        <Card className="shadow-card"><CardContent className="flex flex-col items-center justify-center py-16">
+          <Stethoscope className="mb-4 h-16 w-16 text-muted-foreground/20" />
+          <p className="text-sm text-muted-foreground">
+            {tab === "active" ? "No active consultations" : "No completed consultations today"}
+          </p>
+          {tab === "active" && (
+            <Button variant="outline" className="mt-4" onClick={onBook}>
+              <Plus className="mr-1 h-4 w-4" /> Book Appointment
+            </Button>
+          )}
+        </CardContent></Card>
+      ) : (
+        <div className="space-y-2">
+          {list.map((appt) => {
+            const display = getDisplay(appt);
+            return (
+              <Card key={appt.id} className="shadow-card">
+                <CardContent className="flex items-center gap-3 p-3">
+                  <span className="font-mono text-xs font-bold text-primary w-14">{appt.appointment_time?.substring(0, 5)}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {appt.patient && <PatientLink patientId={appt.patient.id} className="truncate">{appt.patient.name}</PatientLink>}
+                      <Badge variant="outline" className={`text-[10px] ${statusStyle(display)}`}>{statusLabel(display)}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {formatDoctorName(appt.doctor?.name)}
+                      {appt.reason && ` · ${appt.reason}`}
+                    </p>
+                  </div>
+                  {display === "completed" ? (
+                    <Button size="sm" variant="outline" onClick={() => handleAction(appt)}>
+                      <Eye className="mr-1 h-3 w-3" /> View Summary
+                    </Button>
+                  ) : display === "in_progress" ? (
+                    <Button size="sm" variant="outline" onClick={() => handleAction(appt)}>
+                      <Play className="mr-1 h-3 w-3" /> Continue
+                    </Button>
+                  ) : display === "cancelled" ? null : (
+                    <Button size="sm" onClick={() => handleAction(appt)}>
+                      <ArrowRight className="mr-1 h-3 w-3" /> Start Consultation
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+

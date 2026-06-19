@@ -29,6 +29,10 @@ import ExpenseListPage from "./pages/ExpenseListPage";
 import TodoListPage from "./pages/TodoListPage";
 import PatientImportPage from "./pages/PatientImportPage";
 import PatientFormPublic from "./pages/PatientFormPublic";
+import NotificationsPage from "./pages/NotificationsPage";
+import OpeningChecklistSettingsPage from "./pages/OpeningChecklistSettingsPage";
+import ClosingChecklistSettingsPage from "./pages/ClosingChecklistSettingsPage";
+import ExpenseCategoriesSettingsPage from "./pages/ExpenseCategoriesSettingsPage";
 
 import SuperAdmin from "./pages/SuperAdmin";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -284,10 +288,16 @@ function AppRoutes() {
       <Route path="/settings/billing-config/:invoiceId" element={<InvoiceDetailPage />} />
       <Route path="/settings/doctor-schedule" element={<DoctorSchedulePage />} />
       <Route path="/settings/patient-import" element={<PatientImportPage />} />
+      <Route path="/settings/opening-checklist" element={<OpeningChecklistSettingsPage />} />
+      <Route path="/settings/closing-checklist" element={<ClosingChecklistSettingsPage />} />
+      <Route path="/settings/expense-categories" element={<ExpenseCategoriesSettingsPage />} />
       <Route path="/settings/:section" element={<Settings />} />
       <Route path="/settings/:section/:subsection" element={<Settings />} />
 
+      <Route path="/notifications" element={<NotificationsPage />} />
+
       <Route path="/forgot-password" element={<ForgotPassword />} />
+
 
       {/* Legacy redirects */}
       <Route path="/home" element={<Navigate to="/dashboard" replace />} />

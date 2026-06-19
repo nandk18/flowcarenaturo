@@ -12,6 +12,9 @@ import {
   MessageSquare,
   CalendarClock,
   Upload,
+  Sun,
+  Moon,
+  Tag,
 } from "lucide-react";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
 
@@ -26,11 +29,7 @@ const NAV: ShellNavGroup[] = [
         match: (p) => p === "/settings" || p === "/settings/clinic",
       },
       { to: "/settings/hours", icon: Clock, label: "Opening Hours" },
-      {
-        to: "/settings/doctor-schedule",
-        icon: CalendarClock,
-        label: "Doctor Schedule",
-      },
+      { to: "/settings/doctor-schedule", icon: CalendarClock, label: "Doctor Schedule" },
     ],
   },
   {
@@ -49,6 +48,15 @@ const NAV: ShellNavGroup[] = [
       { to: "/settings/services", icon: Receipt, label: "Invoice Services" },
       { to: "/settings/store-items", icon: ShoppingBag, label: "Store Items" },
       { to: "/settings/billing-config", icon: SlidersHorizontal, label: "Billing" },
+      { to: "/settings/expense-categories", icon: Tag, label: "Expense Categories" },
+    ],
+  },
+  {
+    label: "Clinical",
+    items: [
+      { to: "/settings/templates", icon: FileText, label: "Templates" },
+      { to: "/settings/opening-checklist", icon: Sun, label: "Opening Checklist" },
+      { to: "/settings/closing-checklist", icon: Moon, label: "Closing Checklist" },
     ],
   },
   {
@@ -56,24 +64,10 @@ const NAV: ShellNavGroup[] = [
     items: [{ to: "/settings/analytics", icon: BarChart3, label: "Analytics" }],
   },
   {
-    label: "Clinical",
-    items: [{ to: "/settings/templates", icon: FileText, label: "Templates" }],
-  },
-  {
     label: "Integrations",
     items: [
-      {
-        to: "/settings/integrations/whatsapp",
-        icon: MessageCircle,
-        label: "WhatsApp",
-        badge: "Soon",
-      },
-      {
-        to: "/settings/integrations/sms",
-        icon: MessageSquare,
-        label: "SMS",
-        badge: "Soon",
-      },
+      { to: "/settings/integrations/whatsapp", icon: MessageCircle, label: "WhatsApp", badge: "Soon" },
+      { to: "/settings/integrations/sms", icon: MessageSquare, label: "SMS", badge: "Soon" },
     ],
   },
 ];
