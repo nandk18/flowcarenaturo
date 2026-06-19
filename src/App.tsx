@@ -29,6 +29,10 @@ import ExpenseListPage from "./pages/ExpenseListPage";
 import TodoListPage from "./pages/TodoListPage";
 import PatientImportPage from "./pages/PatientImportPage";
 import PatientFormPublic from "./pages/PatientFormPublic";
+import NotificationsPage from "./pages/NotificationsPage";
+import OpeningChecklistSettingsPage from "./pages/OpeningChecklistSettingsPage";
+import ClosingChecklistSettingsPage from "./pages/ClosingChecklistSettingsPage";
+import ExpenseCategoriesSettingsPage from "./pages/ExpenseCategoriesSettingsPage";
 
 import SuperAdmin from "./pages/SuperAdmin";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
