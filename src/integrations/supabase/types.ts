@@ -239,6 +239,89 @@ export type Database = {
           },
         ]
       }
+      checklist_items: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          order_index: number | null
+          title: string
+          type: string
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          title: string
+          type: string
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_items_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_logs: {
+        Row: {
+          check_date: string | null
+          checked_at: string | null
+          checked_by: string | null
+          checklist_item_id: string | null
+          clinic_id: string | null
+          id: string
+          is_checked: boolean | null
+        }
+        Insert: {
+          check_date?: string | null
+          checked_at?: string | null
+          checked_by?: string | null
+          checklist_item_id?: string | null
+          clinic_id?: string | null
+          id?: string
+          is_checked?: boolean | null
+        }
+        Update: {
+          check_date?: string | null
+          checked_at?: string | null
+          checked_by?: string | null
+          checklist_item_id?: string | null
+          clinic_id?: string | null
+          id?: string
+          is_checked?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_logs_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_logs_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_checklists: {
         Row: {
           check_date: string | null
@@ -663,6 +746,41 @@ export type Database = {
           },
         ]
       }
+      expense_categories: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          order_index: number | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          order_index?: number | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          order_index?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_categories_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_list: {
         Row: {
           amount: number | null
@@ -673,6 +791,7 @@ export type Database = {
           expense_date: string | null
           id: string
           notes: string | null
+          payment_type: string | null
           title: string
         }
         Insert: {
@@ -684,6 +803,7 @@ export type Database = {
           expense_date?: string | null
           id?: string
           notes?: string | null
+          payment_type?: string | null
           title: string
         }
         Update: {
@@ -695,6 +815,7 @@ export type Database = {
           expense_date?: string | null
           id?: string
           notes?: string | null
+          payment_type?: string | null
           title?: string
         }
         Relationships: [
@@ -1154,6 +1275,7 @@ export type Database = {
           clinic_id: string | null
           created_at: string | null
           id: string
+          is_cleared: boolean | null
           is_read: boolean | null
           message: string
           patient_id: string | null
@@ -1163,6 +1285,7 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string | null
           id?: string
+          is_cleared?: boolean | null
           is_read?: boolean | null
           message: string
           patient_id?: string | null
@@ -1172,6 +1295,7 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string | null
           id?: string
+          is_cleared?: boolean | null
           is_read?: boolean | null
           message?: string
           patient_id?: string | null
@@ -1831,6 +1955,14 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      seed_default_checklist_items: {
+        Args: { p_clinic_id: string }
+        Returns: undefined
+      }
+      seed_default_expense_categories: {
+        Args: { p_clinic_id: string }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       update_sla_breach_days: { Args: never; Returns: undefined }
