@@ -249,7 +249,7 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
     <>
     <form onSubmit={handleSubmit} className="grid gap-5 rounded-2xl border bg-card p-6 shadow-card">
       <h2 className="font-display text-xl font-semibold">
-        {isEdit ? "Edit Patient" : "Add a Lead"}
+        {isEdit ? "Edit Patient" : "Add Patient"}
       </h2>
 
       <div className="grid gap-4 sm:grid-cols-2">
