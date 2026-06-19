@@ -127,7 +127,6 @@ export default function TodoListPage() {
         open={open}
         onClose={() => setOpen(false)}
         clinicId={clinicId ?? ""}
-        userId={profile?.id ?? null}
         onSaved={() => { setOpen(false); load(); }}
       />
     </DashboardLayout>
