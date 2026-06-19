@@ -67,8 +67,8 @@ export default function ChecklistPage({
     // Resolve checker names
     const ids = Array.from(new Set(rows.map((r) => r.checked_by).filter(Boolean))) as string[];
     if (ids.length) {
-      const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", ids);
-      const map = new Map((profs ?? []).map((p: any) => [p.id, p.full_name]));
+      const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
+      const map = new Map((profs ?? []).map((p: any) => [p.user_id, p.full_name]));
       rows.forEach((r) => { r.checker_name = r.checked_by ? map.get(r.checked_by) ?? null : null; });
     }
     setItems(rows);
