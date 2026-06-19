@@ -187,9 +187,9 @@ function Section({
 }
 
 function TodoModal({
-  open, onClose, clinicId, userId, onSaved,
+  open, onClose, clinicId, onSaved,
 }: {
-  open: boolean; onClose: () => void; clinicId: string; userId: string | null; onSaved: () => void;
+  open: boolean; onClose: () => void; clinicId: string; onSaved: () => void;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -204,6 +204,8 @@ function TodoModal({
   const save = async () => {
     if (!title.trim()) { toast.error("Title required"); return; }
     setBusy(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id ?? null;
     const { error } = await supabase.from("todo_list").insert({
       clinic_id: clinicId,
       title: title.trim(),
