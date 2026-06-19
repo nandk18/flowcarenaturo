@@ -81,10 +81,12 @@ export default function TodoListPage() {
 
   const toggle = async (t: Todo) => {
     const next = !t.is_done;
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id ?? null;
     await supabase.from("todo_list").update({
       is_done: next,
       done_at: next ? new Date().toISOString() : null,
-      done_by: next ? profile?.id ?? null : null,
+      done_by: next ? userId : null,
     }).eq("id", t.id);
     load();
   };
