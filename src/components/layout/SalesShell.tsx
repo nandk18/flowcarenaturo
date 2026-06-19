@@ -12,7 +12,7 @@ const NAV: ShellNavGroup[] = [
         match: (p) => p === "/sales" || p === "/sales/leads" || p.startsWith("/sales/patient"),
       },
       { to: "/sales/call-task", icon: Phone, label: "Call Task" },
-      { to: "/sales/add-lead", icon: UserPlus, label: "Add a Lead" },
+      { to: "/sales/add-lead", icon: UserPlus, label: "Add Patient" },
     ],
   },
 ];
