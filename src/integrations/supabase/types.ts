@@ -828,6 +828,65 @@ export type Database = {
           },
         ]
       }
+      import_jobs: {
+        Row: {
+          clinic_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          duplicate_rows: number | null
+          error_details: Json | null
+          error_rows: number | null
+          file_name: string | null
+          id: string
+          processed_rows: number | null
+          started_at: string | null
+          status: string | null
+          success_rows: number | null
+          total_rows: number | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duplicate_rows?: number | null
+          error_details?: Json | null
+          error_rows?: number | null
+          file_name?: string | null
+          id?: string
+          processed_rows?: number | null
+          started_at?: string | null
+          status?: string | null
+          success_rows?: number | null
+          total_rows?: number | null
+        }
+        Update: {
+          clinic_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duplicate_rows?: number | null
+          error_details?: Json | null
+          error_rows?: number | null
+          file_name?: string | null
+          id?: string
+          processed_rows?: number | null
+          started_at?: string | null
+          status?: string | null
+          success_rows?: number | null
+          total_rows?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_jobs_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_services: {
         Row: {
           amount: number
