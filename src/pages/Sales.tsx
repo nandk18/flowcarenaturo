@@ -1101,9 +1101,9 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride }: { clinicI
 type SalesSection = "leads" | "call-task" | "add-lead";
 
 const SIDEBAR_ITEMS: { id: SalesSection; label: string; icon: typeof Users; path: string }[] = [
-  { id: "leads", label: "Lead List", icon: Users, path: "/sales/leads" },
+  { id: "leads", label: "Patient List", icon: Users, path: "/sales/leads" },
   { id: "call-task", label: "Call Task", icon: Phone, path: "/sales/call-task" },
-  { id: "add-lead", label: "Add a Lead", icon: UserPlus, path: "/sales/add-lead" },
+  { id: "add-lead", label: "Add Patient", icon: UserPlus, path: "/sales/add-lead" },
 ];
 
 export default function Sales() {
