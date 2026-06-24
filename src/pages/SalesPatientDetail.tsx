@@ -431,6 +431,7 @@ export default function SalesPatientDetail() {
       });
       if (error) { toast.error(error.message); return; }
       setNewNote("");
+      if (patient?.id) formStorage.clear(`contact_note_${patient.id}`);
       setAddingNote(false);
       toast.success("Note added");
       loadNotes();
