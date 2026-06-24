@@ -14,6 +14,9 @@ import { Plus, Pencil, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfWeek, startOfMonth } from "date-fns";
 import { Link } from "react-router-dom";
+import { useUrlState } from "@/hooks/useUrlState";
+import { usePersistedForm } from "@/hooks/usePersistedForm";
+import RestoreBanner from "@/components/RestoreBanner";
 
 type Expense = {
   id: string;
@@ -36,9 +39,10 @@ export default function ExpenseListPage() {
   const clinicId = profile?.clinic_id;
   const [rows, setRows] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [range, setRange] = useState<RangeKey>("today");
-  const [from, setFrom] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [to, setTo] = useState(format(new Date(), "yyyy-MM-dd"));
+  const today0 = format(new Date(), "yyyy-MM-dd");
+  const [range, setRange] = useUrlState("period", "today") as [RangeKey, (v: RangeKey) => void];
+  const [from, setFrom] = useUrlState("from", today0);
+  const [to, setTo] = useUrlState("to", today0);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
 
@@ -239,23 +243,37 @@ function ExpenseModal({
   open: boolean; onClose: () => void; initial: Expense | null;
   clinicId: string; categories: Category[]; onSaved: () => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
-  const [paymentType, setPaymentType] = useState<"cash" | "upi">("cash");
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [notes, setNotes] = useState("");
+  const DEFAULTS = {
+    title: "",
+    category: "",
+    paymentType: "cash" as "cash" | "upi",
+    amount: "",
+    date: format(new Date(), "yyyy-MM-dd"),
+    notes: "",
+  };
+  const persistKey = initial ? `edit_expense_${initial.id}` : "add_expense";
+  const { values, updateField, setValues, clearSaved, hasSaved, dismissBanner } = usePersistedForm(
+    persistKey,
+    DEFAULTS,
+    { enabled: open }
+  );
+  const { title, category, paymentType, amount, date, notes } = values;
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      setTitle(initial?.title ?? "");
-      setCategory(initial?.category ?? (categories[0]?.name ?? ""));
-      setPaymentType((initial?.payment_type as any) ?? "cash");
-      setAmount(initial?.amount != null ? String(initial.amount) : "");
-      setDate(initial?.expense_date ?? format(new Date(), "yyyy-MM-dd"));
-      setNotes(initial?.notes ?? "");
+    if (open && initial) {
+      setValues({
+        title: initial.title ?? "",
+        category: initial.category ?? (categories[0]?.name ?? ""),
+        paymentType: (initial.payment_type as any) ?? "cash",
+        amount: initial.amount != null ? String(initial.amount) : "",
+        date: initial.expense_date ?? format(new Date(), "yyyy-MM-dd"),
+        notes: initial.notes ?? "",
+      });
+    } else if (open && !initial && !category && categories[0]) {
+      updateField("category", categories[0].name);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial, categories]);
 
   const save = async () => {
@@ -280,6 +298,7 @@ function ExpenseModal({
       : await supabase.from("expense_list").insert(payload);
     setBusy(false);
     if (res.error) { toast.error(res.error.message); return; }
+    clearSaved();
     toast.success(initial ? "Expense updated" : "Expense added");
     onSaved();
   };
@@ -288,8 +307,9 @@ function ExpenseModal({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader><DialogTitle>{initial ? "Edit Expense" : "Add Expense"}</DialogTitle></DialogHeader>
+        {!initial && <RestoreBanner visible={hasSaved} onContinue={dismissBanner} onDiscard={clearSaved} />}
         <div className="grid gap-3">
-          <div><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+          <div><Label>Title *</Label><Input value={title} onChange={(e) => updateField("title", e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Category *</Label>
@@ -298,7 +318,7 @@ function ExpenseModal({
                   No categories. <Link to="/settings/expense-categories" className="text-primary hover:underline">Configure categories in Settings</Link>
                 </p>
               ) : (
-                <Select value={category} onValueChange={setCategory}>
+                <Select value={category} onValueChange={(v) => updateField("category", v)}>
                   <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                   <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
@@ -306,7 +326,7 @@ function ExpenseModal({
             </div>
             <div>
               <Label>Payment Type *</Label>
-              <Select value={paymentType} onValueChange={(v) => setPaymentType(v as any)}>
+              <Select value={paymentType} onValueChange={(v) => updateField("paymentType", v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cash">Cash</SelectItem>
@@ -316,10 +336,10 @@ function ExpenseModal({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>Amount (₹) *</Label><Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
-            <div><Label>Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+            <div><Label>Amount (₹) *</Label><Input type="number" step="0.01" value={amount} onChange={(e) => updateField("amount", e.target.value)} /></div>
+            <div><Label>Date</Label><Input type="date" value={date} onChange={(e) => updateField("date", e.target.value)} /></div>
           </div>
-          <div><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} /></div>
+          <div><Label>Notes</Label><Textarea value={notes} onChange={(e) => updateField("notes", e.target.value)} rows={3} /></div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>

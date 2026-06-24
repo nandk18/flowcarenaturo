@@ -1,7 +1,11 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
+import { QUERY_CACHE_KEY, readLastPage } from "@/lib/persistedState";
+import { useLastPageTracker } from "@/hooks/useLastPage";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Auth from "./pages/Auth";
@@ -50,9 +54,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { ensureProfileAndGetPostAuthRoute } from "@/lib/authRedirect";
 import { Loader2 } from "lucide-react";
 
+const PERSISTED_QUERY_KEYS = new Set([
+  "patients",
+  "patient",
+  "appointments",
+  "invoices",
+  "call-task-queue",
+]);
+
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { staleTime: 5 * 60 * 1000 },
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+    },
   },
 });
 
@@ -81,12 +96,22 @@ function AppRoutes() {
   const navigate = useNavigate();
   const path = location.pathname;
 
+  useLastPageTracker();
+
+
   useEffect(() => {
     let cancelled = false;
 
     const redirectForSession = async (userId: string) => {
       const nextRoute = await ensureProfileAndGetPostAuthRoute(userId);
-      if (!cancelled) navigate(nextRoute, { replace: true });
+      if (cancelled) return;
+      // Prefer the last visited page when the post-auth route lands on the dashboard.
+      if (nextRoute === "/dashboard") {
+        const last = readLastPage();
+        navigate(last ?? "/dashboard", { replace: true });
+      } else {
+        navigate(nextRoute, { replace: true });
+      }
     };
 
     const checkInitialSession = async () => {
@@ -339,8 +364,25 @@ function LegacyPatientRedirect() {
   return <Navigate to={`/patients/${id}`} replace />;
 }
 
+const persister = createSyncStoragePersister({
+  storage: typeof window !== "undefined" ? window.localStorage : undefined,
+  key: QUERY_CACHE_KEY,
+});
+
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <PersistQueryClientProvider
+    client={queryClient}
+    persistOptions={{
+      persister,
+      maxAge: 5 * 60 * 1000,
+      dehydrateOptions: {
+        shouldDehydrateQuery: (q) => {
+          const root = Array.isArray(q.queryKey) ? q.queryKey[0] : q.queryKey;
+          return typeof root === "string" && PERSISTED_QUERY_KEYS.has(root);
+        },
+      },
+    }}
+  >
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -351,7 +393,7 @@ const App = () => (
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
-  </QueryClientProvider>
+  </PersistQueryClientProvider>
 );
 
 export default App;

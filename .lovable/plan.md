@@ -1,69 +1,85 @@
+# State Persistence Across Navigation
 
-This is a very large restructure spanning navigation, several new pages, a public self-fill flow, PDF generation, bulk import, and a global polish pass. I'll implement it in phases. Please confirm the plan and a few decisions before I start writing code.
+A large but well-scoped change touching shared hooks, the router, the auth flow, and most form/list pages. I'll implement it in five strategies plus shared utilities, exactly as specified.
 
-## Phase 1 — Shell & navigation
-- New `AppShell` with persistent left sidebar (200px) + top bar (logo, global search, notification bell, profile menu). Mobile: hamburger + slide-in overlay.
-- Sidebar groups: PATIENTS (List, Add), AVAILABILITY (Calendar), TASKS (Call Task), bottom: Settings + profile.
-- Remove `Home`, `Sales*`, `Treatment`, `TodayQueue`/Reception, standalone Appointments page, `SalesShell`, `ConsultShell`, `DashboardLayout` Consult/Sales split. Wire all `/dashboard`, `/patients/*`, `/availability`, `/tasks/*` through `AppShell`. Settings keeps `SettingsShell` inside `AppShell`.
-- Login redirects to `/dashboard`. Logout → `/login`. `/` and old `/home`, `/sales*`, `/consult*`, `/treatment*`, `/queue` redirect to `/dashboard`.
+## 1. Shared utilities (new files)
 
-## Phase 2 — Dashboard
-- Keep existing clinical dashboard. Strip Sales/Treatment/Queue widgets.
+- `src/hooks/usePersistedForm.ts` — hook with `values`, `updateField`, `setValues`, `clearSaved`, `hasSaved` (so RestoreBanner can decide to show). Storage key prefix `flowcare_form_`.
+- `src/hooks/useUrlState.ts` — `useSearchParams`-backed hook, deletes the param when value equals default, `replace: true`.
+- `src/hooks/useLastPage.ts` — listens to `useLocation`, writes `flowcare_last_page` to localStorage on every route change (skips public routes).
+- `src/hooks/useUnsavedChangesBlocker.tsx` — wraps `useBlocker` and renders the confirmation dialog with three actions: Leave & Save Draft, Stay, Leave & Discard.
+- `src/components/RestoreBanner.tsx` — yellow banner with Continue Editing / Start Fresh.
+- `src/lib/persistedState.ts` — `clearAllPersistedState()` that removes every `flowcare_*` key, plus a `PUBLIC_ROUTES` constant and `isPublicRoute()` helper.
 
-## Phase 3 — Patients
-- `/patients`: paginated list (20 default, page sizes 10/20/50/100), status filter chips defaulting to `current`, server-side debounced search, CSV + Excel export of current filter, name → link to `/patients/[id]`, skeleton loader, React Query (5min stale, keepPreviousData), select only listed columns.
-- `/patients/add`: full form per spec, duplicate check modal (phone OR name match), on save → `attempt1` + today `call_due_date`.
-- `/patients/[id]`: keep 4-tab layout, add Lifestyle & Habits + Medical History cards, add "Send Form Link" button (token + copy + WhatsApp) and existing actions.
+## 2. Strategy 1 — Form persistence (localStorage)
 
-## Phase 4 — Availability `/availability`
-- Replaces old Appointments + Availability pages.
-- Day / Week / Month views over `appointments` + `doctor_schedules` + `doctor_exceptions` using existing `generateSlots`.
-- Top: doctor picker (from `doctors`), Today, view switcher, prev/next, Search availability, Book Appointment.
-- Booked slots show patient name as link, color by status. Empty available slot click → book modal prefilled.
-- Book modal: patient combobox (server search), doctor, date, slot grid grouped by session, reason, notes, duration from schedule. Honors `?patient=` query.
+Wire `usePersistedForm` + `RestoreBanner` into:
 
-## Phase 5 — Tasks `/tasks/call-task`
-- Move existing call-task UI here unchanged. Patient names → links.
+| Form | Key | Clear on |
+|---|---|---|
+| Add Patient (`PatientAddPage` → `LeadForm`) | `add_patient` | save success |
+| Edit Patient (`LeadForm` with initial) | `edit_patient_<id>` | save / cancel |
+| Add Expense (`ExpenseListPage` add form) | `add_expense` | save |
+| Add Todo (`TodoListPage` add form) | `add_todo` | save |
+| Book Appointment (`BookAppointmentModal`) | `book_appointment` | save / close |
+| Contact Notes textarea (patient profile) | `contact_note_<patient_id>` | save |
+| Call Task note textareas | `call_note_<patient_id>` | log call |
 
-## Phase 6 — Global Search (top bar)
-- Min 2 chars, 300ms debounce, server-side `or(ilike)` on first/last/phone/email, limit 10, React Query 2min cache. Dropdown with avatar+name+phone+status badge, click → `/patients/[id]`. Loading + empty states.
+`LeadForm` will accept an optional `persistKey` prop so Add vs Edit can opt-in distinctly.
 
-## Phase 7 — Notifications
-- Bell with unread count (9+ cap), polls every 60s + realtime subscription on `notifications`. Dropdown lists newest 20 with icon by type, time-ago, patient link, mark-as-read on click, "Mark all read". Empty state.
+## 3. Strategy 2 — URL state on list pages
 
-## Phase 8 — Patient self-fill `/patient-form/[token]`
-- Public route, calls `validate_patient_form_token`, error page if invalid, pre-filled form, `complete_patient_form` on save, success page with clinic info. Requires `patient_form_tokens` row creation flow from patient profile (Send Form Link button generates token, 7-day expiry, stores in table).
+Apply `useUrlState` to:
 
-## Phase 9 — Invoice PDF + WhatsApp
-- Add `jspdf` + `jspdf-autotable`. Generate PDF per spec on InvoiceDetail.
-- "Download PDF" → local download. "Send via WhatsApp" → upload to `invoices` storage bucket (new, public) at `[clinic_id]/[invoice_id].pdf`, store `pdf_url` on invoice, regenerate only if `updated_at > pdf_generated_at`. Open `wa.me` with prefilled message.
-- DB changes: add `pdf_url TEXT`, `pdf_generated_at TIMESTAMPTZ` to `invoices`. Create public `invoices` storage bucket via tool.
+- `/patients` — `status`, `search`, `page`, `per_page` (in `LeadList` inside `Sales.tsx`).
+- `/availability` — `doctor`, `view`, `date`.
+- `/patients/:id` — `tab`.
+- `/tasks/expense-list` — `period`, `from`, `to`.
+- `/tasks/todo-list` — `filter`, `priority`.
+- `/tasks/call-task` — `section`.
 
-## Phase 10 — CSV Bulk Import `/settings/patient-import`
-- Settings sidebar adds PATIENTS group with Patient Import.
-- PapaParse + SheetJS for `.csv`/`.xlsx`. Template download. Preview first 5 rows, validate (required, phone digits, date, enums), duplicate check by `clinic_id+phone`, summary table, batch insert size 100 with 50ms gap and `Promise.allSettled`, live progress bar.
+These replace local `useState` for filter/search/page in the affected components, defaulting to the existing initial values so the URL stays clean.
 
-## Phase 11 — Patient hyperlink audit
-- Shared `PatientLink` component (teal `#1D9E75`, underline on hover). Apply to: call task rows, calendar slots, invoice list & detail header, dashboard recent activity, notifications, search results, appointment cards, every patient-name cell.
+## 4. Strategy 3 — Last active page
 
-## Phase 12 — Settings sidebar reorganization
-- Rebuild `SettingsShell` nav to the exact spec (Clinic / Users / Patients / Billing / Reports / Clinical / Integrations + Home + Logout). Integrations items show "Coming Soon" badge and route to placeholder.
+- Add `useLastPage()` inside `App.tsx` (under the router) so every navigation persists `pathname + search` unless the path matches a public route (`/login`, `/signup`, `/patient-form`, `/auth`, `/reset-password`, `/forgot-password`, `/accept-invite`, `/invoice/public`, `/prescription`, `/`).
+- Add a small `LastPageRedirect` component mounted at `/` (or guarded inside the existing landing/redirect logic) that, once auth is resolved, redirects authenticated users to `flowcare_last_page` when present and non-public, otherwise to `/dashboard`.
+- On logout (`useAuth.signOut`), call `clearAllPersistedState()` before clearing the Supabase session so all `flowcare_*` keys (forms, last page, query cache) are wiped.
 
-## Performance pass
-- React Query everywhere, `staleTime` 5min, `keepPreviousData`, paginated queries, `select` only needed cols, 300ms debounce on all search inputs, skeleton loaders.
+## 5. Strategy 4 — Unsaved changes warning
 
-## Technical / DB summary
-- **New deps:** `jspdf`, `jspdf-autotable`, `papaparse`, `@types/papaparse`, `xlsx`, `date-fns` (already present).
-- **New migration:** `ALTER TABLE invoices ADD COLUMN pdf_url TEXT, pdf_generated_at TIMESTAMPTZ`.
-- **New storage bucket:** `invoices` (public).
-- **Files removed:** `src/pages/Home.tsx`, `src/pages/Sales.tsx`, `src/pages/SalesPatientDetail.tsx`, `src/pages/Treatment.tsx`, `src/components/receptionist/TodayQueue.tsx` (and Reception page if any), `src/components/layout/SalesShell.tsx`, `src/components/layout/ConsultShell.tsx`, `src/components/layout/DashboardLayout.tsx`, `src/pages/AppointmentsPage.tsx`.
-- **Files created:** `src/components/layout/AppShell.tsx` (rewrite), `src/components/layout/TopBar.tsx` (rewrite), `src/components/layout/GlobalSearch.tsx`, `src/components/layout/NotificationBell.tsx`, `src/components/layout/ProfileMenu.tsx`, `src/components/PatientLink.tsx`, `src/pages/PatientsListPage.tsx`, `src/pages/PatientAddPage.tsx`, `src/pages/CallTaskPage.tsx`, `src/pages/PatientFormPublic.tsx`, `src/pages/PatientImportPage.tsx`, `src/pages/IntegrationComingSoon.tsx`, `src/lib/invoicePdf.ts`.
-- **Files edited:** `src/App.tsx` (route table), `src/pages/AvailabilityPage.tsx` (full rebuild), `src/pages/PatientDetailPage.tsx` (new cards + Send Form Link), `src/pages/InvoiceDetailPage.tsx` (PDF + WhatsApp), `src/components/layout/SettingsShell.tsx`, `src/hooks/useAuth.tsx` (post-login redirect), `src/pages/Auth.tsx` if needed.
+`useUnsavedChangesBlocker({ when, onSaveDraft, onDiscard })` renders a shadcn `AlertDialog` with the three buttons. Mounted in:
 
-## Questions before I start
-1. **Self-form token generation:** the existing schema has `patient_form_tokens`. Should I generate tokens **client-side** (`crypto.randomUUID()`) and insert directly with `expires_at = now()+7d`, or do you want me to create a Supabase RPC `create_patient_form_token(patient_id)` for it? I recommend the RPC for safety — confirm OK.
-2. **CSV import scale:** spec mentions up to ~15k rows. Doing 15k inserts client-side (150 batches × 100) will take ~30–60s and is fragile if the tab closes. Acceptable for v1, or should I build an edge function `bulk-import-patients` that takes the parsed rows and inserts server-side? I recommend keeping client-side for v1 to match the spec exactly — confirm.
-3. **Doctor source for Availability + Booking:** spec PART 4 says "fetch from profiles" but appointments/schedules use the `doctors` table. I'll use `doctors` (clinic-scoped) for consistency with the existing schedule feature — confirm.
-4. **Removing old Appointments page:** the existing `AppointmentsPage` has a lot of functionality (filters, list, edit). The new `/availability` calendar will fully replace it. OK to delete the route entirely, with no `/appointments` redirect?
+- Add Patient form
+- Edit Patient form
+- Book Appointment modal (blocks dialog close as well as route nav)
+- Contact Notes editor
 
-Once you confirm (or just say "go"), I'll execute the phases in order with parallel file writes, then run typecheck/build and report.
+`when` is derived from a dirty flag (any field different from initial/default). Save Draft just calls `blocker.proceed()` (data already in localStorage); Discard calls `clearSaved()` then `proceed()`.
+
+## 6. Strategy 5 — React Query persistence
+
+- Add deps `@tanstack/react-query-persist-client` and `@tanstack/query-sync-storage-persister`.
+- In `src/main.tsx` (or wherever `QueryClient` is created), wrap with `PersistQueryClientProvider` using a `createSyncStoragePersister` keyed `flowcare_query_cache`, `maxAge: 5 * 60 * 1000`.
+- Use a `dehydrateOptions.shouldDehydrateQuery` allow-list so only the named queries are cached: `patients`, `patient`, `appointments`, `invoices`, `call-task-queue`. (Other queries refetch normally.) Confirms existing query keys then adjusts the allow-list.
+
+## 7. Cleanup on logout
+
+`clearAllPersistedState()` runs from `useAuth.signOut`, also called from any explicit logout button paths. The React Query cache entry is included by virtue of the `flowcare_` prefix.
+
+## 8. Technical notes
+
+- `usePersistedForm` stores the full values object under one key per form, JSON-serialized, with try/catch on parse and write.
+- `RestoreBanner` only renders when `hasSaved && !deepEqual(saved, defaults)`. Uses a simple JSON-stringify equality check sufficient for flat form objects.
+- The blocker only activates on in-app navigations; `beforeunload` is **not** added (spec only asks for the in-app dialog).
+- URL params use `replace: true` to avoid polluting browser history while typing in a search field.
+- Default values stay constant references via `useMemo` to avoid effect loops.
+
+## 9. Verification checklist
+
+I'll manually trace each of the 10 verification steps after implementation by reading the changed code paths.
+
+## File touch list
+
+New: 4 hooks, 1 component, 1 lib helper.
+Edited: `App.tsx`, `main.tsx`, `useAuth.tsx`, `Sales.tsx` (LeadForm + LeadList), `PatientAddPage.tsx`, `PatientDetailPage.tsx`, `BookAppointmentModal.tsx`, `ExpenseListPage.tsx`, `TodoListPage.tsx`, `CallTaskPage.tsx`, `AvailabilityPage.tsx`, plus `package.json` for the two new deps.

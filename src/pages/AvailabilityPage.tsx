@@ -45,10 +45,34 @@ export default function AvailabilityPage() {
   const shouldAutoOpen = searchParams.get("book") === "1" || !!presetPatientId;
 
   const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [doctorId, setDoctorId] = useState("");
-  const [view, setView] = useState<View>("month");
-  const [cursor, setCursor] = useState<Date>(new Date());
+  const urlDoctor = searchParams.get("doctor") ?? "";
+  const urlView = (searchParams.get("view") as View) || "month";
+  const urlDate = searchParams.get("date") || format(new Date(), "yyyy-MM-dd");
+  const [doctorId, setDoctorIdState] = useState(urlDoctor);
+  const [view, setViewState] = useState<View>(urlView);
+  const [cursor, setCursorState] = useState<Date>(() => {
+    const parsed = new Date(urlDate);
+    return isNaN(parsed.getTime()) ? new Date() : parsed;
+  });
   const [appts, setAppts] = useState<Appt[]>([]);
+
+  const updateParam = useCallback((key: string, value: string, def: string) => {
+    setSearchParams((prev) => {
+      if (!value || value === def) prev.delete(key);
+      else prev.set(key, value);
+      return prev;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const setDoctorId = (id: string) => { setDoctorIdState(id); updateParam("doctor", id, ""); };
+  const setView = (v: View) => { setViewState(v); updateParam("view", v, "month"); };
+  const setCursor = (updater: Date | ((c: Date) => Date)) => {
+    setCursorState((prev) => {
+      const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+      updateParam("date", format(next, "yyyy-MM-dd"), format(new Date(), "yyyy-MM-dd"));
+      return next;
+    });
+  };
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInit, setModalInit] = useState<{ date?: string; time?: string; patientId?: string; lockPatient?: boolean } | null>(null);

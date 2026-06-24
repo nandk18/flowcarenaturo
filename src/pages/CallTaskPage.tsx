@@ -12,6 +12,7 @@ import { MessageCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import { formStorage } from "@/hooks/usePersistedForm";
 
 type TomorrowAppt = {
   id: string;
@@ -41,6 +42,12 @@ export default function CallTaskPage() {
   const [showDone, setShowDone] = useState(false);
   const [noteMap, setNoteMap] = useState<Record<string, string>>({});
 
+  const setNoteForPatient = (patientId: string, value: string) => {
+    setNoteMap((m) => ({ ...m, [patientId]: value }));
+    if (value) formStorage.write(`call_note_${patientId}`, value);
+    else formStorage.clear(`call_note_${patientId}`);
+  };
+
   const today = format(new Date(), "yyyy-MM-dd");
   const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
 
@@ -69,6 +76,15 @@ export default function CallTaskPage() {
       doctor: Array.isArray(x.doctors) ? x.doctors[0] : x.doctors,
     })) as TomorrowAppt[];
     setTomorrowAppts(appts);
+    // Restore any draft notes from prior session, keyed by patient_id.
+    const restored: Record<string, string> = {};
+    for (const a of appts) {
+      const draft = formStorage.read<string>(`call_note_${a.patient_id}`, "");
+      if (draft) restored[a.patient_id] = draft;
+    }
+    if (Object.keys(restored).length) {
+      setNoteMap((m) => ({ ...restored, ...m }));
+    }
 
     const calls = (callsRes.data ?? []).map((x: any) => ({
       ...x,
@@ -96,7 +112,7 @@ export default function CallTaskPage() {
     if (!clinicId) return;
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id ?? null;
-    const typed = noteMap[a.id]?.trim();
+    const typed = noteMap[a.patient_id]?.trim();
     const defaultNote = `Reminder call made for appointment on ${a.appointment_time ? format(addDays(new Date(), 1), "dd MMM yyyy") + " at " + a.appointment_time.slice(0, 5) : format(addDays(new Date(), 1), "dd MMM yyyy")} with ${a.doctor?.name ?? "doctor"}`;
     const note = typed && typed.length > 0 ? typed : defaultNote;
 
@@ -113,6 +129,8 @@ export default function CallTaskPage() {
       patient_id: a.patient_id, clinic_id: clinicId, note, created_by: userId,
     });
     setCalledMap((m) => ({ ...m, [a.patient_id]: true }));
+    setNoteMap((m) => { const n = { ...m }; delete n[a.patient_id]; return n; });
+    formStorage.clear(`call_note_${a.patient_id}`);
     toast.success("Call logged to contact notes");
     loadAll();
   };
@@ -158,8 +176,8 @@ export default function CallTaskPage() {
                         )}
                       </div>
                       <Textarea
-                        value={noteMap[a.id] ?? ""}
-                        onChange={(e) => setNoteMap((m) => ({ ...m, [a.id]: e.target.value }))}
+                        value={noteMap[a.patient_id] ?? ""}
+                        onChange={(e) => setNoteForPatient(a.patient_id, e.target.value)}
                         placeholder="Add reminder note…"
                         rows={1}
                         className="min-h-[36px] text-sm sm:col-start-1 sm:col-span-2"

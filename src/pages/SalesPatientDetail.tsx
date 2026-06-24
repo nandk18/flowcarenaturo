@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useUrlState } from "@/hooks/useUrlState";
+import { formStorage } from "@/hooks/usePersistedForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -241,11 +243,19 @@ export default function SalesPatientDetail() {
   const [clinicalNotes, setClinicalNotes] = useState<VisitDetail[]>([]);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [addingNote, setAddingNote] = useState(false);
-  const [newNote, setNewNote] = useState("");
+  const [newNote, setNewNoteState] = useState("");
+  const setNewNote = (v: string) => {
+    setNewNoteState(v);
+    if (patient?.id) {
+      if (v) formStorage.write(`contact_note_${patient.id}`, v);
+      else formStorage.clear(`contact_note_${patient.id}`);
+    }
+  };
   const [saving, setSaving] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
   const [sendingLink, setSendingLink] = useState(false);
+  const [activeTab, setActiveTab] = useUrlState("tab", "general");
 
   const handleSendFormLink = async () => {
     if (!patient) return;
@@ -281,7 +291,11 @@ export default function SalesPatientDetail() {
   const loadPatient = async () => {
     if (!patientId) return;
     const { data } = await supabase.from("patients").select("*").eq("id", patientId).single();
-    if (data) setPatient(data as Patient);
+    if (data) {
+      setPatient(data as Patient);
+      const draft = formStorage.read<string>(`contact_note_${data.id}`, "");
+      if (draft) { setNewNoteState(draft); setAddingNote(true); }
+    }
   };
 
   const loadNotes = async () => {
@@ -417,6 +431,7 @@ export default function SalesPatientDetail() {
       });
       if (error) { toast.error(error.message); return; }
       setNewNote("");
+      if (patient?.id) formStorage.clear(`contact_note_${patient.id}`);
       setAddingNote(false);
       toast.success("Note added");
       loadNotes();
@@ -498,7 +513,7 @@ export default function SalesPatientDetail() {
       </div>
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
-        <Tabs defaultValue="general" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="general"><User className="mr-1.5 h-3.5 w-3.5" /> General</TabsTrigger>
             <TabsTrigger value="clinical"><FileText className="mr-1.5 h-3.5 w-3.5" /> Clinical Notes</TabsTrigger>

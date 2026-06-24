@@ -14,6 +14,9 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { format, isSameDay, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useUrlState } from "@/hooks/useUrlState";
+import { usePersistedForm } from "@/hooks/usePersistedForm";
+import RestoreBanner from "@/components/RestoreBanner";
 
 type Priority = "high" | "medium" | "low";
 
@@ -41,8 +44,14 @@ export default function TodoListPage() {
   const { profile } = useAuth();
   const clinicId = profile?.clinic_id;
   const [rows, setRows] = useState<Todo[]>([]);
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "done">("all");
-  const [priorityFilter, setPriorityFilter] = useState<"all" | Priority>("all");
+  const [statusFilter, setStatusFilter] = useUrlState("filter", "all") as [
+    "all" | "pending" | "done",
+    (v: "all" | "pending" | "done") => void,
+  ];
+  const [priorityFilter, setPriorityFilter] = useUrlState("priority", "all") as [
+    "all" | Priority,
+    (v: "all" | Priority) => void,
+  ];
   const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
@@ -191,15 +200,15 @@ function TodoModal({
 }: {
   open: boolean; onClose: () => void; clinicId: string; onSaved: () => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<Priority>("medium");
-  const [dueDate, setDueDate] = useState("");
-  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (open) { setTitle(""); setDescription(""); setPriority("medium"); setDueDate(""); }
-  }, [open]);
+  const DEFAULTS = { title: "", description: "", priority: "medium" as Priority, dueDate: "" };
+  const { values, updateField, clearSaved, hasSaved, dismissBanner } = usePersistedForm(
+    "add_todo",
+    DEFAULTS,
+    { enabled: open }
+  );
+  const { title, description, priority, dueDate } = values;
+  const [busy, setBusy] = useState(false);
 
   const save = async () => {
     if (!title.trim()) { toast.error("Title required"); return; }
@@ -217,6 +226,7 @@ function TodoModal({
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
+    clearSaved();
     toast.success("Task added");
     onSaved();
   };
@@ -225,12 +235,13 @@ function TodoModal({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader><DialogTitle>Add Task</DialogTitle></DialogHeader>
+        <RestoreBanner visible={hasSaved} onContinue={dismissBanner} onDiscard={clearSaved} />
         <div className="grid gap-3">
-          <div><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-          <div><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} /></div>
+          <div><Label>Title *</Label><Input value={title} onChange={(e) => updateField("title", e.target.value)} /></div>
+          <div><Label>Description</Label><Textarea value={description} onChange={(e) => updateField("description", e.target.value)} rows={3} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Priority</Label>
-              <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
+              <Select value={priority} onValueChange={(v) => updateField("priority", v as Priority)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="high">High</SelectItem>
@@ -239,7 +250,7 @@ function TodoModal({
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>Due Date</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
+            <div><Label>Due Date</Label><Input type="date" value={dueDate} onChange={(e) => updateField("dueDate", e.target.value)} /></div>
           </div>
         </div>
         <DialogFooter>

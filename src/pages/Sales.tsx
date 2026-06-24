@@ -4,6 +4,10 @@ import { Users, Phone, UserPlus } from "lucide-react";
 import SalesShell from "@/components/layout/SalesShell";
 import { useClinic } from "@/hooks/useClinic";
 import { normalizeAlcohol, normalizeSmoking, normalizeFoodHabits } from "@/lib/lifestyleNormalize";
+import { useUrlState } from "@/hooks/useUrlState";
+import { usePersistedForm } from "@/hooks/usePersistedForm";
+import { useUnsavedChangesPrompt } from "@/hooks/useUnsavedChangesPrompt";
+import RestoreBanner from "@/components/RestoreBanner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -162,6 +166,88 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
 
   const isEdit = Boolean(initial);
 
+  // -------- Draft persistence (localStorage) --------
+  const persistKey = isEdit ? `edit_patient_${initial!.id}` : "add_patient";
+  const FIELD_SETTERS = useMemo(() => ({
+    leadSource: setLeadSource, firstName: setFirstName, lastName: setLastName, phone: setPhone,
+    convenientTime: setConvenientTime, dob: setDob, gender: setGender, email: setEmail,
+    bloodGroup: setBloodGroup, ecName: setEcName, ecPhone: setEcPhone, ecRelation: setEcRelation,
+    address: setAddress, foodHabits: setFoodHabits, smoking: setSmoking, alcohol: setAlcohol,
+    sleepHours: setSleepHours, dinnerTime: setDinnerTime, medicationHistory: setMedicationHistory,
+    pastSurgery: setPastSurgery, allergiesText: setAllergiesText, chronicText: setChronicText,
+  }), []);
+  const currentValues = {
+    leadSource, firstName, lastName, phone, convenientTime, dob, gender, email, bloodGroup,
+    ecName, ecPhone, ecRelation, address, foodHabits, smoking, alcohol, sleepHours, dinnerTime,
+    medicationHistory, pastSurgery, allergiesText, chronicText,
+  };
+  const initialSnapshot = useMemo(() => JSON.stringify(currentValues), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [showRestoreBanner, setShowRestoreBanner] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(`flowcare_form_${persistKey}`);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (JSON.stringify(saved) !== initialSnapshot) {
+          Object.entries(saved).forEach(([k, v]) => {
+            const setter = (FIELD_SETTERS as any)[k];
+            if (setter) setter(v as any);
+          });
+          setShowRestoreBanner(true);
+        }
+      }
+    } catch { /* ignore */ }
+    setDraftLoaded(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persistKey]);
+
+  useEffect(() => {
+    if (!draftLoaded) return;
+    try {
+      localStorage.setItem(`flowcare_form_${persistKey}`, JSON.stringify(currentValues));
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, Object.values(currentValues));
+
+  const clearDraft = () => {
+    try { localStorage.removeItem(`flowcare_form_${persistKey}`); } catch { /* ignore */ }
+  };
+  const resetToInitial = () => {
+    clearDraft();
+    Object.entries({
+      leadSource: initial?.lead_source ?? "",
+      firstName: initial?.first_name ?? prefill?.first_name ?? "",
+      lastName: initial?.last_name ?? prefill?.last_name ?? "",
+      phone: initial?.phone ?? prefill?.phone ?? "+91",
+      convenientTime: initial?.convenient_time ?? "",
+      dob: initial?.dob ?? "",
+      gender: initial?.gender ?? "",
+      email: initial?.email ?? "",
+      bloodGroup: initial?.blood_group ?? "",
+      ecName: initial?.emergency_contact_name ?? "",
+      ecPhone: initial?.emergency_contact_phone ?? "",
+      ecRelation: initial?.emergency_contact_relation ?? "",
+      address: initial?.address ?? "",
+      foodHabits: (initial as any)?.food_habits ?? "",
+      smoking: (initial as any)?.smoking ?? "",
+      alcohol: (initial as any)?.alcohol ?? "",
+      sleepHours: (initial as any)?.sleep_hours?.toString() ?? "",
+      dinnerTime: (initial as any)?.dinner_time ?? "",
+      medicationHistory: (initial as any)?.medication_history ?? "",
+      pastSurgery: (initial as any)?.past_surgery_details ?? "",
+      allergiesText: Array.isArray((initial as any)?.allergies) ? (initial as any).allergies.join(", ") : "",
+      chronicText: Array.isArray((initial as any)?.chronic_conditions) ? (initial as any).chronic_conditions.join(", ") : "",
+    }).forEach(([k, v]) => {
+      const setter = (FIELD_SETTERS as any)[k];
+      if (setter) setter(v as any);
+    });
+    setShowRestoreBanner(false);
+  };
+  const isDirty = draftLoaded && JSON.stringify(currentValues) !== initialSnapshot;
+  useUnsavedChangesPrompt(isDirty && !submitting);
+
   const checkDuplicates = async (): Promise<boolean> => {
     if (isEdit) return false;
     const normalized = normalizePhone(phone);
@@ -226,6 +312,7 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
         return;
       }
       toast.success(isEdit ? "Patient updated" : "Lead added successfully");
+      clearDraft();
       onSaved(result.data as Patient);
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to save lead");
@@ -251,6 +338,12 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
       <h2 className="font-display text-xl font-semibold">
         {isEdit ? "Edit Patient" : "Add Patient"}
       </h2>
+      <RestoreBanner
+        visible={showRestoreBanner}
+        onContinue={() => setShowRestoreBanner(false)}
+        onDiscard={resetToInitial}
+      />
+
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
@@ -446,13 +539,23 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
   const [patients, setPatients] = useState<Patient[]>([]);
   const [notesByPatient, setNotesByPatient] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">(defaultStatus);
-  const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [search, setSearch] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [statusFilter, setStatusFilter] = useUrlState("status", defaultStatus) as [
+    LeadStatus | "all",
+    (v: LeadStatus | "all") => void,
+  ];
+  const [sourceFilter, setSourceFilter] = useUrlState("source", "all");
+  const [search, setSearch] = useUrlState("search", "");
+  const [fromDate, setFromDate] = useUrlState("from", "");
+  const [toDate, setToDate] = useUrlState("to", "");
+  const [pageStr, setPageStr] = useUrlState("page", "1");
+  const [pageSizeStr, setPageSizeStr] = useUrlState("per_page", "20");
+  const page = Math.max(1, Number(pageStr) || 1);
+  const pageSize = Math.max(1, Number(pageSizeStr) || 20);
+  const setPage = (p: number | ((cur: number) => number)) => {
+    const next = typeof p === "function" ? (p as any)(page) : p;
+    setPageStr(String(next));
+  };
+  const setPageSize = (s: number) => setPageSizeStr(String(s));
 
   useEffect(() => {
     let cancelled = false;
