@@ -246,6 +246,7 @@ export default function SalesPatientDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
   const [sendingLink, setSendingLink] = useState(false);
+  const [activeTab, setActiveTab] = useUrlState("tab", "general");
 
   const handleSendFormLink = async () => {
     if (!patient) return;
