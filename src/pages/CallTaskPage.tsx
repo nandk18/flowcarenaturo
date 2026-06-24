@@ -120,6 +120,8 @@ export default function CallTaskPage() {
       patient_id: a.patient_id, clinic_id: clinicId, note, created_by: userId,
     });
     setCalledMap((m) => ({ ...m, [a.patient_id]: true }));
+    setNoteMap((m) => { const n = { ...m }; delete n[a.patient_id]; return n; });
+    formStorage.clear(`call_note_${a.patient_id}`);
     toast.success("Call logged to contact notes");
     loadAll();
   };
