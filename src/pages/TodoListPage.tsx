@@ -241,7 +241,7 @@ function TodoModal({
           <div><Label>Description</Label><Textarea value={description} onChange={(e) => updateField("description", e.target.value)} rows={3} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Priority</Label>
-              <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
+              <Select value={priority} onValueChange={(v) => updateField("priority", v as Priority)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="high">High</SelectItem>
@@ -250,7 +250,7 @@ function TodoModal({
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>Due Date</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
+            <div><Label>Due Date</Label><Input type="date" value={dueDate} onChange={(e) => updateField("dueDate", e.target.value)} /></div>
           </div>
         </div>
         <DialogFooter>
