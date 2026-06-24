@@ -307,6 +307,7 @@ function ExpenseModal({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader><DialogTitle>{initial ? "Edit Expense" : "Add Expense"}</DialogTitle></DialogHeader>
+        {!initial && <RestoreBanner visible={hasSaved} onContinue={dismissBanner} onDiscard={clearSaved} />}
         <div className="grid gap-3">
           <div><Label>Title *</Label><Input value={title} onChange={(e) => updateField("title", e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-3">
