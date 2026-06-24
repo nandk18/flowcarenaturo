@@ -298,6 +298,7 @@ function ExpenseModal({
       : await supabase.from("expense_list").insert(payload);
     setBusy(false);
     if (res.error) { toast.error(res.error.message); return; }
+    clearSaved();
     toast.success(initial ? "Expense updated" : "Expense added");
     onSaved();
   };
