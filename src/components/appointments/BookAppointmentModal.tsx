@@ -213,6 +213,7 @@ export default function BookAppointmentModal({
           doctorId,
         });
       }
+      clearAppointmentDraft();
       onBooked?.();
       if (!shouldCheckIn) onClose();
     } catch (err: any) {
