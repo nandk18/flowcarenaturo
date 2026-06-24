@@ -291,7 +291,11 @@ export default function SalesPatientDetail() {
   const loadPatient = async () => {
     if (!patientId) return;
     const { data } = await supabase.from("patients").select("*").eq("id", patientId).single();
-    if (data) setPatient(data as Patient);
+    if (data) {
+      setPatient(data as Patient);
+      const draft = formStorage.read<string>(`contact_note_${data.id}`, "");
+      if (draft) { setNewNoteState(draft); setAddingNote(true); }
+    }
   };
 
   const loadNotes = async () => {
