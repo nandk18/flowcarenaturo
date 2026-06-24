@@ -200,11 +200,6 @@ function TodoModal({
 }: {
   open: boolean; onClose: () => void; clinicId: string; onSaved: () => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<Priority>("medium");
-  const [dueDate, setDueDate] = useState("");
-  const [busy, setBusy] = useState(false);
 
   const DEFAULTS = { title: "", description: "", priority: "medium" as Priority, dueDate: "" };
   const { values, updateField, clearSaved, hasSaved, dismissBanner } = usePersistedForm(
