@@ -446,13 +446,23 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
   const [patients, setPatients] = useState<Patient[]>([]);
   const [notesByPatient, setNotesByPatient] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">(defaultStatus);
-  const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [search, setSearch] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [statusFilter, setStatusFilter] = useUrlState("status", defaultStatus) as [
+    LeadStatus | "all",
+    (v: LeadStatus | "all") => void,
+  ];
+  const [sourceFilter, setSourceFilter] = useUrlState("source", "all");
+  const [search, setSearch] = useUrlState("search", "");
+  const [fromDate, setFromDate] = useUrlState("from", "");
+  const [toDate, setToDate] = useUrlState("to", "");
+  const [pageStr, setPageStr] = useUrlState("page", "1");
+  const [pageSizeStr, setPageSizeStr] = useUrlState("per_page", "20");
+  const page = Math.max(1, Number(pageStr) || 1);
+  const pageSize = Math.max(1, Number(pageSizeStr) || 20);
+  const setPage = (p: number | ((cur: number) => number)) => {
+    const next = typeof p === "function" ? (p as any)(page) : p;
+    setPageStr(String(next));
+  };
+  const setPageSize = (s: number) => setPageSizeStr(String(s));
 
   useEffect(() => {
     let cancelled = false;
