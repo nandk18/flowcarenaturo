@@ -307,7 +307,7 @@ function ExpenseModal({
       <DialogContent>
         <DialogHeader><DialogTitle>{initial ? "Edit Expense" : "Add Expense"}</DialogTitle></DialogHeader>
         <div className="grid gap-3">
-          <div><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+          <div><Label>Title *</Label><Input value={title} onChange={(e) => updateField("title", e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Category *</Label>
@@ -316,7 +316,7 @@ function ExpenseModal({
                   No categories. <Link to="/settings/expense-categories" className="text-primary hover:underline">Configure categories in Settings</Link>
                 </p>
               ) : (
-                <Select value={category} onValueChange={setCategory}>
+                <Select value={category} onValueChange={(v) => updateField("category", v)}>
                   <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                   <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
@@ -324,7 +324,7 @@ function ExpenseModal({
             </div>
             <div>
               <Label>Payment Type *</Label>
-              <Select value={paymentType} onValueChange={(v) => setPaymentType(v as any)}>
+              <Select value={paymentType} onValueChange={(v) => updateField("paymentType", v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cash">Cash</SelectItem>
@@ -334,10 +334,10 @@ function ExpenseModal({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>Amount (₹) *</Label><Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
-            <div><Label>Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+            <div><Label>Amount (₹) *</Label><Input type="number" step="0.01" value={amount} onChange={(e) => updateField("amount", e.target.value)} /></div>
+            <div><Label>Date</Label><Input type="date" value={date} onChange={(e) => updateField("date", e.target.value)} /></div>
           </div>
-          <div><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} /></div>
+          <div><Label>Notes</Label><Textarea value={notes} onChange={(e) => updateField("notes", e.target.value)} rows={3} /></div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
