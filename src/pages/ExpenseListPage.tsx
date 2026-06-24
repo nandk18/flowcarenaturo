@@ -39,9 +39,10 @@ export default function ExpenseListPage() {
   const clinicId = profile?.clinic_id;
   const [rows, setRows] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [range, setRange] = useState<RangeKey>("today");
-  const [from, setFrom] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [to, setTo] = useState(format(new Date(), "yyyy-MM-dd"));
+  const today0 = format(new Date(), "yyyy-MM-dd");
+  const [range, setRange] = useUrlState("period", "today") as [RangeKey, (v: RangeKey) => void];
+  const [from, setFrom] = useUrlState("from", today0);
+  const [to, setTo] = useUrlState("to", today0);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
 
