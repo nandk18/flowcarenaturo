@@ -42,6 +42,12 @@ export default function CallTaskPage() {
   const [showDone, setShowDone] = useState(false);
   const [noteMap, setNoteMap] = useState<Record<string, string>>({});
 
+  const setNoteForPatient = (patientId: string, value: string) => {
+    setNoteMap((m) => ({ ...m, [patientId]: value }));
+    if (value) formStorage.write(`call_note_${patientId}`, value);
+    else formStorage.clear(`call_note_${patientId}`);
+  };
+
   const today = format(new Date(), "yyyy-MM-dd");
   const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
 
