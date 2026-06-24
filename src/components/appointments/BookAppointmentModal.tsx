@@ -260,7 +260,7 @@ export default function BookAppointmentModal({
 
   return (
     <>
-      <Dialog open={open && !bookedAppt} onOpenChange={(o) => { if (!o && !busy) onClose(); }}>
+      <Dialog open={open && !bookedAppt} onOpenChange={(o) => { if (!o && !busy) { clearAppointmentDraft(); onClose(); } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Book Appointment</DialogTitle>
