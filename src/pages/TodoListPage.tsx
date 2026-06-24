@@ -44,8 +44,14 @@ export default function TodoListPage() {
   const { profile } = useAuth();
   const clinicId = profile?.clinic_id;
   const [rows, setRows] = useState<Todo[]>([]);
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "done">("all");
-  const [priorityFilter, setPriorityFilter] = useState<"all" | Priority>("all");
+  const [statusFilter, setStatusFilter] = useUrlState("filter", "all") as [
+    "all" | "pending" | "done",
+    (v: "all" | "pending" | "done") => void,
+  ];
+  const [priorityFilter, setPriorityFilter] = useUrlState("priority", "all") as [
+    "all" | Priority,
+    (v: "all" | Priority) => void,
+  ];
   const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
