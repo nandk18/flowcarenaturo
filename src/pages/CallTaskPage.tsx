@@ -76,6 +76,15 @@ export default function CallTaskPage() {
       doctor: Array.isArray(x.doctors) ? x.doctors[0] : x.doctors,
     })) as TomorrowAppt[];
     setTomorrowAppts(appts);
+    // Restore any draft notes from prior session, keyed by patient_id.
+    const restored: Record<string, string> = {};
+    for (const a of appts) {
+      const draft = formStorage.read<string>(`call_note_${a.patient_id}`, "");
+      if (draft) restored[a.patient_id] = draft;
+    }
+    if (Object.keys(restored).length) {
+      setNoteMap((m) => ({ ...restored, ...m }));
+    }
 
     const calls = (callsRes.data ?? []).map((x: any) => ({
       ...x,
