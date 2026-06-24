@@ -96,6 +96,9 @@ function AppRoutes() {
   const navigate = useNavigate();
   const path = location.pathname;
 
+  useLastPageTracker();
+
+
   useEffect(() => {
     let cancelled = false;
 
