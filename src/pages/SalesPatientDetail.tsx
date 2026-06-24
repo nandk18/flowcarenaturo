@@ -243,7 +243,14 @@ export default function SalesPatientDetail() {
   const [clinicalNotes, setClinicalNotes] = useState<VisitDetail[]>([]);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [addingNote, setAddingNote] = useState(false);
-  const [newNote, setNewNote] = useState("");
+  const [newNote, setNewNoteState] = useState("");
+  const setNewNote = (v: string) => {
+    setNewNoteState(v);
+    if (patient?.id) {
+      if (v) formStorage.write(`contact_note_${patient.id}`, v);
+      else formStorage.clear(`contact_note_${patient.id}`);
+    }
+  };
   const [saving, setSaving] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
