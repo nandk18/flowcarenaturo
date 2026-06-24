@@ -498,7 +498,7 @@ export default function SalesPatientDetail() {
       </div>
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
-        <Tabs defaultValue="general" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="general"><User className="mr-1.5 h-3.5 w-3.5" /> General</TabsTrigger>
             <TabsTrigger value="clinical"><FileText className="mr-1.5 h-3.5 w-3.5" /> Clinical Notes</TabsTrigger>
