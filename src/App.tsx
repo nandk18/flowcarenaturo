@@ -101,7 +101,14 @@ function AppRoutes() {
 
     const redirectForSession = async (userId: string) => {
       const nextRoute = await ensureProfileAndGetPostAuthRoute(userId);
-      if (!cancelled) navigate(nextRoute, { replace: true });
+      if (cancelled) return;
+      // Prefer the last visited page when the post-auth route lands on the dashboard.
+      if (nextRoute === "/dashboard") {
+        const last = readLastPage();
+        navigate(last ?? "/dashboard", { replace: true });
+      } else {
+        navigate(nextRoute, { replace: true });
+      }
     };
 
     const checkInitialSession = async () => {
