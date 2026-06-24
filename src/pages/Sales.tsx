@@ -312,6 +312,7 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
         return;
       }
       toast.success(isEdit ? "Patient updated" : "Lead added successfully");
+      clearDraft();
       onSaved(result.data as Patient);
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to save lead");
