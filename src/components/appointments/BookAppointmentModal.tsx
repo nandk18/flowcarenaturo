@@ -73,15 +73,36 @@ export default function BookAppointmentModal({
   // Reset when opened
   useEffect(() => {
     if (!open) return;
-    setPatientId(initialPatientId ?? "");
+    // Restore draft from localStorage if it exists (only when no specific initial values overridden).
+    let restored: any = null;
+    try {
+      const raw = localStorage.getItem("flowcare_form_book_appointment");
+      if (raw) restored = JSON.parse(raw);
+    } catch { /* ignore */ }
+    setPatientId(initialPatientId ?? restored?.patientId ?? "");
     setLockPatient(!!lockPatientProp);
-    setDoctorId(initialDoctorId ?? "");
-    setDate(initialDate ?? format(new Date(), "yyyy-MM-dd"));
-    setTime(initialTime ?? "");
-    setReason("");
-    setNotes("");
+    setDoctorId(initialDoctorId ?? restored?.doctorId ?? "");
+    setDate(initialDate ?? restored?.date ?? format(new Date(), "yyyy-MM-dd"));
+    setTime(initialTime ?? restored?.time ?? "");
+    setReason(restored?.reason ?? "");
+    setNotes(restored?.notes ?? "");
     setPatientSearch("");
   }, [open, initialPatientId, initialDoctorId, initialDate, initialTime, lockPatientProp]);
+
+  // Persist draft on every relevant change while the modal is open.
+  useEffect(() => {
+    if (!open) return;
+    try {
+      localStorage.setItem(
+        "flowcare_form_book_appointment",
+        JSON.stringify({ patientId, doctorId, date, time, reason, notes })
+      );
+    } catch { /* ignore */ }
+  }, [open, patientId, doctorId, date, time, reason, notes]);
+
+  const clearAppointmentDraft = () => {
+    try { localStorage.removeItem("flowcare_form_book_appointment"); } catch { /* ignore */ }
+  };
 
   // Load doctors
   useEffect(() => {
