@@ -4,6 +4,10 @@ import { Users, Phone, UserPlus } from "lucide-react";
 import SalesShell from "@/components/layout/SalesShell";
 import { useClinic } from "@/hooks/useClinic";
 import { normalizeAlcohol, normalizeSmoking, normalizeFoodHabits } from "@/lib/lifestyleNormalize";
+import { useUrlState } from "@/hooks/useUrlState";
+import { usePersistedForm } from "@/hooks/usePersistedForm";
+import { useUnsavedChangesPrompt } from "@/hooks/useUnsavedChangesPrompt";
+import RestoreBanner from "@/components/RestoreBanner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
