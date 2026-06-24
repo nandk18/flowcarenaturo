@@ -338,6 +338,12 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
       <h2 className="font-display text-xl font-semibold">
         {isEdit ? "Edit Patient" : "Add Patient"}
       </h2>
+      <RestoreBanner
+        visible={showRestoreBanner}
+        onContinue={() => setShowRestoreBanner(false)}
+        onDiscard={resetToInitial}
+      />
+
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
