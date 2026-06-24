@@ -350,8 +350,25 @@ function LegacyPatientRedirect() {
   return <Navigate to={`/patients/${id}`} replace />;
 }
 
+const persister = createSyncStoragePersister({
+  storage: typeof window !== "undefined" ? window.localStorage : undefined,
+  key: QUERY_CACHE_KEY,
+});
+
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <PersistQueryClientProvider
+    client={queryClient}
+    persistOptions={{
+      persister,
+      maxAge: 5 * 60 * 1000,
+      dehydrateOptions: {
+        shouldDehydrateQuery: (q) => {
+          const root = Array.isArray(q.queryKey) ? q.queryKey[0] : q.queryKey;
+          return typeof root === "string" && PERSISTED_QUERY_KEYS.has(root);
+        },
+      },
+    }}
+  >
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -362,7 +379,7 @@ const App = () => (
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
-  </QueryClientProvider>
+  </PersistQueryClientProvider>
 );
 
 export default App;
