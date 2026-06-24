@@ -243,23 +243,37 @@ function ExpenseModal({
   open: boolean; onClose: () => void; initial: Expense | null;
   clinicId: string; categories: Category[]; onSaved: () => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
-  const [paymentType, setPaymentType] = useState<"cash" | "upi">("cash");
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [notes, setNotes] = useState("");
+  const DEFAULTS = {
+    title: "",
+    category: "",
+    paymentType: "cash" as "cash" | "upi",
+    amount: "",
+    date: format(new Date(), "yyyy-MM-dd"),
+    notes: "",
+  };
+  const persistKey = initial ? `edit_expense_${initial.id}` : "add_expense";
+  const { values, updateField, setValues, clearSaved, hasSaved, dismissBanner } = usePersistedForm(
+    persistKey,
+    DEFAULTS,
+    { enabled: open }
+  );
+  const { title, category, paymentType, amount, date, notes } = values;
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      setTitle(initial?.title ?? "");
-      setCategory(initial?.category ?? (categories[0]?.name ?? ""));
-      setPaymentType((initial?.payment_type as any) ?? "cash");
-      setAmount(initial?.amount != null ? String(initial.amount) : "");
-      setDate(initial?.expense_date ?? format(new Date(), "yyyy-MM-dd"));
-      setNotes(initial?.notes ?? "");
+    if (open && initial) {
+      setValues({
+        title: initial.title ?? "",
+        category: initial.category ?? (categories[0]?.name ?? ""),
+        paymentType: (initial.payment_type as any) ?? "cash",
+        amount: initial.amount != null ? String(initial.amount) : "",
+        date: initial.expense_date ?? format(new Date(), "yyyy-MM-dd"),
+        notes: initial.notes ?? "",
+      });
+    } else if (open && !initial && !category && categories[0]) {
+      updateField("category", categories[0].name);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial, categories]);
 
   const save = async () => {
