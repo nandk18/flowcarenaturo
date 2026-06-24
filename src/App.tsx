@@ -50,9 +50,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { ensureProfileAndGetPostAuthRoute } from "@/lib/authRedirect";
 import { Loader2 } from "lucide-react";
 
+const PERSISTED_QUERY_KEYS = new Set([
+  "patients",
+  "patient",
+  "appointments",
+  "invoices",
+  "call-task-queue",
+]);
+
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { staleTime: 5 * 60 * 1000 },
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+    },
   },
 });
 
