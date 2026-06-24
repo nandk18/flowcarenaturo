@@ -167,8 +167,8 @@ export default function CallTaskPage() {
                         )}
                       </div>
                       <Textarea
-                        value={noteMap[a.id] ?? ""}
-                        onChange={(e) => setNoteMap((m) => ({ ...m, [a.id]: e.target.value }))}
+                        value={noteMap[a.patient_id] ?? ""}
+                        onChange={(e) => setNoteForPatient(a.patient_id, e.target.value)}
                         placeholder="Add reminder note…"
                         rows={1}
                         className="min-h-[36px] text-sm sm:col-start-1 sm:col-span-2"
