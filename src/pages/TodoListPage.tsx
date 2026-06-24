@@ -206,9 +206,14 @@ function TodoModal({
   const [dueDate, setDueDate] = useState("");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (open) { setTitle(""); setDescription(""); setPriority("medium"); setDueDate(""); }
-  }, [open]);
+  const DEFAULTS = { title: "", description: "", priority: "medium" as Priority, dueDate: "" };
+  const { values, updateField, clearSaved, hasSaved, dismissBanner } = usePersistedForm(
+    "add_todo",
+    DEFAULTS,
+    { enabled: open }
+  );
+  const { title, description, priority, dueDate } = values;
+  const [busy, setBusy] = useState(false);
 
   const save = async () => {
     if (!title.trim()) { toast.error("Title required"); return; }
@@ -226,6 +231,7 @@ function TodoModal({
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
+    clearSaved();
     toast.success("Task added");
     onSaved();
   };
@@ -234,9 +240,10 @@ function TodoModal({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader><DialogTitle>Add Task</DialogTitle></DialogHeader>
+        <RestoreBanner visible={hasSaved} onContinue={dismissBanner} onDiscard={clearSaved} />
         <div className="grid gap-3">
-          <div><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-          <div><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} /></div>
+          <div><Label>Title *</Label><Input value={title} onChange={(e) => updateField("title", e.target.value)} /></div>
+          <div><Label>Description</Label><Textarea value={description} onChange={(e) => updateField("description", e.target.value)} rows={3} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Priority</Label>
               <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
