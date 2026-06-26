@@ -339,13 +339,13 @@ export default function PatientFormPublic() {
                     <p className="text-sm truncate">{d.file.name}</p>
                     <p className="text-xs text-muted-foreground">{formatFileSize(d.file.size)}</p>
                   </div>
-                  <SelectField
-                    name={`__doc_cat_${i}`}
-                    label=""
-                    defaultValue={d.category}
-                    options={DOCUMENT_CATEGORIES as any}
-                    onChange={(v) => setDocs((s) => s.map((x, idx) => idx === i ? { ...x, category: v as DocumentCategory } : x))}
-                  />
+                  <select
+                    value={d.category}
+                    onChange={(e) => setDocs((s) => s.map((x, idx) => idx === i ? { ...x, category: e.target.value as DocumentCategory } : x))}
+                    className="h-8 rounded-md border bg-background px-2 text-xs"
+                  >
+                    {DOCUMENT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
                   <button
                     type="button"
                     onClick={() => setDocs((s) => s.filter((_, idx) => idx !== i))}
