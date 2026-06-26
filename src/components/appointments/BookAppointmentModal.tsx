@@ -91,6 +91,7 @@ export default function BookAppointmentModal({
     setReason(restored?.reason ?? "");
     setNotes(restored?.notes ?? "");
     setPatientSearch("");
+    setSelectedServiceIds([]);
   }, [open, initialPatientId, initialDoctorId, initialDate, initialTime, lockPatientProp]);
 
   // Persist draft on every relevant change while the modal is open.
