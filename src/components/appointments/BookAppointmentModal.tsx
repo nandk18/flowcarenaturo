@@ -228,6 +228,16 @@ export default function BookAppointmentModal({
         created_by: profile.user_id,
       }).select("id").single();
       if (error) throw error;
+      // Save selected services for this appointment
+      if (selectedServiceIds.length && data?.id) {
+        await supabase.from("appointment_services").insert(
+          selectedServiceIds.map((sid) => ({
+            clinic_id: profile.clinic_id,
+            appointment_id: data.id,
+            service_id: sid,
+          })),
+        );
+      }
       await supabase.from("patients").update({ lead_status: "current" }).eq("id", patientId);
       toast.success("Appointment booked");
       const today = format(new Date(), "yyyy-MM-dd");
