@@ -996,6 +996,7 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride }: { clinicI
   const [rows, setRows] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [doneToday, setDoneToday] = useState(0);
+  const [bookFor, setBookFor] = useState<{ patient: Patient; note: string; resolve: (booked: boolean) => void } | null>(null);
 
   const load = async () => {
     if (!clinicId) return;
