@@ -152,7 +152,7 @@ export default function AdminDashboard() {
     const display = getDisplay(appt);
     if (display === "completed") {
       const v = visitsToday.find((x) => x.patient_id === appt.patient_id);
-      if (v) navigate(`/dashboard/consultation/${v.id}`);
+      if (v) navigate(`/patients/${appt.patient_id}?tab=clinical-notes&visit=${v.id}`);
       return;
     }
     if (display === "in_progress") {
