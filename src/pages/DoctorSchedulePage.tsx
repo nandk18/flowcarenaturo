@@ -82,6 +82,9 @@ export default function DoctorSchedulePage() {
   const [excType, setExcType] = useState<"leave" | "holiday" | "emergency">("leave");
   const [excReason, setExcReason] = useState("");
   const [excAffects, setExcAffects] = useState(true);
+  const [excFullDay, setExcFullDay] = useState(true);
+  const [excStartTime, setExcStartTime] = useState("09:00");
+  const [excEndTime, setExcEndTime] = useState("13:00");
   const [savingExc, setSavingExc] = useState(false);
 
   const [conflicts, setConflicts] = useState<ConflictAppt[] | null>(null);
