@@ -3,3 +3,8 @@ project_id = "amipgrjksrszocfzucxn"
 [auth]
 site_url = "https://flowcarenaturo.lovable.app"
 additional_redirect_urls = ["https://flowcarenaturo.lovable.app/auth/callback"]
+[functions.validate-patient-token]
+verify_jwt = false
+
+[functions.submit-patient-form]
+verify_jwt = false
