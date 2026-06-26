@@ -54,23 +54,19 @@ export default function PatientFormPublic() {
         setLoading(false);
         return;
       }
-      const { data: pid } = await (supabase as any).rpc("validate_patient_form_token", {
-        p_token: token,
-      });
-      if (!pid) {
-        setLoading(false);
-        return;
-      }
-      const { data: p } = await supabase.from("patients").select("*").eq("id", pid).maybeSingle();
-      if (p) {
-        setPatient(p);
-        const { data: c } = await supabase
-          .from("clinics")
-          .select("name, phone, address")
-          .eq("id", (p as any).clinic_id)
-          .maybeSingle();
-        setClinic(c);
+      try {
+        const { data, error } = await supabase.functions.invoke("validate-patient-token", {
+          body: { token },
+        });
+        if (error || !data || data.error || !data.patient) {
+          setLoading(false);
+          return;
+        }
+        setPatient(data.patient);
+        setClinic(data.clinic ?? null);
         setValid(true);
+      } catch {
+        // fall through to invalid
       }
       setLoading(false);
     })();
