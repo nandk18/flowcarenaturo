@@ -134,7 +134,6 @@ export default function AdminDashboard() {
         visit_date: today,
       };
       if (prereq) {
-        payload.lifestyle = prereq.lifestyle;
         payload.height_cm = prereq.height_cm;
         payload.weight_kg = prereq.weight_kg;
         payload.captured_at_reception = true;

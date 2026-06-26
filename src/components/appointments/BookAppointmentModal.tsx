@@ -242,7 +242,6 @@ export default function BookAppointmentModal({
           visit_date: today,
         };
         if (data) {
-          payload.lifestyle = data.lifestyle;
           payload.height_cm = data.height_cm;
           payload.weight_kg = data.weight_kg;
           payload.captured_at_reception = true;
