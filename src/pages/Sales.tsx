@@ -563,9 +563,10 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
       setLoading(true);
       const { data: patientsData } = await supabase
         .from("patients")
-        .select("*")
+        .select("id, clinic_id, name, first_name, last_name, phone, email, dob, gender, blood_group, lead_status, call_due_date, sla_breach_days, created_at, convenient_time, lead_source")
         .eq("clinic_id", clinicId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(1000);
       if (cancelled) return;
       const rows = (patientsData ?? []) as Patient[];
       setPatients(rows);
