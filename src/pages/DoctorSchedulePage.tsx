@@ -582,7 +582,9 @@ export default function DoctorSchedulePage() {
                         {e.type}
                       </Badge>
                       <div className="flex-1 text-sm text-muted-foreground truncate">
-                        {e.reason || "—"}
+                        {e.is_full_day === false && e.start_time && e.end_time
+                          ? `${e.start_time.substring(0, 5)}–${e.end_time.substring(0, 5)} · ${e.reason || ""}`
+                          : (e.reason || "Full day")}
                       </div>
                       <Badge
                         variant="outline"
