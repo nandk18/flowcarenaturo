@@ -37,6 +37,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import OpeningChecklistSettingsPage from "./pages/OpeningChecklistSettingsPage";
 import ClosingChecklistSettingsPage from "./pages/ClosingChecklistSettingsPage";
 import ExpenseCategoriesSettingsPage from "./pages/ExpenseCategoriesSettingsPage";
+import MessageTemplatesSettingsPage from "./pages/MessageTemplatesSettingsPage";
 
 import SuperAdmin from "./pages/SuperAdmin";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -316,6 +317,7 @@ function AppRoutes() {
       <Route path="/settings/opening-checklist" element={<OpeningChecklistSettingsPage />} />
       <Route path="/settings/closing-checklist" element={<ClosingChecklistSettingsPage />} />
       <Route path="/settings/expense-categories" element={<ExpenseCategoriesSettingsPage />} />
+      <Route path="/settings/message-templates" element={<MessageTemplatesSettingsPage />} />
       <Route path="/settings/:section" element={<Settings />} />
       <Route path="/settings/:section/:subsection" element={<Settings />} />
 
