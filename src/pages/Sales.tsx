@@ -1088,9 +1088,13 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride }: { clinicI
       nextStatus = "closed";
       removeFromQueue = true;
     } else if (outcome === "booked") {
+      // Open booking modal first. Only continue if user actually books.
+      const booked = await new Promise<boolean>((resolve) => {
+        setBookFor({ patient: p, note, resolve });
+      });
+      if (!booked) return;
       nextStatus = "current";
       removeFromQueue = true;
-      navigateAfter = `/consult/appointments/new?patient_id=${p.id}&from=sales`;
     }
 
     try {
