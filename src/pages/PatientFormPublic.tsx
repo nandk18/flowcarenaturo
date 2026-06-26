@@ -89,6 +89,8 @@ export default function PatientFormPublic() {
           <p className="mt-2 text-sm text-muted-foreground">
             This link is invalid or has expired. Please contact your clinic for a new link.
           </p>
+          {clinic?.name && <p className="mt-3 text-sm font-medium">{clinic.name}</p>}
+          {clinic?.phone && <p className="text-xs text-muted-foreground">📞 {clinic.phone}</p>}
         </div>
       </div>
     );
