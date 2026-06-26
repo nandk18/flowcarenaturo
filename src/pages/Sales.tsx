@@ -58,6 +58,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
+import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
 
 type LeadStatus = "attempt1" | "attempt2" | "attempt3" | "closed" | "current";
 
@@ -563,9 +564,10 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
       setLoading(true);
       const { data: patientsData } = await supabase
         .from("patients")
-        .select("*")
+        .select("id, clinic_id, name, first_name, last_name, phone, email, dob, gender, blood_group, lead_status, call_due_date, sla_breach_days, created_at, convenient_time, lead_source")
         .eq("clinic_id", clinicId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(1000);
       if (cancelled) return;
       const rows = (patientsData ?? []) as Patient[];
       setPatients(rows);
@@ -995,6 +997,7 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride }: { clinicI
   const [rows, setRows] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [doneToday, setDoneToday] = useState(0);
+  const [bookFor, setBookFor] = useState<{ patient: Patient; note: string; resolve: (booked: boolean) => void } | null>(null);
 
   const load = async () => {
     if (!clinicId) return;
@@ -1086,9 +1089,13 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride }: { clinicI
       nextStatus = "closed";
       removeFromQueue = true;
     } else if (outcome === "booked") {
+      // Open booking modal first. Only continue if user actually books.
+      const booked = await new Promise<boolean>((resolve) => {
+        setBookFor({ patient: p, note, resolve });
+      });
+      if (!booked) return;
       nextStatus = "current";
       removeFromQueue = true;
-      navigateAfter = `/consult/appointments/new?patient_id=${p.id}&from=sales`;
     }
 
     try {
@@ -1196,6 +1203,25 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride }: { clinicI
 
       <CallSection title="Overdue" color="red" rows={overdue} onAction={handleAction} />
       <CallSection title="Due Today" color="yellow" rows={dueToday} onAction={handleAction} />
+
+      <BookAppointmentModal
+        open={!!bookFor}
+        initialPatientId={bookFor?.patient.id}
+        lockPatient
+        onBooked={() => {
+          const cur = bookFor;
+          setBookFor(null);
+          if (cur) {
+            toast.success("Appointment booked and call logged");
+            cur.resolve(true);
+          }
+        }}
+        onClose={() => {
+          const cur = bookFor;
+          setBookFor(null);
+          if (cur) cur.resolve(false);
+        }}
+      />
     </div>
   );
 }

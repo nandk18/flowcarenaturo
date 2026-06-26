@@ -805,12 +805,21 @@ function ClinicalNotesTab({
   onReload?: () => void;
 }) {
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(notes[0]?.id ?? null);
+  const urlVisitId = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("visit")
+    : null;
+  const [selectedId, setSelectedId] = useState<string | null>(
+    urlVisitId ?? notes[0]?.id ?? null
+  );
   const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
-    if (!selectedId && notes.length) setSelectedId(notes[0].id);
-  }, [notes, selectedId]);
+    if (urlVisitId && notes.some((n) => n.id === urlVisitId)) {
+      setSelectedId(urlVisitId);
+    } else if (!selectedId && notes.length) {
+      setSelectedId(notes[0].id);
+    }
+  }, [notes, urlVisitId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -1342,7 +1351,6 @@ function AppointmentsTab({
           visit_date: a.appointment_date,
         };
         if (prereq) {
-          payload.lifestyle = prereq.lifestyle;
           payload.height_cm = prereq.height_cm;
           payload.weight_kg = prereq.weight_kg;
           payload.captured_at_reception = true;
@@ -1374,7 +1382,15 @@ function AppointmentsTab({
     }
     if (status === "completed") {
       return (
-        <Button size="sm" variant="outline" onClick={() => continueConsultation(a)}>
+        <Button size="sm" variant="outline" onClick={async () => {
+          const v = await findVisit(a.appointment_date);
+          if (v) {
+            const url = new URL(window.location.href);
+            url.searchParams.set("tab", "clinical-notes");
+            url.searchParams.set("visit", v.id);
+            navigate(url.pathname + url.search, { replace: true });
+          } else toast.error("No consultation found");
+        }}>
           <Eye className="mr-1 h-3 w-3" /> View Summary
         </Button>
       );

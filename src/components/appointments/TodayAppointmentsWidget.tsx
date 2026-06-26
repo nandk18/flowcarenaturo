@@ -72,7 +72,6 @@ export default function TodayAppointmentsWidget() {
         visit_date: today,
       };
       if (checkIn) {
-        visitPayload.lifestyle = checkIn.lifestyle;
         visitPayload.height_cm = checkIn.height_cm;
         visitPayload.weight_kg = checkIn.weight_kg;
         visitPayload.captured_at_reception = true;

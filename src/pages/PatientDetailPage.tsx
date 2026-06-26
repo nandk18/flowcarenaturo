@@ -181,6 +181,9 @@ export default function PatientDetailPage() {
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Patients
         </Button>
         <div className="flex gap-2">
+          <Button size="sm" onClick={() => navigate(`/availability?patient=${patient.id}&book=1`)}>
+            <Calendar className="mr-2 h-4 w-4" /> Add Appointment
+          </Button>
           <Button variant="outline" size="sm" onClick={handleSendFormLink} disabled={sendingLink}>
             {sendingLink ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}
             Send Form Link

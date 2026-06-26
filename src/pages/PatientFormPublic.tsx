@@ -54,23 +54,19 @@ export default function PatientFormPublic() {
         setLoading(false);
         return;
       }
-      const { data: pid } = await (supabase as any).rpc("validate_patient_form_token", {
-        p_token: token,
-      });
-      if (!pid) {
-        setLoading(false);
-        return;
-      }
-      const { data: p } = await supabase.from("patients").select("*").eq("id", pid).maybeSingle();
-      if (p) {
-        setPatient(p);
-        const { data: c } = await supabase
-          .from("clinics")
-          .select("name, phone, address")
-          .eq("id", (p as any).clinic_id)
-          .maybeSingle();
-        setClinic(c);
+      try {
+        const { data, error } = await supabase.functions.invoke("validate-patient-token", {
+          body: { token },
+        });
+        if (error || !data || data.error || !data.patient) {
+          setLoading(false);
+          return;
+        }
+        setPatient(data.patient);
+        setClinic(data.clinic ?? null);
         setValid(true);
+      } catch {
+        // fall through to invalid
       }
       setLoading(false);
     })();
@@ -93,6 +89,8 @@ export default function PatientFormPublic() {
           <p className="mt-2 text-sm text-muted-foreground">
             This link is invalid or has expired. Please contact your clinic for a new link.
           </p>
+          {clinic?.name && <p className="mt-3 text-sm font-medium">{clinic.name}</p>}
+          {clinic?.phone && <p className="text-xs text-muted-foreground">📞 {clinic.phone}</p>}
         </div>
       </div>
     );
@@ -135,12 +133,13 @@ export default function PatientFormPublic() {
     if (smk === null) delete updates.smoking; else updates.smoking = smk;
     if (food === null) delete updates.food_habits; else updates.food_habits = food;
 
-    const { data, error } = await (supabase as any).rpc("complete_patient_form", {
-      p_token: token,
-      p_updates: updates,
+    const { data, error } = await supabase.functions.invoke("submit-patient-form", {
+      body: { token, updates },
     });
-    if (error || data === false) {
-      toast.error(error?.message ?? "Failed to submit. Link may be expired.");
+    if (error || !data || data.error || data.success !== true) {
+      toast.error(data?.error === "invalid_or_expired"
+        ? "This link is invalid or has expired."
+        : (error?.message ?? data?.error ?? "Failed to submit."));
       setSubmitting(false);
       return;
     }

@@ -14,10 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointment_services: {
+        Row: {
+          appointment_id: string | null
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          service_id: string | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          service_id?: string | null
+        }
+        Update: {
+          appointment_id?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          service_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_services_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_services_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           appointment_date: string
           appointment_time: string
+          care_call_done: boolean | null
+          care_call_due_date: string | null
+          care_call_required: boolean | null
           clinic_id: string | null
           created_at: string | null
           created_by: string | null
@@ -32,6 +81,9 @@ export type Database = {
         Insert: {
           appointment_date: string
           appointment_time: string
+          care_call_done?: boolean | null
+          care_call_due_date?: string | null
+          care_call_required?: boolean | null
           clinic_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -46,6 +98,9 @@ export type Database = {
         Update: {
           appointment_date?: string
           appointment_time?: string
+          care_call_done?: boolean | null
+          care_call_due_date?: string | null
+          care_call_required?: boolean | null
           clinic_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -196,6 +251,7 @@ export type Database = {
           notes: string | null
           outcome: string
           patient_id: string | null
+          source: string | null
         }
         Insert: {
           called_at?: string | null
@@ -205,6 +261,7 @@ export type Database = {
           notes?: string | null
           outcome: string
           patient_id?: string | null
+          source?: string | null
         }
         Update: {
           called_at?: string | null
@@ -214,6 +271,7 @@ export type Database = {
           notes?: string | null
           outcome?: string
           patient_id?: string | null
+          source?: string | null
         }
         Relationships: [
           {
@@ -364,6 +422,38 @@ export type Database = {
             foreignKeyName: "clinic_checklists_clinic_id_fkey"
             columns: ["clinic_id"]
             isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_financial_settings: {
+        Row: {
+          clinic_id: string | null
+          id: string
+          petty_cash_balance: number | null
+          petty_cash_limit: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          id?: string
+          petty_cash_balance?: number | null
+          petty_cash_limit?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          id?: string
+          petty_cash_balance?: number | null
+          petty_cash_limit?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_financial_settings_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
             referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
@@ -565,9 +655,12 @@ export type Database = {
           clinic_id: string | null
           created_at: string | null
           doctor_id: string | null
+          end_time: string | null
           exception_date: string
           id: string
+          is_full_day: boolean | null
           reason: string | null
+          start_time: string | null
           type: string | null
         }
         Insert: {
@@ -575,9 +668,12 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string | null
           doctor_id?: string | null
+          end_time?: string | null
           exception_date: string
           id?: string
+          is_full_day?: boolean | null
           reason?: string | null
+          start_time?: string | null
           type?: string | null
         }
         Update: {
@@ -585,9 +681,12 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string | null
           doctor_id?: string | null
+          end_time?: string | null
           exception_date?: string
           id?: string
+          is_full_day?: boolean | null
           reason?: string | null
+          start_time?: string | null
           type?: string | null
         }
         Relationships: [
@@ -1291,6 +1390,47 @@ export type Database = {
           },
         ]
       }
+      message_templates: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          message_body: string
+          name: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          message_body: string
+          name: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          message_body?: string
+          name?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_templates_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       note_templates: {
         Row: {
           clinic_id: string | null
@@ -1379,6 +1519,7 @@ export type Database = {
       }
       patient_documents: {
         Row: {
+          category: string | null
           clinic_id: string | null
           created_at: string | null
           file_name: string
@@ -1387,10 +1528,12 @@ export type Database = {
           file_url: string
           id: string
           patient_id: string | null
-          uploaded_by: string
+          uploaded_by: string | null
+          uploaded_by_patient: boolean | null
           visit_id: string | null
         }
         Insert: {
+          category?: string | null
           clinic_id?: string | null
           created_at?: string | null
           file_name: string
@@ -1399,10 +1542,12 @@ export type Database = {
           file_url: string
           id?: string
           patient_id?: string | null
-          uploaded_by: string
+          uploaded_by?: string | null
+          uploaded_by_patient?: boolean | null
           visit_id?: string | null
         }
         Update: {
+          category?: string | null
           clinic_id?: string | null
           created_at?: string | null
           file_name?: string
@@ -1411,7 +1556,8 @@ export type Database = {
           file_url?: string
           id?: string
           patient_id?: string | null
-          uploaded_by?: string
+          uploaded_by?: string | null
+          uploaded_by_patient?: boolean | null
           visit_id?: string | null
         }
         Relationships: [
@@ -1427,6 +1573,13 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2019,6 +2172,10 @@ export type Database = {
         Returns: undefined
       }
       seed_default_expense_categories: {
+        Args: { p_clinic_id: string }
+        Returns: undefined
+      }
+      seed_default_message_templates: {
         Args: { p_clinic_id: string }
         Returns: undefined
       }
