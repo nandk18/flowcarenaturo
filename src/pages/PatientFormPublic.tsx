@@ -314,6 +314,51 @@ export default function PatientFormPublic() {
             defaultValue={patient.past_surgery_details}
           />
 
+          <h2 className="font-display text-lg font-semibold pt-4">Upload Your Documents (Optional)</h2>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Medical reports, prescriptions, or any relevant documents. PDF/JPG/PNG, max {MAX_PUBLIC_DOC_SIZE_MB}MB each, up to {MAX_PUBLIC_DOC_COUNT} files.
+          </p>
+          <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/30 p-6 cursor-pointer hover:border-muted-foreground/50">
+            <Upload className="h-7 w-7 text-muted-foreground mb-1.5" />
+            <span className="text-sm font-medium">Tap to choose files</span>
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png"
+              className="hidden"
+              onChange={(e) => { addDocs(e.target.files); e.target.value = ""; }}
+              disabled={docs.length >= MAX_PUBLIC_DOC_COUNT}
+            />
+          </label>
+          {docs.length > 0 && (
+            <div className="space-y-2">
+              {docs.map((d, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-lg border bg-muted/30 p-2">
+                  <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm truncate">{d.file.name}</p>
+                    <p className="text-xs text-muted-foreground">{formatFileSize(d.file.size)}</p>
+                  </div>
+                  <SelectField
+                    name={`__doc_cat_${i}`}
+                    label=""
+                    defaultValue={d.category}
+                    options={DOCUMENT_CATEGORIES as any}
+                    onChange={(v) => setDocs((s) => s.map((x, idx) => idx === i ? { ...x, category: v as DocumentCategory } : x))}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setDocs((s) => s.filter((_, idx) => idx !== i))}
+                    className="p-1 hover:bg-muted rounded"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              <Badge variant="outline" className="text-xs">{docs.length} / {MAX_PUBLIC_DOC_COUNT} files</Badge>
+            </div>
+          )}
+
           <Button type="submit" disabled={submitting} className="w-full" size="lg">
             {submitting ? "Saving..." : "Save My Details"}
           </Button>
