@@ -805,12 +805,21 @@ function ClinicalNotesTab({
   onReload?: () => void;
 }) {
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(notes[0]?.id ?? null);
+  const urlVisitId = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("visit")
+    : null;
+  const [selectedId, setSelectedId] = useState<string | null>(
+    urlVisitId ?? notes[0]?.id ?? null
+  );
   const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
-    if (!selectedId && notes.length) setSelectedId(notes[0].id);
-  }, [notes, selectedId]);
+    if (urlVisitId && notes.some((n) => n.id === urlVisitId)) {
+      setSelectedId(urlVisitId);
+    } else if (!selectedId && notes.length) {
+      setSelectedId(notes[0].id);
+    }
+  }, [notes, urlVisitId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
