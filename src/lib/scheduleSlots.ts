@@ -19,6 +19,9 @@ export type DoctorException = {
   type: "leave" | "holiday" | "emergency";
   reason: string | null;
   affects_appointments: boolean;
+  is_full_day?: boolean;
+  start_time?: string | null; // HH:MM[:SS]
+  end_time?: string | null;
 };
 
 export type ExistingAppointment = {
