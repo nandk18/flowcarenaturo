@@ -262,14 +262,14 @@ export default function SalesPatientDetail() {
       const token = crypto.randomUUID().replace(/-/g, "");
       const expires = new Date();
       expires.setDate(expires.getDate() + 7);
-      const profileId = await getProfileId();
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("patient_form_tokens").insert({
         clinic_id: patient.clinic_id,
         patient_id: patient.id,
         token,
         expires_at: expires.toISOString(),
         is_active: true,
-        created_by: profileId,
+        created_by: user?.id,
       } as any);
       if (error) throw error;
       const url = `${window.location.origin}/patient-form/${token}`;
