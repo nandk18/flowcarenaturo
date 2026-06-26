@@ -49,6 +49,7 @@ export default function CreateInvoiceModal({
   const [gstPercentage, setGstPercentage] = useState(clinicGstPercentage);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [servicePickerOpen, setServicePickerOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
