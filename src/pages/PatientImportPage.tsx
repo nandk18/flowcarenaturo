@@ -292,14 +292,12 @@ export default function PatientImportPage() {
     }
     setStarting(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const profileId = await getProfileId();
       const { data: job, error } = await supabase
         .from("import_jobs")
         .insert({
           clinic_id: profile.clinic_id,
-          created_by: user?.id ?? null,
+          created_by: profileId,
           status: "processing",
           file_name: fileName,
           total_rows: validRows.length,
