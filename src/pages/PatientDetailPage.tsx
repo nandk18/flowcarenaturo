@@ -18,6 +18,7 @@ import { openPrescription } from "@/lib/prescriptionUtils";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 import { openWhatsApp } from "@/lib/whatsapp";
+import { getProfileId } from "@/utils/getProfileId";
 
 type Patient = {
   id: string; name: string; healthcare_id: string | null; gender: string | null;
