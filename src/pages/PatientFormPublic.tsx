@@ -12,13 +12,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Upload, FileText, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   normalizeAlcohol,
   normalizeSmoking,
   normalizeFoodHabits,
 } from "@/lib/lifestyleNormalize";
+import {
+  DOCUMENT_CATEGORIES,
+  DocumentCategory,
+  MAX_PUBLIC_DOC_SIZE_MB,
+  MAX_PUBLIC_DOC_COUNT,
+  formatFileSize,
+} from "@/lib/documentCategories";
+
+const PUBLIC_DOC_MIME = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(",")[1] || "");
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 const ALCOHOL_OPTIONS = [
   { value: "none", label: "None / Never" },
