@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Receipt } from "lucide-react";
+import ServicePicker, { type ServicePick } from "./ServicePicker";
 
 type LineItem = { description: string; quantity: number; unit_price: number };
 
