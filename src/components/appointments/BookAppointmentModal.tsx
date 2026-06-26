@@ -70,6 +70,10 @@ export default function BookAppointmentModal({
 
   const [bookedAppt, setBookedAppt] = useState<{ id: string; patientName: string; time: string; patientId: string; doctorId: string } | null>(null);
 
+  type ServiceOption = { id: string; name: string; amount: number };
+  const [services, setServices] = useState<ServiceOption[]>([]);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+
   // Reset when opened
   useEffect(() => {
     if (!open) return;
