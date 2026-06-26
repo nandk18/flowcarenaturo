@@ -19,6 +19,7 @@ import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { getProfileId } from "@/utils/getProfileId";
+import PatientDocumentsCard from "@/components/patient/PatientDocumentsCard";
 
 type Patient = {
   id: string; name: string; healthcare_id: string | null; gender: string | null;
@@ -258,6 +259,13 @@ export default function PatientDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Documents */}
+      {patientId && profile?.clinic_id && (
+        <div className="mb-6">
+          <PatientDocumentsCard patientId={patientId} clinicId={profile.clinic_id} />
+        </div>
+      )}
 
       {/* Vitals Trends */}
       {patientId && <VitalsTrends patientId={patientId} />}
