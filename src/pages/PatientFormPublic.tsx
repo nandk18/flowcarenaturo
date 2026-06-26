@@ -66,6 +66,28 @@ export default function PatientFormPublic() {
   const [clinic, setClinic] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [docs, setDocs] = useState<{ file: File; category: DocumentCategory }[]>([]);
+
+  const addDocs = (files: FileList | null) => {
+    if (!files) return;
+    const next = [...docs];
+    for (const f of Array.from(files)) {
+      if (next.length >= MAX_PUBLIC_DOC_COUNT) {
+        toast.error(`Max ${MAX_PUBLIC_DOC_COUNT} files`);
+        break;
+      }
+      if (!PUBLIC_DOC_MIME.includes(f.type)) {
+        toast.error(`${f.name}: only PDF, JPG, PNG allowed`);
+        continue;
+      }
+      if (f.size > MAX_PUBLIC_DOC_SIZE_MB * 1024 * 1024) {
+        toast.error(`${f.name} exceeds ${MAX_PUBLIC_DOC_SIZE_MB}MB`);
+        continue;
+      }
+      next.push({ file: f, category: "Medical Report" });
+    }
+    setDocs(next);
+  };
 
   useEffect(() => {
     (async () => {
@@ -152,8 +174,27 @@ export default function PatientFormPublic() {
     if (smk === null) delete updates.smoking; else updates.smoking = smk;
     if (food === null) delete updates.food_habits; else updates.food_habits = food;
 
+    // Encode documents as base64
+    let documents: any[] = [];
+    if (docs.length > 0) {
+      try {
+        documents = await Promise.all(
+          docs.map(async (d) => ({
+            name: d.file.name,
+            type: d.file.type,
+            category: d.category,
+            dataBase64: await fileToBase64(d.file),
+          })),
+        );
+      } catch {
+        toast.error("Failed to read files");
+        setSubmitting(false);
+        return;
+      }
+    }
+
     const { data, error } = await supabase.functions.invoke("submit-patient-form", {
-      body: { token, updates },
+      body: { token, updates, documents },
     });
     if (error || !data || data.error || data.success !== true) {
       toast.error(data?.error === "invalid_or_expired"
