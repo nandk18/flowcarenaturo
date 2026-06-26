@@ -18,6 +18,7 @@ import { openPrescription } from "@/lib/prescriptionUtils";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 import { openWhatsApp } from "@/lib/whatsapp";
+import { buildMessage } from "@/lib/messageTemplates";
 import { getProfileId } from "@/utils/getProfileId";
 import PatientDocumentsCard from "@/components/patient/PatientDocumentsCard";
 
