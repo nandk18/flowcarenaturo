@@ -742,6 +742,37 @@ export default function DoctorSchedulePage() {
               </div>
               <Switch checked={excAffects} onCheckedChange={setExcAffects} />
             </div>
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <div>
+                <Label>Full Day</Label>
+                <p className="text-xs text-muted-foreground">
+                  Off: block only a specific time range below.
+                </p>
+              </div>
+              <Switch checked={excFullDay} onCheckedChange={setExcFullDay} />
+            </div>
+            {!excFullDay && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Start</Label>
+                  <Input
+                    type="time"
+                    value={excStartTime}
+                    onChange={(e) => setExcStartTime(e.target.value)}
+                    className="rounded-lg"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>End</Label>
+                  <Input
+                    type="time"
+                    value={excEndTime}
+                    onChange={(e) => setExcEndTime(e.target.value)}
+                    className="rounded-lg"
+                  />
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button
