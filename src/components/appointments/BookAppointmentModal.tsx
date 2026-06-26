@@ -399,6 +399,38 @@ export default function BookAppointmentModal({
               <Label>Reason</Label>
               <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Chief reason for visit" />
             </div>
+
+            {services.length > 0 && (
+              <div className="space-y-2">
+                <Label>Services</Label>
+                <div className="flex flex-wrap gap-2 rounded-md border p-2">
+                  {services.map((s) => {
+                    const checked = selectedServiceIds.includes(s.id);
+                    return (
+                      <button
+                        type="button"
+                        key={s.id}
+                        onClick={() =>
+                          setSelectedServiceIds((prev) =>
+                            checked ? prev.filter((x) => x !== s.id) : [...prev, s.id],
+                          )
+                        }
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-xs transition-colors",
+                          checked
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-background hover:bg-muted",
+                        )}
+                      >
+                        {checked && <Check className="mr-1 inline h-3 w-3" />}
+                        {s.name}
+                        <span className="ml-1 text-muted-foreground">₹{s.amount}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Notes</Label>
               <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional notes" />
