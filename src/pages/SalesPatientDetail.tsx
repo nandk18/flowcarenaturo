@@ -1376,11 +1376,10 @@ function AppointmentsTab({
         <Button size="sm" variant="outline" onClick={async () => {
           const v = await findVisit(a.appointment_date);
           if (v) {
-            setActiveTab("clinical-notes");
             const url = new URL(window.location.href);
             url.searchParams.set("tab", "clinical-notes");
             url.searchParams.set("visit", v.id);
-            window.history.replaceState({}, "", url.toString());
+            navigate(url.pathname + url.search, { replace: true });
           } else toast.error("No consultation found");
         }}>
           <Eye className="mr-1 h-3 w-3" /> View Summary
