@@ -230,6 +230,10 @@ export default function DoctorSchedulePage() {
 
   const handleStartSaveException = async () => {
     if (!selectedDoctorId || !profile?.clinic_id || !excDate) return;
+    if (!excFullDay && excStartTime >= excEndTime) {
+      toast.error("End time must be after start time");
+      return;
+    }
     setSavingExc(true);
     try {
       if (excAffects) {
@@ -241,11 +245,18 @@ export default function DoctorSchedulePage() {
           .eq("doctor_id", selectedDoctorId)
           .eq("appointment_date", excDate)
           .neq("status", "cancelled");
-        const list: ConflictAppt[] = (appts || []).map((a: any) => ({
+        let list: ConflictAppt[] = (appts || []).map((a: any) => ({
           id: a.id,
           appointment_time: a.appointment_time,
           patient: Array.isArray(a.patients) ? a.patients[0] : a.patients,
         }));
+        // For partial-day exception, only conflicts within the blocked range
+        if (!excFullDay) {
+          list = list.filter((a) => {
+            const t = (a.appointment_time || "").substring(0, 5);
+            return t >= excStartTime && t < excEndTime;
+          });
+        }
         if (list.length > 0) {
           setPendingExc({
             date: excDate,
@@ -283,6 +294,9 @@ export default function DoctorSchedulePage() {
         type,
         reason: reason || null,
         affects_appointments: affects,
+        is_full_day: excFullDay,
+        start_time: excFullDay ? null : excStartTime,
+        end_time: excFullDay ? null : excEndTime,
       });
     if (error) {
       toast.error(error.message);
@@ -303,6 +317,7 @@ export default function DoctorSchedulePage() {
     setConflicts(null);
     setPendingExc(null);
     setExcReason("");
+    setExcFullDay(true);
     await refreshExceptions();
   };
 
