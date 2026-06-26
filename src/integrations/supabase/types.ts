@@ -1530,6 +1530,7 @@ export type Database = {
           patient_id: string | null
           uploaded_by: string | null
           uploaded_by_patient: boolean | null
+          visit_id: string | null
         }
         Insert: {
           category?: string | null
@@ -1543,6 +1544,7 @@ export type Database = {
           patient_id?: string | null
           uploaded_by?: string | null
           uploaded_by_patient?: boolean | null
+          visit_id?: string | null
         }
         Update: {
           category?: string | null
@@ -1556,6 +1558,7 @@ export type Database = {
           patient_id?: string | null
           uploaded_by?: string | null
           uploaded_by_patient?: boolean | null
+          visit_id?: string | null
         }
         Relationships: [
           {
@@ -1577,6 +1580,13 @@ export type Database = {
             columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_documents_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
             referencedColumns: ["id"]
           },
         ]

@@ -1,0 +1,1 @@
+ALTER TABLE public.patient_documents ADD COLUMN IF NOT EXISTS visit_id uuid REFERENCES public.visits(id) ON DELETE SET NULL; CREATE INDEX IF NOT EXISTS idx_patient_documents_visit_id ON public.patient_documents(visit_id);
