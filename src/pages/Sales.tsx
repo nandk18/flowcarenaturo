@@ -1202,6 +1202,25 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride }: { clinicI
 
       <CallSection title="Overdue" color="red" rows={overdue} onAction={handleAction} />
       <CallSection title="Due Today" color="yellow" rows={dueToday} onAction={handleAction} />
+
+      <BookAppointmentModal
+        open={!!bookFor}
+        initialPatientId={bookFor?.patient.id}
+        lockPatient
+        onBooked={() => {
+          const cur = bookFor;
+          setBookFor(null);
+          if (cur) {
+            toast.success("Appointment booked and call logged");
+            cur.resolve(true);
+          }
+        }}
+        onClose={() => {
+          const cur = bookFor;
+          setBookFor(null);
+          if (cur) cur.resolve(false);
+        }}
+      />
     </div>
   );
 }
