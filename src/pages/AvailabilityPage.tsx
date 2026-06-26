@@ -19,6 +19,10 @@ import {
 import { cn, formatDoctorName } from "@/lib/utils";
 import PatientLink from "@/components/PatientLink";
 import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
+import {
+  DoctorSchedule, DoctorException, ExistingAppointment,
+  generateSlots, getDaySummary, getDayOfWeek, DaySummary,
+} from "@/lib/scheduleSlots";
 
 type Doctor = { id: string; name: string };
 type Appt = {
@@ -38,6 +42,22 @@ const statusDot: Record<string, string> = {
   cancelled: "bg-destructive",
 };
 
+const summaryTint: Record<DaySummary, string> = {
+  off: "bg-muted/40",
+  past: "bg-background",
+  available: "bg-success/10",
+  partial: "bg-warning/10",
+  full: "bg-destructive/10",
+};
+
+const summaryLabel: Record<DaySummary, string> = {
+  off: "Off",
+  past: "",
+  available: "Available",
+  partial: "Partial",
+  full: "Full",
+};
+
 export default function AvailabilityPage() {
   const { profile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -55,6 +75,8 @@ export default function AvailabilityPage() {
     return isNaN(parsed.getTime()) ? new Date() : parsed;
   });
   const [appts, setAppts] = useState<Appt[]>([]);
+  const [schedules, setSchedules] = useState<DoctorSchedule[]>([]);
+  const [exceptions, setExceptions] = useState<DoctorException[]>([]);
 
   const updateParam = useCallback((key: string, value: string, def: string) => {
     setSearchParams((prev) => {
@@ -77,7 +99,6 @@ export default function AvailabilityPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInit, setModalInit] = useState<{ date?: string; time?: string; patientId?: string; lockPatient?: boolean } | null>(null);
 
-  // Auto-open modal when ?patient= present
   useEffect(() => {
     if (shouldAutoOpen) {
       setModalInit({ patientId: presetPatientId, lockPatient: !!presetPatientId });
@@ -86,7 +107,6 @@ export default function AvailabilityPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Range to fetch based on view
   const { rangeStart, rangeEnd } = useMemo(() => {
     if (view === "day") return { rangeStart: cursor, rangeEnd: cursor };
     if (view === "week") return {
@@ -109,24 +129,43 @@ export default function AvailabilityPage() {
       });
   }, [profile?.clinic_id]);
 
-  const fetchAppts = useCallback(async () => {
-    if (!profile?.clinic_id || !doctorId) { setAppts([]); return; }
-    const { data } = await supabase.from("appointments")
-      .select("id, appointment_date, appointment_time, status, reason, patients(id, name)")
-      .eq("clinic_id", profile.clinic_id)
+  // Load schedule (full week) for this doctor — cheap, one row per day
+  useEffect(() => {
+    if (!doctorId) { setSchedules([]); return; }
+    (supabase as any)
+      .from("doctor_schedules")
+      .select("*")
       .eq("doctor_id", doctorId)
-      .gte("appointment_date", format(rangeStart, "yyyy-MM-dd"))
-      .lte("appointment_date", format(rangeEnd, "yyyy-MM-dd"))
-      .order("appointment_time");
-    setAppts((data ?? []).map((a: any) => ({
+      .then(({ data }: any) => setSchedules((data ?? []) as DoctorSchedule[]));
+  }, [doctorId]);
+
+  const fetchAppts = useCallback(async () => {
+    if (!profile?.clinic_id || !doctorId) { setAppts([]); setExceptions([]); return; }
+    const startStr = format(rangeStart, "yyyy-MM-dd");
+    const endStr = format(rangeEnd, "yyyy-MM-dd");
+    const [aRes, eRes] = await Promise.all([
+      supabase.from("appointments")
+        .select("id, appointment_date, appointment_time, status, reason, patients(id, name)")
+        .eq("clinic_id", profile.clinic_id)
+        .eq("doctor_id", doctorId)
+        .gte("appointment_date", startStr)
+        .lte("appointment_date", endStr)
+        .order("appointment_time"),
+      (supabase as any).from("doctor_exceptions")
+        .select("*")
+        .eq("doctor_id", doctorId)
+        .gte("exception_date", startStr)
+        .lte("exception_date", endStr),
+    ]);
+    setAppts((aRes.data ?? []).map((a: any) => ({
       ...a,
       patient: Array.isArray(a.patients) ? a.patients[0] : a.patients,
     })));
+    setExceptions((eRes.data ?? []) as DoctorException[]);
   }, [profile?.clinic_id, doctorId, rangeStart, rangeEnd]);
 
   useEffect(() => { fetchAppts(); }, [fetchAppts]);
 
-  // Realtime
   useEffect(() => {
     if (!profile?.clinic_id) return;
     const ch = supabase.channel("availability-appts")
@@ -144,6 +183,29 @@ export default function AvailabilityPage() {
     }
     return m;
   }, [appts]);
+
+  const exceptionByDate = useMemo(() => {
+    const m = new Map<string, DoctorException>();
+    for (const e of exceptions) m.set(e.exception_date, e);
+    return m;
+  }, [exceptions]);
+
+  const scheduleByDow = useMemo(() => {
+    const m = new Map<number, DoctorSchedule>();
+    for (const s of schedules) m.set(s.day_of_week, s);
+    return m;
+  }, [schedules]);
+
+  const summaryFor = useCallback((date: Date): DaySummary => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    const dow = getDayOfWeek(dateStr);
+    return getDaySummary({
+      schedule: scheduleByDow.get(dow) ?? null,
+      exception: exceptionByDate.get(dateStr) ?? null,
+      appointments: (apptsByDate.get(dateStr) ?? []) as ExistingAppointment[],
+      date: dateStr,
+    });
+  }, [scheduleByDow, exceptionByDate, apptsByDate]);
 
   const goPrev = () => setCursor((c) => view === "day" ? addDays(c, -1) : view === "week" ? addWeeks(c, -1) : addMonths(c, -1));
   const goNext = () => setCursor((c) => view === "day" ? addDays(c, 1) : view === "week" ? addWeeks(c, 1) : addMonths(c, 1));
@@ -192,14 +254,28 @@ export default function AvailabilityPage() {
         </div>
       </div>
 
+      {/* Color legend */}
+      <div className="mb-3 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-success/50" /> Available</span>
+        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-warning/50" /> Partial</span>
+        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-destructive/50" /> Full</span>
+        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-muted" /> Off</span>
+      </div>
+
       {view === "month" && (
-        <MonthView cursor={cursor} apptsByDate={apptsByDate} onPickDay={(d) => { setCursor(d); setView("day"); }} />
+        <MonthView cursor={cursor} apptsByDate={apptsByDate} summaryFor={summaryFor} onPickDay={(d) => { setCursor(d); setView("day"); }} />
       )}
       {view === "week" && (
-        <WeekView cursor={cursor} apptsByDate={apptsByDate} onPickSlot={(d, t) => openBook(d, t)} />
+        <WeekView cursor={cursor} apptsByDate={apptsByDate} summaryFor={summaryFor} onPickSlot={(d, t) => openBook(d, t)} />
       )}
       {view === "day" && (
-        <DayView date={cursor} appts={apptsByDate.get(format(cursor, "yyyy-MM-dd")) ?? []} onPickSlot={(d, t) => openBook(d, t)} />
+        <DayView
+          date={cursor}
+          schedule={scheduleByDow.get(getDayOfWeek(format(cursor, "yyyy-MM-dd"))) ?? null}
+          exception={exceptionByDate.get(format(cursor, "yyyy-MM-dd")) ?? null}
+          appts={apptsByDate.get(format(cursor, "yyyy-MM-dd")) ?? []}
+          onPickSlot={(d, t) => openBook(d, t)}
+        />
       )}
 
       <BookAppointmentModal
@@ -224,8 +300,8 @@ export default function AvailabilityPage() {
 }
 
 function MonthView({
-  cursor, apptsByDate, onPickDay,
-}: { cursor: Date; apptsByDate: Map<string, any[]>; onPickDay: (d: Date) => void }) {
+  cursor, apptsByDate, summaryFor, onPickDay,
+}: { cursor: Date; apptsByDate: Map<string, any[]>; summaryFor: (d: Date) => DaySummary; onPickDay: (d: Date) => void }) {
   const cells = useMemo(() => {
     const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 });
     return Array.from({ length: 42 }, (_, i) => addDays(start, i));
@@ -241,19 +317,24 @@ function MonthView({
           const items = apptsByDate.get(dateStr) ?? [];
           const inMonth = isSameMonth(day, cursor);
           const today = isSameDay(day, new Date());
-          const tint = items.length === 0 ? "bg-background" : items.length >= 8 ? "bg-destructive/5" : "bg-success/5";
+          const summary = summaryFor(day);
           return (
             <button
               key={dateStr}
               onClick={() => onPickDay(day)}
               className={cn(
                 "min-h-[96px] rounded-md border p-1 text-left text-xs flex flex-col gap-1",
-                tint,
+                summaryTint[summary],
                 !inMonth && "opacity-40",
                 today && "ring-2 ring-primary",
               )}
             >
-              <span className="font-semibold">{format(day, "d")}</span>
+              <div className="flex items-center justify-between">
+                <span className="font-semibold">{format(day, "d")}</span>
+                {summaryLabel[summary] && (
+                  <span className="text-[9px] uppercase tracking-wide text-muted-foreground">{summaryLabel[summary]}</span>
+                )}
+              </div>
               <div className="flex-1 space-y-0.5 overflow-hidden">
                 {items.slice(0, 3).map((a) => (
                   <div key={a.id} className="flex items-center gap-1 truncate rounded bg-background/70 px-1 py-0.5">
@@ -273,8 +354,8 @@ function MonthView({
 }
 
 function WeekView({
-  cursor, apptsByDate, onPickSlot,
-}: { cursor: Date; apptsByDate: Map<string, Appt[]>; onPickSlot: (date: string, time: string) => void }) {
+  cursor, apptsByDate, summaryFor, onPickSlot,
+}: { cursor: Date; apptsByDate: Map<string, Appt[]>; summaryFor: (d: Date) => DaySummary; onPickSlot: (date: string, time: string) => void }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(cursor, { weekStartsOn: 1 }), i));
   return (
     <Card className="shadow-card"><CardContent className="p-3">
@@ -283,11 +364,17 @@ function WeekView({
           const dateStr = format(day, "yyyy-MM-dd");
           const items = apptsByDate.get(dateStr) ?? [];
           const today = isSameDay(day, new Date());
+          const summary = summaryFor(day);
           return (
-            <div key={dateStr} className={cn("rounded-md border p-2", today && "ring-2 ring-primary")}>
-              <div className="mb-2 text-xs font-semibold">{format(day, "EEE d")}</div>
+            <div key={dateStr} className={cn("rounded-md border p-2", summaryTint[summary], today && "ring-2 ring-primary")}>
+              <div className="mb-2 flex items-center justify-between text-xs font-semibold">
+                <span>{format(day, "EEE d")}</span>
+                {summaryLabel[summary] && (
+                  <span className="text-[9px] uppercase tracking-wide text-muted-foreground">{summaryLabel[summary]}</span>
+                )}
+              </div>
               <div className="space-y-1">
-                {items.length === 0 && (
+                {items.length === 0 && summary !== "off" && (
                   <button onClick={() => onPickSlot(dateStr, "")} className="w-full rounded border border-dashed py-2 text-[10px] text-muted-foreground hover:bg-muted">+ Book</button>
                 )}
                 {items.map((a) => (
@@ -309,30 +396,57 @@ function WeekView({
 }
 
 function DayView({
-  date, appts, onPickSlot,
-}: { date: Date; appts: Appt[]; onPickSlot: (date: string, time: string) => void }) {
+  date, schedule, exception, appts, onPickSlot,
+}: {
+  date: Date;
+  schedule: DoctorSchedule | null;
+  exception: DoctorException | null;
+  appts: Appt[];
+  onPickSlot: (date: string, time: string) => void;
+}) {
   const dateStr = format(date, "yyyy-MM-dd");
-  // Build 15-min slots 8:00-20:00
-  const slots: string[] = [];
-  for (let h = 8; h < 20; h++) for (const m of [0, 15, 30, 45]) slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+  const { slots, reason } = generateSlots({
+    schedule,
+    exception,
+    appointments: appts as unknown as ExistingAppointment[],
+    date: dateStr,
+  });
+
+  // Map slot -> existing appt for full appointment metadata
   const byTime = new Map<string, Appt>();
   for (const a of appts) byTime.set(a.appointment_time?.substring(0, 5), a);
+
+  if (reason === "past") {
+    return <Card className="shadow-card"><CardContent className="py-10 text-center text-sm text-muted-foreground">This date is in the past.</CardContent></Card>;
+  }
+  if (reason === "exception") {
+    return (
+      <Card className="shadow-card"><CardContent className="py-10 text-center text-sm">
+        <div className="font-semibold capitalize">{exception?.type ?? "Exception"}</div>
+        <div className="text-muted-foreground">{exception?.reason || "Doctor not available on this date."}</div>
+      </CardContent></Card>
+    );
+  }
+  if (reason === "no-schedule" || reason === "inactive") {
+    return <Card className="shadow-card"><CardContent className="py-10 text-center text-sm text-muted-foreground">Doctor is not scheduled on this day.</CardContent></Card>;
+  }
+
   return (
     <Card className="shadow-card"><CardContent className="p-3">
       <div className="space-y-1">
-        {slots.map((t) => {
-          const a = byTime.get(t);
+        {slots.map((s) => {
+          const a = byTime.get(s.time);
           return (
             <button
-              key={t}
-              onClick={() => !a && onPickSlot(dateStr, t)}
-              disabled={!!a}
+              key={s.time}
+              onClick={() => !a && !s.past && onPickSlot(dateStr, s.time)}
+              disabled={!!a || s.past}
               className={cn(
                 "flex w-full items-center gap-3 rounded border px-3 py-2 text-left text-sm",
-                a ? "border-primary/30 bg-primary/5" : "border-dashed hover:bg-muted",
+                a ? "border-primary/30 bg-primary/5" : s.past ? "opacity-50" : "border-dashed hover:bg-muted",
               )}
             >
-              <span className="w-16 font-mono text-xs text-primary">{t}</span>
+              <span className="w-16 font-mono text-xs text-primary">{s.time}</span>
               {a ? (
                 <div className="flex flex-1 items-center gap-2">
                   <span className={cn("h-2 w-2 rounded-full", statusDot[a.status] ?? "bg-muted-foreground")} />
@@ -341,11 +455,14 @@ function DayView({
                   <span className="ml-auto text-[10px] uppercase text-muted-foreground">{a.status}</span>
                 </div>
               ) : (
-                <span className="text-xs text-muted-foreground">Available — click to book</span>
+                <span className="text-xs text-muted-foreground">{s.past ? "Past" : "Available — click to book"}</span>
               )}
             </button>
           );
         })}
+        {slots.length === 0 && (
+          <div className="py-6 text-center text-sm text-muted-foreground">No slots available for this day.</div>
+        )}
       </div>
     </CardContent></Card>
   );

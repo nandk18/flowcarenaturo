@@ -19,6 +19,9 @@ export type DoctorException = {
   type: "leave" | "holiday" | "emergency";
   reason: string | null;
   affects_appointments: boolean;
+  is_full_day?: boolean;
+  start_time?: string | null; // HH:MM[:SS]
+  end_time?: string | null;
 };
 
 export type ExistingAppointment = {
@@ -91,7 +94,17 @@ export function generateSlots({
   date,
 }: GenerateArgs): GenerateResult {
   if (isPastDate(date)) return { slots: [], reason: "past" };
-  if (exception && exception.affects_appointments) {
+  const isPartialException =
+    !!exception &&
+    exception.affects_appointments &&
+    exception.is_full_day === false &&
+    !!exception.start_time &&
+    !!exception.end_time;
+  if (
+    exception &&
+    exception.affects_appointments &&
+    !isPartialException
+  ) {
     return { slots: [], reason: "exception", exception };
   }
   if (!schedule) return { slots: [], reason: "no-schedule" };
@@ -109,12 +122,20 @@ export function generateSlots({
     bookedTimes.set(t, a);
   }
 
+  const blockStart = isPartialException
+    ? toMinutes(exception!.start_time!.substring(0, 5))
+    : -1;
+  const blockEnd = isPartialException
+    ? toMinutes(exception!.end_time!.substring(0, 5))
+    : -1;
+
   const out: GeneratedSlot[] = [];
   for (const session of schedule.sessions || []) {
     if (!session?.start || !session?.end) continue;
     const startM = toMinutes(session.start);
     const endM = toMinutes(session.end);
     for (let m = startM; m + duration <= endM; m += duration) {
+      if (isPartialException && m < blockEnd && m + duration > blockStart) continue;
       const time = fromMinutes(m);
       const past = todayCheck && m < nowMin;
       const appt = bookedTimes.get(time) || null;
