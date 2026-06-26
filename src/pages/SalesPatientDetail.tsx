@@ -6,33 +6,10 @@ import { formStorage } from "@/hooks/usePersistedForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ArrowLeft,
   MessageCircle,
@@ -132,8 +109,21 @@ type VisitDetail = {
   status: string | null;
   doctor_id: string | null;
   doctor_name?: string | null;
-  clinical_notes: { id: string; soap_notes: any; raw_transcript: string | null; audio_url: string | null; created_at: string }[];
-  prescriptions: { id: string; medications: any; investigations: any; notes: string | null; follow_up_date: string | null; pdf_url: string | null }[];
+  clinical_notes: {
+    id: string;
+    soap_notes: any;
+    raw_transcript: string | null;
+    audio_url: string | null;
+    created_at: string;
+  }[];
+  prescriptions: {
+    id: string;
+    medications: any;
+    investigations: any;
+    notes: string | null;
+    follow_up_date: string | null;
+    pdf_url: string | null;
+  }[];
   documents: { id: string; file_name: string | null; file_url: string | null; document_type: string | null }[];
 };
 
@@ -200,7 +190,9 @@ function fmtDateShort(d?: string | null) {
 }
 
 function fmtCurrency(n: number) {
-  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n || 0);
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(
+    n || 0,
+  );
 }
 
 function visitPreview(v: VisitDetail): string {
@@ -218,13 +210,18 @@ function visitPreview(v: VisitDetail): string {
 function fmtVitals(vitals: any): { label: string; value: string }[] {
   if (!vitals || typeof vitals !== "object") return [];
   const map: Record<string, string> = {
-    bp: "BP", blood_pressure: "BP",
-    pulse: "Pulse", heart_rate: "Pulse",
-    temp: "Temp", temperature: "Temp",
+    bp: "BP",
+    blood_pressure: "BP",
+    pulse: "Pulse",
+    heart_rate: "Pulse",
+    temp: "Temp",
+    temperature: "Temp",
     weight: "Weight",
     height: "Height",
-    spo2: "SpO₂", oxygen_saturation: "SpO₂",
-    respiratory_rate: "RR", rr: "RR",
+    spo2: "SpO₂",
+    oxygen_saturation: "SpO₂",
+    respiratory_rate: "RR",
+    rr: "RR",
   };
   return Object.entries(vitals)
     .filter(([, v]) => v !== null && v !== undefined && v !== "")
@@ -297,7 +294,10 @@ export default function SalesPatientDetail() {
     if (data) {
       setPatient(data as Patient);
       const draft = formStorage.read<string>(`contact_note_${data.id}`, "");
-      if (draft) { setNewNoteState(draft); setAddingNote(true); }
+      if (draft) {
+        setNewNoteState(draft);
+        setAddingNote(true);
+      }
     }
   };
 
@@ -311,12 +311,11 @@ export default function SalesPatientDetail() {
     const rows = (data ?? []) as Note[];
     const authorIds = Array.from(new Set(rows.map((r) => r.created_by).filter(Boolean))) as string[];
     if (authorIds.length) {
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", authorIds);
+      const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", authorIds);
       const map = new Map((profs ?? []).map((p: any) => [p.id, p.full_name]));
-      rows.forEach((r) => { r.author_name = r.created_by ? map.get(r.created_by) ?? null : null; });
+      rows.forEach((r) => {
+        r.author_name = r.created_by ? (map.get(r.created_by) ?? null) : null;
+      });
     }
     setNotes(rows);
   };
@@ -333,7 +332,9 @@ export default function SalesPatientDetail() {
     if (docIds.length) {
       const { data: docs } = await supabase.from("doctors").select("id, name").in("id", docIds);
       const map = new Map((docs ?? []).map((d: any) => [d.id, d.name]));
-      rows.forEach((r) => { r.doctor_name = r.doctor_id ? map.get(r.doctor_id) ?? null : null; });
+      rows.forEach((r) => {
+        r.doctor_name = r.doctor_id ? (map.get(r.doctor_id) ?? null) : null;
+      });
     }
     setAppointments(rows);
   };
@@ -342,11 +343,13 @@ export default function SalesPatientDetail() {
     if (!patientId) return;
     const { data: visits } = await supabase
       .from("visits")
-      .select(`
+      .select(
+        `
         id, visit_date, created_at, chief_complaint, vitals, status, doctor_id,
         clinical_notes(id, soap_notes, raw_transcript, audio_url, created_at),
         prescriptions(id, medications, investigations, notes, follow_up_date, pdf_url)
-      `)
+      `,
+      )
       .eq("patient_id", patientId)
       .order("visit_date", { ascending: false, nullsFirst: false });
     const rows = (visits ?? []) as any[];
@@ -374,7 +377,7 @@ export default function SalesPatientDetail() {
       vitals: r.vitals,
       status: r.status,
       doctor_id: r.doctor_id,
-      doctor_name: r.doctor_id ? docMap.get(r.doctor_id) ?? null : null,
+      doctor_name: r.doctor_id ? (docMap.get(r.doctor_id) ?? null) : null,
       clinical_notes: r.clinical_notes ?? [],
       prescriptions: r.prescriptions ?? [],
       documents: docsByVisit[r.id] ?? [],
@@ -386,7 +389,9 @@ export default function SalesPatientDetail() {
     if (!patientId) return;
     const { data } = await supabase
       .from("invoices")
-      .select("id, invoice_number, invoice_date, total_amount, paid_amount, outstanding_amount, status, line_items, notes")
+      .select(
+        "id, invoice_number, invoice_date, total_amount, paid_amount, outstanding_amount, status, line_items, notes",
+      )
       .eq("patient_id", patientId)
       .order("invoice_date", { ascending: false });
     setInvoices((data ?? []) as InvoiceRow[]);
@@ -432,7 +437,10 @@ export default function SalesPatientDetail() {
         note: newNote.trim(),
         created_by: profile.id,
       });
-      if (error) { toast.error(error.message); return; }
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
       setNewNote("");
       if (patient?.id) formStorage.clear(`contact_note_${patient.id}`);
       setAddingNote(false);
@@ -449,11 +457,11 @@ export default function SalesPatientDetail() {
     if (!patient) return;
     setStatusSaving(true);
     try {
-      const { error } = await supabase
-        .from("patients")
-        .update({ lead_status: value })
-        .eq("id", patient.id);
-      if (error) { toast.error(error.message); return; }
+      const { error } = await supabase.from("patients").update({ lead_status: value }).eq("id", patient.id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
       setPatient({ ...patient, lead_status: value });
       toast.success("Status updated");
     } catch (err: any) {
@@ -477,8 +485,8 @@ export default function SalesPatientDetail() {
     <>
       <div className="border-b bg-card">
         <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate(backTo)} aria-label="Back">
-          <ArrowLeft className="h-5 w-5" />
+          <Button variant="ghost" size="icon" onClick={() => navigate(backTo)} aria-label="Back">
+            <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="font-display text-2xl font-semibold">{patient.name}</h1>
           {patient.lead_status && (
@@ -518,10 +526,18 @@ export default function SalesPatientDetail() {
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full max-w-2xl grid-cols-4">
-            <TabsTrigger value="general"><User className="mr-1.5 h-3.5 w-3.5" /> General</TabsTrigger>
-            <TabsTrigger value="clinical"><FileText className="mr-1.5 h-3.5 w-3.5" /> Clinical Notes</TabsTrigger>
-            <TabsTrigger value="invoices"><Receipt className="mr-1.5 h-3.5 w-3.5" /> Invoices</TabsTrigger>
-            <TabsTrigger value="appointments"><Calendar className="mr-1.5 h-3.5 w-3.5" /> Appointments</TabsTrigger>
+            <TabsTrigger value="general">
+              <User className="mr-1.5 h-3.5 w-3.5" /> General
+            </TabsTrigger>
+            <TabsTrigger value="clinical">
+              <FileText className="mr-1.5 h-3.5 w-3.5" /> Clinical Notes
+            </TabsTrigger>
+            <TabsTrigger value="invoices">
+              <Receipt className="mr-1.5 h-3.5 w-3.5" /> Invoices
+            </TabsTrigger>
+            <TabsTrigger value="appointments">
+              <Calendar className="mr-1.5 h-3.5 w-3.5" /> Appointments
+            </TabsTrigger>
           </TabsList>
 
           {/* ===== GENERAL ===== */}
@@ -546,10 +562,14 @@ export default function SalesPatientDetail() {
                           onValueChange={(v) => updateStatus(v as LeadStatus)}
                           disabled={statusSaving}
                         >
-                          <SelectTrigger className="h-9"><SelectValue placeholder="Select status" /></SelectTrigger>
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
                           <SelectContent>
                             {STATUS_OPTIONS.map((o) => (
-                              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                              <SelectItem key={o.value} value={o.value}>
+                                {o.label}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -603,7 +623,9 @@ export default function SalesPatientDetail() {
 
                 <section className="rounded-2xl border bg-card p-5 shadow-card">
                   <h2 className="font-display text-base font-semibold">Emergency Contact</h2>
-                  {patient.emergency_contact_name || patient.emergency_contact_phone || patient.emergency_contact_relation ? (
+                  {patient.emergency_contact_name ||
+                  patient.emergency_contact_phone ||
+                  patient.emergency_contact_relation ? (
                     <dl className="mt-4 space-y-3 text-sm">
                       <Field label="Name" value={patient.emergency_contact_name ?? "—"} />
                       <Field label="Phone" value={patient.emergency_contact_phone ?? "—"} />
@@ -618,16 +640,40 @@ export default function SalesPatientDetail() {
                   <h2 className="font-display text-base font-semibold flex items-center gap-2">
                     <Activity className="h-4 w-4 text-muted-foreground" /> Lifestyle & Habits
                   </h2>
-                  {patient.food_habits || patient.smoking || patient.alcohol || patient.sleep_hours || patient.dinner_time ? (
+                  {patient.food_habits ||
+                  patient.smoking ||
+                  patient.alcohol ||
+                  patient.sleep_hours ||
+                  patient.dinner_time ? (
                     <dl className="mt-4 space-y-3 text-sm">
-                      <div className="flex items-center gap-2"><Utensils className="h-3.5 w-3.5 text-muted-foreground" /><Field label="Diet" value={patient.food_habits ?? "—"} /></div>
-                      <div className="flex items-center gap-2"><Cigarette className="h-3.5 w-3.5 text-muted-foreground" /><Field label="Smoking" value={patient.smoking ?? "—"} /></div>
-                      <div className="flex items-center gap-2"><Wine className="h-3.5 w-3.5 text-muted-foreground" /><Field label="Alcohol" value={patient.alcohol ?? "—"} /></div>
-                      <div className="flex items-center gap-2"><Moon className="h-3.5 w-3.5 text-muted-foreground" /><Field label="Sleep (hrs)" value={patient.sleep_hours != null ? String(patient.sleep_hours) : "—"} /></div>
-                      <div className="flex items-center gap-2"><Coffee className="h-3.5 w-3.5 text-muted-foreground" /><Field label="Dinner Time" value={patient.dinner_time ?? "—"} /></div>
+                      <div className="flex items-center gap-2">
+                        <Utensils className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Field label="Diet" value={patient.food_habits ?? "—"} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Cigarette className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Field label="Smoking" value={patient.smoking ?? "—"} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Wine className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Field label="Alcohol" value={patient.alcohol ?? "—"} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Moon className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Field
+                          label="Sleep (hrs)"
+                          value={patient.sleep_hours != null ? String(patient.sleep_hours) : "—"}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Field label="Dinner Time" value={patient.dinner_time ?? "—"} />
+                      </div>
                     </dl>
                   ) : (
-                    <p className="mt-3 text-sm text-muted-foreground italic">No lifestyle info recorded. Use "Send Form Link" to ask the patient.</p>
+                    <p className="mt-3 text-sm text-muted-foreground italic">
+                      No lifestyle info recorded. Use "Send Form Link" to ask the patient.
+                    </p>
                   )}
                 </section>
 
@@ -635,7 +681,10 @@ export default function SalesPatientDetail() {
                   <h2 className="font-display text-base font-semibold flex items-center gap-2">
                     <ClipboardList className="h-4 w-4 text-muted-foreground" /> Medical History
                   </h2>
-                  {patient.medication_history || patient.past_surgery_details || (Array.isArray(patient.allergies) && patient.allergies.length) || (Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length) ? (
+                  {patient.medication_history ||
+                  patient.past_surgery_details ||
+                  (Array.isArray(patient.allergies) && patient.allergies.length) ||
+                  (Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length) ? (
                     <dl className="mt-4 space-y-3 text-sm">
                       <Field label="Current Medications" value={patient.medication_history ?? "—"} />
                       <div className="flex items-start gap-2">
@@ -644,19 +693,28 @@ export default function SalesPatientDetail() {
                       </div>
                       <Field
                         label="Allergies"
-                        value={Array.isArray(patient.allergies) && patient.allergies.length ? patient.allergies.join(", ") : "—"}
+                        value={
+                          Array.isArray(patient.allergies) && patient.allergies.length
+                            ? patient.allergies.join(", ")
+                            : "—"
+                        }
                       />
                       <Field
                         label="Chronic Conditions"
-                        value={Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length ? patient.chronic_conditions.join(", ") : "—"}
+                        value={
+                          Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length
+                            ? patient.chronic_conditions.join(", ")
+                            : "—"
+                        }
                       />
                     </dl>
                   ) : (
-                    <p className="mt-3 text-sm text-muted-foreground italic">No medical history recorded. Use "Send Form Link" to collect it.</p>
+                    <p className="mt-3 text-sm text-muted-foreground italic">
+                      No medical history recorded. Use "Send Form Link" to collect it.
+                    </p>
                   )}
                 </section>
               </div>
-
 
               <div className="space-y-6 lg:col-span-7">
                 <section className="rounded-2xl border bg-card p-5 shadow-card">
@@ -693,7 +751,14 @@ export default function SalesPatientDetail() {
                         autoFocus
                       />
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => { setAddingNote(false); setNewNote(""); }}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setAddingNote(false);
+                            setNewNote("");
+                          }}
+                        >
                           Cancel
                         </Button>
                         <Button size="sm" onClick={saveNote} disabled={saving || !newNote.trim()}>
@@ -805,12 +870,8 @@ function ClinicalNotesTab({
   onReload?: () => void;
 }) {
   const [search, setSearch] = useState("");
-  const urlVisitId = typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search).get("visit")
-    : null;
-  const [selectedId, setSelectedId] = useState<string | null>(
-    urlVisitId ?? notes[0]?.id ?? null
-  );
+  const urlVisitId = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("visit") : null;
+  const [selectedId, setSelectedId] = useState<string | null>(urlVisitId ?? notes[0]?.id ?? null);
   const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
@@ -827,8 +888,10 @@ function ClinicalNotesTab({
     return notes.filter((v) => {
       const dateStr = fmtDateShort(v.visit_date ?? v.created_at).toLowerCase();
       const txt =
-        (v.chief_complaint ?? "") + " " +
-        (v.doctor_name ?? "") + " " +
+        (v.chief_complaint ?? "") +
+        " " +
+        (v.doctor_name ?? "") +
+        " " +
         v.clinical_notes.map((c) => (c.raw_transcript ?? "") + JSON.stringify(c.soap_notes ?? {})).join(" ");
       return dateStr.includes(q) || txt.toLowerCase().includes(q);
     });
@@ -837,14 +900,10 @@ function ClinicalNotesTab({
   const selected = notes.find((v) => v.id === selectedId) ?? null;
   const vitals = selected ? fmtVitals(selected.vitals) : [];
   const meds: any[] = selected
-    ? selected.prescriptions.flatMap((p) =>
-        Array.isArray(p.medications) ? p.medications : []
-      )
+    ? selected.prescriptions.flatMap((p) => (Array.isArray(p.medications) ? p.medications : []))
     : [];
   const investigations: any[] = selected
-    ? selected.prescriptions.flatMap((p) =>
-        Array.isArray(p.investigations) ? p.investigations : []
-      )
+    ? selected.prescriptions.flatMap((p) => (Array.isArray(p.investigations) ? p.investigations : []))
     : [];
   const rxNotes = selected?.prescriptions.map((p) => p.notes).filter(Boolean) ?? [];
   const followUps = selected?.prescriptions.map((p) => p.follow_up_date).filter(Boolean) ?? [];
@@ -897,16 +956,14 @@ function ClinicalNotesTab({
                 onClick={() => setSelectedId(v.id)}
                 className={cn(
                   "w-full text-left rounded-lg border p-3 transition hover:bg-accent",
-                  selectedId === v.id && "border-primary bg-accent"
+                  selectedId === v.id && "border-primary bg-accent",
                 )}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wide text-primary">
                     {fmtDateShort(v.visit_date ?? v.created_at)}
                   </span>
-                  {v.status && (
-                    <span className="text-[10px] uppercase text-muted-foreground">{v.status}</span>
-                  )}
+                  {v.status && <span className="text-[10px] uppercase text-muted-foreground">{v.status}</span>}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{v.doctor_name ?? "Doctor"}</p>
                 <p className="mt-1 text-sm line-clamp-2">{visitPreview(v)}</p>
@@ -928,8 +985,7 @@ function ClinicalNotesTab({
                 <h2 className="font-display text-xl font-semibold">{patientName}</h2>
                 <p className="text-xs text-muted-foreground mt-1">
                   {fmtDateShort(selected.visit_date ?? selected.created_at)} ·{" "}
-                  {new Date(selected.created_at).toLocaleTimeString()} ·{" "}
-                  {selected.doctor_name ?? "Doctor"}
+                  {new Date(selected.created_at).toLocaleTimeString()} · {selected.doctor_name ?? "Doctor"}
                 </p>
               </div>
               {editable && editVisit && (firstNote || firstRx) && (
@@ -950,9 +1006,7 @@ function ClinicalNotesTab({
 
             {vitals.length > 0 && (
               <div>
-                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">
-                  Vitals
-                </h4>
+                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">Vitals</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {vitals.map((v) => (
                     <div key={v.label} className="rounded-md border bg-background px-3 py-2">
@@ -970,9 +1024,8 @@ function ClinicalNotesTab({
               selected.clinical_notes.map((cn) => {
                 const soap = cn.soap_notes as any;
                 const templateName = soap?._template ?? null;
-                const soapKeys = soap && typeof soap === "object"
-                  ? Object.keys(soap).filter((k) => k !== "_template" && soap[k])
-                  : [];
+                const soapKeys =
+                  soap && typeof soap === "object" ? Object.keys(soap).filter((k) => k !== "_template" && soap[k]) : [];
                 return (
                   <div key={cn.id} className="space-y-3 rounded-lg border bg-background p-3">
                     {templateName && (
@@ -991,13 +1044,13 @@ function ClinicalNotesTab({
                       ))
                     ) : cn.raw_transcript ? (
                       <div>
-                        <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">Transcript</h4>
+                        <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">
+                          Transcript
+                        </h4>
                         <p className="text-sm whitespace-pre-wrap">{cn.raw_transcript}</p>
                       </div>
                     ) : null}
-                    {cn.audio_url && (
-                      <audio src={cn.audio_url} controls className="w-full" />
-                    )}
+                    {cn.audio_url && <audio src={cn.audio_url} controls className="w-full" />}
                   </div>
                 );
               })
@@ -1005,7 +1058,9 @@ function ClinicalNotesTab({
 
             {meds.length > 0 && (
               <div>
-                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">Prescription</h4>
+                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">
+                  Prescription
+                </h4>
                 <div className="rounded-lg border overflow-hidden">
                   <Table>
                     <TableHeader>
@@ -1032,9 +1087,13 @@ function ClinicalNotesTab({
                 </div>
                 {rxNotes.length > 0 && (
                   <div className="mt-2">
-                    <h5 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">Special Instructions</h5>
+                    <h5 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-1">
+                      Special Instructions
+                    </h5>
                     {rxNotes.map((n, i) => (
-                      <p key={i} className="text-sm whitespace-pre-wrap">{n}</p>
+                      <p key={i} className="text-sm whitespace-pre-wrap">
+                        {n}
+                      </p>
                     ))}
                   </div>
                 )}
@@ -1064,11 +1123,13 @@ function ClinicalNotesTab({
 
             {investigations.length > 0 && (
               <div>
-                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">Investigations</h4>
+                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">
+                  Investigations
+                </h4>
                 <ul className="list-disc pl-5 space-y-1">
                   {investigations.map((inv, i) => (
                     <li key={i} className="text-sm">
-                      {typeof inv === "string" ? inv : inv.name ?? inv.test ?? JSON.stringify(inv)}
+                      {typeof inv === "string" ? inv : (inv.name ?? inv.test ?? JSON.stringify(inv))}
                     </li>
                   ))}
                 </ul>
@@ -1077,7 +1138,9 @@ function ClinicalNotesTab({
 
             {selected.documents.length > 0 && (
               <div>
-                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">Attached Files</h4>
+                <h4 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">
+                  Attached Files
+                </h4>
                 <ul className="space-y-1">
                   {selected.documents.map((d) => (
                     <li key={d.id}>
@@ -1108,7 +1171,10 @@ function ClinicalNotesTab({
         open={editOpen}
         onClose={() => setEditOpen(false)}
         visit={editVisit}
-        onSaved={() => { setEditOpen(false); onReload?.(); }}
+        onSaved={() => {
+          setEditOpen(false);
+          onReload?.();
+        }}
       />
     </div>
   );
@@ -1131,9 +1197,7 @@ function InvoicesTab({ patientName, invoices }: { patientName: string; invoices:
       if (statusFilter !== "all" && i.status !== statusFilter) return false;
       if (!q) return true;
       return (
-        i.invoice_number.toLowerCase().includes(q) ||
-        i.invoice_date.includes(q) ||
-        i.status.toLowerCase().includes(q)
+        i.invoice_number.toLowerCase().includes(q) || i.invoice_date.includes(q) || i.status.toLowerCase().includes(q)
       );
     });
   }, [invoices, search, statusFilter]);
@@ -1155,7 +1219,9 @@ function InvoicesTab({ patientName, invoices }: { patientName: string; invoices:
           className="mb-2"
         />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="mb-3 h-9"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="mb-3 h-9">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
             <SelectItem value="paid">Paid</SelectItem>
@@ -1174,15 +1240,19 @@ function InvoicesTab({ patientName, invoices }: { patientName: string; invoices:
                 onClick={() => setSelectedId(i.id)}
                 className={cn(
                   "w-full text-left rounded-lg border p-3 transition hover:bg-accent",
-                  selectedId === i.id && "border-primary bg-accent"
+                  selectedId === i.id && "border-primary bg-accent",
                 )}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold">{i.invoice_number}</span>
-                  <span className={cn(
-                    "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
-                    INVOICE_STATUS_STYLES[i.status] ?? INVOICE_STATUS_STYLES.unpaid
-                  )}>{i.status}</span>
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
+                      INVOICE_STATUS_STYLES[i.status] ?? INVOICE_STATUS_STYLES.unpaid,
+                    )}
+                  >
+                    {i.status}
+                  </span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{fmtDateShort(i.invoice_date)}</p>
                 <p className="mt-1 text-sm font-medium">{fmtCurrency(Number(i.total_amount))}</p>
@@ -1206,13 +1276,18 @@ function InvoicesTab({ patientName, invoices }: { patientName: string; invoices:
               <div>
                 <h2 className="font-display text-xl font-semibold">{patientName}</h2>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Invoice <span className="font-medium">{selected.invoice_number}</span> · {fmtDateShort(selected.invoice_date)}
+                  Invoice <span className="font-medium">{selected.invoice_number}</span> ·{" "}
+                  {fmtDateShort(selected.invoice_date)}
                 </p>
               </div>
-              <span className={cn(
-                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase",
-                INVOICE_STATUS_STYLES[selected.status] ?? INVOICE_STATUS_STYLES.unpaid
-              )}>{selected.status}</span>
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase",
+                  INVOICE_STATUS_STYLES[selected.status] ?? INVOICE_STATUS_STYLES.unpaid,
+                )}
+              >
+                {selected.status}
+              </span>
             </div>
 
             <div className="rounded-lg border">
@@ -1227,15 +1302,25 @@ function InvoicesTab({ patientName, invoices }: { patientName: string; invoices:
                 </TableHeader>
                 <TableBody>
                   {lineItems.length === 0 ? (
-                    <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">No line items</TableCell></TableRow>
-                  ) : lineItems.map((it, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="text-sm">{it.description ?? it.name ?? "Item"}</TableCell>
-                      <TableCell className="text-sm text-right">{it.quantity ?? 1}</TableCell>
-                      <TableCell className="text-sm text-right">{fmtCurrency(Number(it.price ?? it.unit_price ?? 0))}</TableCell>
-                      <TableCell className="text-sm text-right">{fmtCurrency(Number(it.amount ?? (it.quantity ?? 1) * (it.price ?? it.unit_price ?? 0)))}</TableCell>
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+                        No line items
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    lineItems.map((it, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="text-sm">{it.description ?? it.name ?? "Item"}</TableCell>
+                        <TableCell className="text-sm text-right">{it.quantity ?? 1}</TableCell>
+                        <TableCell className="text-sm text-right">
+                          {fmtCurrency(Number(it.price ?? it.unit_price ?? 0))}
+                        </TableCell>
+                        <TableCell className="text-sm text-right">
+                          {fmtCurrency(Number(it.amount ?? (it.quantity ?? 1) * (it.price ?? it.unit_price ?? 0)))}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -1306,14 +1391,20 @@ function AppointmentsTab({
     const cancelled = appointments.filter((a) => a.status === "cancelled");
 
     switch (filter) {
-      case "upcoming": return [...todayList, ...upcoming];
-      case "past": return past;
-      case "cancelled": return cancelled;
-      default: return [...todayList, ...upcoming, ...past, ...cancelled];
+      case "upcoming":
+        return [...todayList, ...upcoming];
+      case "past":
+        return past;
+      case "cancelled":
+        return cancelled;
+      default:
+        return [...todayList, ...upcoming, ...past, ...cancelled];
     }
   }, [appointments, filter, today]);
 
-  useEffect(() => { setPage(1); }, [filter, pageSize]);
+  useEffect(() => {
+    setPage(1);
+  }, [filter, pageSize]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const pageRows = sorted.slice((page - 1) * pageSize, page * pageSize);
@@ -1337,9 +1428,14 @@ function AppointmentsTab({
     try {
       let visit = await findVisit(a.appointment_date);
       if (!visit) {
-        const { data: last } = await supabase.from("visits")
-          .select("token_number").eq("clinic_id", clinicId)
-          .eq("visit_date", a.appointment_date).order("token_number", { ascending: false }).limit(1).maybeSingle();
+        const { data: last } = await supabase
+          .from("visits")
+          .select("token_number")
+          .eq("clinic_id", clinicId)
+          .eq("visit_date", a.appointment_date)
+          .order("token_number", { ascending: false })
+          .limit(1)
+          .maybeSingle();
         const nextToken = ((last as any)?.token_number ?? 0) + 1;
         const payload: any = {
           clinic_id: clinicId,
@@ -1356,7 +1452,10 @@ function AppointmentsTab({
           payload.captured_at_reception = true;
         }
         const { data: created, error } = await supabase.from("visits").insert(payload).select("id").single();
-        if (error) { toast.error(error.message); return; }
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
         visit = { id: created!.id, status: "in_progress" };
       } else if (visit.status !== "in_progress") {
         await supabase.from("visits").update({ status: "in_progress" }).eq("id", visit.id);
@@ -1378,39 +1477,65 @@ function AppointmentsTab({
   const renderAction = (a: AppointmentRow) => {
     const status = a.status ?? "scheduled";
     if (status === "cancelled") {
-      return <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-[10px]">Cancelled</Badge>;
+      return (
+        <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-[10px]">
+          Cancelled
+        </Badge>
+      );
     }
     if (status === "completed") {
       return (
-        <Button size="sm" variant="outline" onClick={async () => {
-          const v = await findVisit(a.appointment_date);
-          if (v) {
-            const url = new URL(window.location.href);
-            url.searchParams.set("tab", "clinical-notes");
-            url.searchParams.set("visit", v.id);
-            navigate(url.pathname + url.search, { replace: true });
-          } else toast.error("No consultation found");
-        }}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={async () => {
+            const v = await findVisit(a.appointment_date);
+            if (v) {
+              const url = new URL(window.location.href);
+              url.searchParams.set("tab", "clinical");
+              url.searchParams.set("visit", v.id);
+              navigate(url.pathname + url.search, { replace: true });
+            } else toast.error("No consultation found");
+          }}
+        >
           <Eye className="mr-1 h-3 w-3" /> View Summary
         </Button>
       );
     }
     if (status === "in_progress") {
       return (
-        <Button size="sm" variant="outline" className="text-[#1D9E75] border-[#1D9E75]/40" onClick={() => continueConsultation(a)}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="text-[#1D9E75] border-[#1D9E75]/40"
+          onClick={() => continueConsultation(a)}
+        >
           <Play className="mr-1 h-3 w-3" /> Continue Consultation
         </Button>
       );
     }
     // scheduled
     if (a.appointment_date > today) {
-      return <Badge variant="outline" className="bg-info/15 text-info border-info/30 text-[10px]">Upcoming</Badge>;
+      return (
+        <Badge variant="outline" className="bg-info/15 text-info border-info/30 text-[10px]">
+          Upcoming
+        </Badge>
+      );
     }
     if (a.appointment_date < today) {
-      return <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-[10px]">Missed</Badge>;
+      return (
+        <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-[10px]">
+          Missed
+        </Badge>
+      );
     }
     return (
-      <Button size="sm" className="bg-[#1D9E75] hover:bg-[#178a66] text-white" disabled={busyId === a.id} onClick={() => setStartAppt(a)}>
+      <Button
+        size="sm"
+        className="bg-[#1D9E75] hover:bg-[#178a66] text-white"
+        disabled={busyId === a.id}
+        onClick={() => setStartAppt(a)}
+      >
         <ArrowRight className="mr-1 h-3 w-3" /> Start Consultation
       </Button>
     );
@@ -1426,7 +1551,7 @@ function AppointmentsTab({
               onClick={() => setFilter(f)}
               className={cn(
                 "px-3 py-1.5 text-xs font-medium rounded-md capitalize transition",
-                filter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
+                filter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent",
               )}
             >
               {f}
@@ -1456,23 +1581,31 @@ function AppointmentsTab({
                   No appointments found for this patient
                 </TableCell>
               </TableRow>
-            ) : pageRows.map((a) => (
-              <TableRow key={a.id}>
-                <TableCell className="text-sm">
-                  {fmtDateShort(a.appointment_date)}
-                  {a.appointment_time && <span className="text-muted-foreground"> · {a.appointment_time.slice(0, 5)}</span>}
-                </TableCell>
-                <TableCell className="text-sm">{a.doctor_name ?? "—"}</TableCell>
-                <TableCell className="text-sm">{a.reason ?? "Consultation"}</TableCell>
-                <TableCell>
-                  <span className={cn(
-                    "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
-                    APPT_STATUS_STYLES[a.status ?? "scheduled"] ?? APPT_STATUS_STYLES.scheduled
-                  )}>{a.status ?? "scheduled"}</span>
-                </TableCell>
-                <TableCell className="text-right">{renderAction(a)}</TableCell>
-              </TableRow>
-            ))}
+            ) : (
+              pageRows.map((a) => (
+                <TableRow key={a.id}>
+                  <TableCell className="text-sm">
+                    {fmtDateShort(a.appointment_date)}
+                    {a.appointment_time && (
+                      <span className="text-muted-foreground"> · {a.appointment_time.slice(0, 5)}</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">{a.doctor_name ?? "—"}</TableCell>
+                  <TableCell className="text-sm">{a.reason ?? "Consultation"}</TableCell>
+                  <TableCell>
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
+                        APPT_STATUS_STYLES[a.status ?? "scheduled"] ?? APPT_STATUS_STYLES.scheduled,
+                      )}
+                    >
+                      {a.status ?? "scheduled"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">{renderAction(a)}</TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
@@ -1481,9 +1614,15 @@ function AppointmentsTab({
         <div className="flex items-center gap-2">
           <span className="text-xs">Rows per page</span>
           <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-            <SelectTrigger className="w-[80px] h-8"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[80px] h-8">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
-              {[10, 20, 50].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+              {[10, 20, 50].map((n) => (
+                <SelectItem key={n} value={String(n)}>
+                  {n}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <span className="text-muted-foreground ml-2">
@@ -1494,9 +1633,15 @@ function AppointmentsTab({
         </div>
         {totalPages > 1 && (
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>Prev</Button>
-            <span className="px-2 py-1">Page {page} of {totalPages}</span>
-            <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage(page + 1)}>Next</Button>
+            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>
+              Prev
+            </Button>
+            <span className="px-2 py-1">
+              Page {page} of {totalPages}
+            </span>
+            <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
+              Next
+            </Button>
           </div>
         )}
       </div>
@@ -1514,4 +1659,3 @@ function AppointmentsTab({
     </div>
   );
 }
-
