@@ -53,6 +53,9 @@ type Exception = {
   type: "leave" | "holiday" | "emergency";
   reason: string | null;
   affects_appointments: boolean;
+  is_full_day?: boolean | null;
+  start_time?: string | null;
+  end_time?: string | null;
 };
 type ConflictAppt = {
   id: string;
