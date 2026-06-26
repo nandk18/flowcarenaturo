@@ -110,8 +110,7 @@ export default function CallTaskPage() {
 
   const markCalled = async (a: TomorrowAppt) => {
     if (!clinicId) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id ?? null;
+    const userId = await getProfileId();
     const typed = noteMap[a.patient_id]?.trim();
     const defaultNote = `Reminder call made for appointment on ${a.appointment_time ? format(addDays(new Date(), 1), "dd MMM yyyy") + " at " + a.appointment_time.slice(0, 5) : format(addDays(new Date(), 1), "dd MMM yyyy")} with ${a.doctor?.name ?? "doctor"}`;
     const note = typed && typed.length > 0 ? typed : defaultNote;
