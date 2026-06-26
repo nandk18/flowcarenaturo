@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
+import { getProfileId } from "@/utils/getProfileId";
 
 type Row = Record<string, any>;
 type ValidRow = {
