@@ -70,6 +70,10 @@ export default function BookAppointmentModal({
 
   const [bookedAppt, setBookedAppt] = useState<{ id: string; patientName: string; time: string; patientId: string; doctorId: string } | null>(null);
 
+  type ServiceOption = { id: string; name: string; amount: number };
+  const [services, setServices] = useState<ServiceOption[]>([]);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+
   // Reset when opened
   useEffect(() => {
     if (!open) return;
@@ -87,6 +91,7 @@ export default function BookAppointmentModal({
     setReason(restored?.reason ?? "");
     setNotes(restored?.notes ?? "");
     setPatientSearch("");
+    setSelectedServiceIds([]);
   }, [open, initialPatientId, initialDoctorId, initialDate, initialTime, lockPatientProp]);
 
   // Persist draft on every relevant change while the modal is open.
@@ -114,6 +119,29 @@ export default function BookAppointmentModal({
         if (!doctorId && list[0]) setDoctorId(list[0].id);
       });
   }, [open, profile?.clinic_id]);
+
+  // Load services
+  useEffect(() => {
+    if (!open || !profile?.clinic_id) return;
+    supabase
+      .from("invoice_services")
+      .select("id, name, amount, is_default")
+      .eq("clinic_id", profile.clinic_id)
+      .eq("is_active", true)
+      .order("is_default", { ascending: false })
+      .order("name")
+      .then(({ data }) => {
+        const list = (data ?? []) as any[];
+        setServices(list.map((s) => ({ id: s.id, name: s.name, amount: Number(s.amount) })));
+        // Preselect default service if none chosen yet
+        setSelectedServiceIds((prev) => {
+          if (prev.length) return prev;
+          const def = list.find((s) => s.is_default);
+          return def ? [def.id] : [];
+        });
+      });
+  }, [open, profile?.clinic_id]);
+
 
   // Patient search
   useEffect(() => {
@@ -200,6 +228,16 @@ export default function BookAppointmentModal({
         created_by: profile.user_id,
       }).select("id").single();
       if (error) throw error;
+      // Save selected services for this appointment
+      if (selectedServiceIds.length && data?.id) {
+        await supabase.from("appointment_services").insert(
+          selectedServiceIds.map((sid) => ({
+            clinic_id: profile.clinic_id,
+            appointment_id: data.id,
+            service_id: sid,
+          })),
+        );
+      }
       await supabase.from("patients").update({ lead_status: "current" }).eq("id", patientId);
       toast.success("Appointment booked");
       const today = format(new Date(), "yyyy-MM-dd");
@@ -361,6 +399,38 @@ export default function BookAppointmentModal({
               <Label>Reason</Label>
               <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Chief reason for visit" />
             </div>
+
+            {services.length > 0 && (
+              <div className="space-y-2">
+                <Label>Services</Label>
+                <div className="flex flex-wrap gap-2 rounded-md border p-2">
+                  {services.map((s) => {
+                    const checked = selectedServiceIds.includes(s.id);
+                    return (
+                      <button
+                        type="button"
+                        key={s.id}
+                        onClick={() =>
+                          setSelectedServiceIds((prev) =>
+                            checked ? prev.filter((x) => x !== s.id) : [...prev, s.id],
+                          )
+                        }
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-xs transition-colors",
+                          checked
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-background hover:bg-muted",
+                        )}
+                      >
+                        {checked && <Check className="mr-1 inline h-3 w-3" />}
+                        {s.name}
+                        <span className="ml-1 text-muted-foreground">₹{s.amount}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Notes</Label>
               <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional notes" />

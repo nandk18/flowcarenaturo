@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Receipt } from "lucide-react";
+import ServicePicker, { type ServicePick } from "./ServicePicker";
 
 type LineItem = { description: string; quantity: number; unit_price: number };
 
@@ -48,6 +49,7 @@ export default function CreateInvoiceModal({
   const [gstPercentage, setGstPercentage] = useState(clinicGstPercentage);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [servicePickerOpen, setServicePickerOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -219,10 +221,22 @@ export default function CreateInvoiceModal({
               </div>
             ))}
           </div>
-          <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => addItem()}>
-            <Plus className="w-3 h-3 mr-1" /> Add Item
-          </Button>
+          <div className="mt-2 flex gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => addItem()}>
+              <Plus className="w-3 h-3 mr-1" /> Add Item
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setServicePickerOpen(true)}>
+              <Receipt className="w-3 h-3 mr-1" /> Add Service
+            </Button>
+          </div>
         </div>
+
+        <ServicePicker
+          open={servicePickerOpen}
+          onClose={() => setServicePickerOpen(false)}
+          clinicId={clinicId}
+          onPick={(s: ServicePick) => addItem({ description: s.name, quantity: 1, unit_price: Number(s.amount) })}
+        />
 
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
