@@ -35,21 +35,27 @@ type DisplayStatus = "waiting" | "scheduled" | "in_progress" | "completed" | "ca
 
 const statusStyle = (s: DisplayStatus) => {
   switch (s) {
-    case "completed": return "bg-success/15 text-success border-success/30";
-    case "in_progress": return "bg-[#1D9E75]/15 text-[#1D9E75] border-[#1D9E75]/30";
-    case "cancelled": return "bg-muted text-muted-foreground border-border";
-    case "waiting": return "bg-warning/15 text-warning border-warning/30";
-    case "scheduled": return "bg-info/15 text-info border-info/30";
+    case "completed":
+      return "bg-success/15 text-success border-success/30";
+    case "in_progress":
+      return "bg-[#1D9E75]/15 text-[#1D9E75] border-[#1D9E75]/30";
+    case "cancelled":
+      return "bg-muted text-muted-foreground border-border";
+    case "waiting":
+      return "bg-warning/15 text-warning border-warning/30";
+    case "scheduled":
+      return "bg-info/15 text-info border-info/30";
   }
 };
 
-const statusLabel = (s: DisplayStatus) => ({
-  waiting: "Waiting",
-  scheduled: "Scheduled",
-  in_progress: "In Progress",
-  completed: "Completed",
-  cancelled: "Cancelled",
-}[s]);
+const statusLabel = (s: DisplayStatus) =>
+  ({
+    waiting: "Waiting",
+    scheduled: "Scheduled",
+    in_progress: "In Progress",
+    completed: "Completed",
+    cancelled: "Cancelled",
+  })[s];
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
@@ -65,38 +71,53 @@ export default function AdminDashboard() {
   const fetchAll = useCallback(async () => {
     if (!profile?.clinic_id) return;
     const [a, v, p] = await Promise.all([
-      supabase.from("appointments")
+      supabase
+        .from("appointments")
         .select("id, appointment_time, status, reason, patient_id, doctor_id, patients(id, name), doctors(name)")
         .eq("clinic_id", profile.clinic_id)
         .eq("appointment_date", today)
         .order("appointment_time"),
-      supabase.from("visits")
+      supabase
+        .from("visits")
         .select("id, patient_id, status")
         .eq("clinic_id", profile.clinic_id)
         .eq("visit_date", today),
-      supabase.from("patients")
-        .select("id", { count: "exact", head: true })
-        .eq("clinic_id", profile.clinic_id),
+      supabase.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", profile.clinic_id),
     ]);
-    setAppts((a.data ?? []).map((x: any) => ({
-      ...x,
-      patient: Array.isArray(x.patients) ? x.patients[0] : x.patients,
-      doctor: Array.isArray(x.doctors) ? x.doctors[0] : x.doctors,
-    })));
+    setAppts(
+      (a.data ?? []).map((x: any) => ({
+        ...x,
+        patient: Array.isArray(x.patients) ? x.patients[0] : x.patients,
+        doctor: Array.isArray(x.doctors) ? x.doctors[0] : x.doctors,
+      })),
+    );
     setVisitsToday((v.data ?? []) as Visit[]);
     setTotalPatients(p.count ?? 0);
     setLoading(false);
   }, [profile?.clinic_id, today]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   useEffect(() => {
     if (!profile?.clinic_id) return;
-    const ch = supabase.channel("dash-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "appointments", filter: `clinic_id=eq.${profile.clinic_id}` }, () => fetchAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "visits", filter: `clinic_id=eq.${profile.clinic_id}` }, () => fetchAll())
+    const ch = supabase
+      .channel("dash-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "appointments", filter: `clinic_id=eq.${profile.clinic_id}` },
+        () => fetchAll(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "visits", filter: `clinic_id=eq.${profile.clinic_id}` },
+        () => fetchAll(),
+      )
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      supabase.removeChannel(ch);
+    };
   }, [profile?.clinic_id, fetchAll]);
 
   const completedCount = appts.filter((a) => a.status === "completed").length;
@@ -120,9 +141,14 @@ export default function AdminDashboard() {
     if (!profile?.clinic_id) return;
     let visit = visitsToday.find((v) => v.patient_id === appt.patient_id);
     if (!visit) {
-      const { data: last } = await supabase.from("visits")
-        .select("token_number").eq("clinic_id", profile.clinic_id)
-        .eq("visit_date", today).order("token_number", { ascending: false }).limit(1).maybeSingle();
+      const { data: last } = await supabase
+        .from("visits")
+        .select("token_number")
+        .eq("clinic_id", profile.clinic_id)
+        .eq("visit_date", today)
+        .order("token_number", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       const nextToken = ((last as any)?.token_number ?? 0) + 1;
       const payload: any = {
         clinic_id: profile.clinic_id,
@@ -152,7 +178,7 @@ export default function AdminDashboard() {
     const display = getDisplay(appt);
     if (display === "completed") {
       const v = visitsToday.find((x) => x.patient_id === appt.patient_id);
-      if (v) navigate(`/patients/${appt.patient_id}?tab=clinical-notes&visit=${v.id}`);
+      if (v) navigate(`/patients/${appt.patient_id}?tab=clinical&visit=${v.id}`);
       return;
     }
     if (display === "in_progress") {
@@ -198,7 +224,6 @@ export default function AdminDashboard() {
         onBook={() => setBookOpen(true)}
       />
 
-
       <BookAppointmentModal
         open={bookOpen}
         onClose={() => setBookOpen(false)}
@@ -239,7 +264,11 @@ function StatCard({ icon: Icon, label, value, color }: { icon: any; label: strin
 }
 
 function ConsultationTabs({
-  appts, loading, getDisplay, handleAction, onBook,
+  appts,
+  loading,
+  getDisplay,
+  handleAction,
+  onBook,
 }: {
   appts: Appt[];
   loading: boolean;
@@ -265,19 +294,25 @@ function ConsultationTabs({
       </Tabs>
 
       {loading ? (
-        <div className="space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />)}</div>
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
+          ))}
+        </div>
       ) : list.length === 0 ? (
-        <Card className="shadow-card"><CardContent className="flex flex-col items-center justify-center py-16">
-          <Stethoscope className="mb-4 h-16 w-16 text-muted-foreground/20" />
-          <p className="text-sm text-muted-foreground">
-            {tab === "active" ? "No active consultations" : "No completed consultations today"}
-          </p>
-          {tab === "active" && (
-            <Button variant="outline" className="mt-4" onClick={onBook}>
-              <Plus className="mr-1 h-4 w-4" /> Book Appointment
-            </Button>
-          )}
-        </CardContent></Card>
+        <Card className="shadow-card">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <Stethoscope className="mb-4 h-16 w-16 text-muted-foreground/20" />
+            <p className="text-sm text-muted-foreground">
+              {tab === "active" ? "No active consultations" : "No completed consultations today"}
+            </p>
+            {tab === "active" && (
+              <Button variant="outline" className="mt-4" onClick={onBook}>
+                <Plus className="mr-1 h-4 w-4" /> Book Appointment
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-2">
           {list.map((appt) => {
@@ -285,11 +320,19 @@ function ConsultationTabs({
             return (
               <Card key={appt.id} className="shadow-card">
                 <CardContent className="flex items-center gap-3 p-3">
-                  <span className="font-mono text-xs font-bold text-primary w-14">{appt.appointment_time?.substring(0, 5)}</span>
+                  <span className="font-mono text-xs font-bold text-primary w-14">
+                    {appt.appointment_time?.substring(0, 5)}
+                  </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      {appt.patient && <PatientLink patientId={appt.patient.id} className="truncate">{appt.patient.name}</PatientLink>}
-                      <Badge variant="outline" className={`text-[10px] ${statusStyle(display)}`}>{statusLabel(display)}</Badge>
+                      {appt.patient && (
+                        <PatientLink patientId={appt.patient.id} className="truncate">
+                          {appt.patient.name}
+                        </PatientLink>
+                      )}
+                      <Badge variant="outline" className={`text-[10px] ${statusStyle(display)}`}>
+                        {statusLabel(display)}
+                      </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {formatDoctorName(appt.doctor?.name)}
@@ -318,4 +361,3 @@ function ConsultationTabs({
     </>
   );
 }
-
