@@ -18,6 +18,7 @@ import { openPrescription } from "@/lib/prescriptionUtils";
 import { useAuditLog, AUDIT_ACTIONS } from "@/hooks/useAuditLog";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 import { openWhatsApp } from "@/lib/whatsapp";
+import { buildMessage } from "@/lib/messageTemplates";
 import { getProfileId } from "@/utils/getProfileId";
 import PatientDocumentsCard from "@/components/patient/PatientDocumentsCard";
 
@@ -42,7 +43,7 @@ export default function PatientDetailPage() {
   const { patientId } = useParams<{ patientId: string }>();
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { doctor } = useClinic();
+  const { doctor, clinic } = useClinic();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [visits, setVisits] = useState<HistoryVisit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +74,11 @@ export default function PatientDetailPage() {
       } as any);
       if (error) throw error;
       const url = `${window.location.origin}/patient-form/${token}`;
-      const msg = `Hi ${patient.name}, please fill in your details for your upcoming visit: ${url}\n\nThis link is valid for 7 days.`;
+      const msg = await buildMessage(profile.clinic_id, "patient_form_link", {
+        patient_name: patient.name,
+        clinic_name: clinic?.name ?? "our clinic",
+        form_link: url,
+      });
       if (patient.phone) {
         openWhatsApp(patient.phone, msg);
       } else {

@@ -55,6 +55,7 @@ const NAV: ShellNavGroup[] = [
     label: "Clinical",
     items: [
       { to: "/settings/templates", icon: FileText, label: "Templates" },
+      { to: "/settings/message-templates", icon: MessageSquare, label: "Message Templates" },
       { to: "/settings/opening-checklist", icon: Sun, label: "Opening Checklist" },
       { to: "/settings/closing-checklist", icon: Moon, label: "Closing Checklist" },
     ],
