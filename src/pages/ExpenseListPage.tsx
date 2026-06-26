@@ -17,6 +17,7 @@ import { Link } from "react-router-dom";
 import { useUrlState } from "@/hooks/useUrlState";
 import { usePersistedForm } from "@/hooks/usePersistedForm";
 import RestoreBanner from "@/components/RestoreBanner";
+import { getProfileId } from "@/utils/getProfileId";
 
 type Expense = {
   id: string;
