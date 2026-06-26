@@ -4,12 +4,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 
 export type CheckInData = {
   chief_complaint: string;
-  lifestyle?: string | null;
   height_cm?: number | null;
   weight_kg?: number | null;
 };
@@ -23,17 +21,14 @@ type Props = {
   onConfirm: (data: CheckInData | null) => Promise<void> | void;
 };
 
-const LIFESTYLE_OPTS = ["Sedentary", "Lightly Active", "Moderately Active", "Very Active", "Athlete"];
-
 export default function CheckInModal({ open, patientName, appointmentTime, onClose, onConfirm }: Props) {
   const [complaint, setComplaint] = useState("");
-  const [lifestyle, setLifestyle] = useState<string>("");
   const [height, setHeight] = useState<string>("");
   const [weight, setWeight] = useState<string>("");
   const [busy, setBusy] = useState(false);
 
   const reset = () => {
-    setComplaint(""); setLifestyle(""); setHeight(""); setWeight("");
+    setComplaint(""); setHeight(""); setWeight("");
   };
 
   const handleSkip = async () => {
@@ -47,7 +42,6 @@ export default function CheckInModal({ open, patientName, appointmentTime, onClo
     try {
       await onConfirm({
         chief_complaint: complaint.trim(),
-        lifestyle: lifestyle || null,
         height_cm: height ? Number(height) : null,
         weight_kg: weight ? Number(weight) : null,
       });
@@ -74,16 +68,6 @@ export default function CheckInModal({ open, patientName, appointmentTime, onClo
               onChange={(e) => setComplaint(e.target.value)}
               placeholder="What brings you in today?"
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Lifestyle</Label>
-            <Select value={lifestyle} onValueChange={setLifestyle}>
-              <SelectTrigger><SelectValue placeholder="Select lifestyle" /></SelectTrigger>
-              <SelectContent>
-                {LIFESTYLE_OPTS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
