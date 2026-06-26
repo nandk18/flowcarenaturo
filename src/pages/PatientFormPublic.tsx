@@ -12,13 +12,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Upload, FileText, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   normalizeAlcohol,
   normalizeSmoking,
   normalizeFoodHabits,
 } from "@/lib/lifestyleNormalize";
+import {
+  DOCUMENT_CATEGORIES,
+  DocumentCategory,
+  MAX_PUBLIC_DOC_SIZE_MB,
+  MAX_PUBLIC_DOC_COUNT,
+  formatFileSize,
+} from "@/lib/documentCategories";
+
+const PUBLIC_DOC_MIME = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(",")[1] || "");
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 const ALCOHOL_OPTIONS = [
   { value: "none", label: "None / Never" },
@@ -47,6 +66,28 @@ export default function PatientFormPublic() {
   const [clinic, setClinic] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [docs, setDocs] = useState<{ file: File; category: DocumentCategory }[]>([]);
+
+  const addDocs = (files: FileList | null) => {
+    if (!files) return;
+    const next = [...docs];
+    for (const f of Array.from(files)) {
+      if (next.length >= MAX_PUBLIC_DOC_COUNT) {
+        toast.error(`Max ${MAX_PUBLIC_DOC_COUNT} files`);
+        break;
+      }
+      if (!PUBLIC_DOC_MIME.includes(f.type)) {
+        toast.error(`${f.name}: only PDF, JPG, PNG allowed`);
+        continue;
+      }
+      if (f.size > MAX_PUBLIC_DOC_SIZE_MB * 1024 * 1024) {
+        toast.error(`${f.name} exceeds ${MAX_PUBLIC_DOC_SIZE_MB}MB`);
+        continue;
+      }
+      next.push({ file: f, category: "Medical Report" });
+    }
+    setDocs(next);
+  };
 
   useEffect(() => {
     (async () => {
@@ -133,8 +174,27 @@ export default function PatientFormPublic() {
     if (smk === null) delete updates.smoking; else updates.smoking = smk;
     if (food === null) delete updates.food_habits; else updates.food_habits = food;
 
+    // Encode documents as base64
+    let documents: any[] = [];
+    if (docs.length > 0) {
+      try {
+        documents = await Promise.all(
+          docs.map(async (d) => ({
+            name: d.file.name,
+            type: d.file.type,
+            category: d.category,
+            dataBase64: await fileToBase64(d.file),
+          })),
+        );
+      } catch {
+        toast.error("Failed to read files");
+        setSubmitting(false);
+        return;
+      }
+    }
+
     const { data, error } = await supabase.functions.invoke("submit-patient-form", {
-      body: { token, updates },
+      body: { token, updates, documents },
     });
     if (error || !data || data.error || data.success !== true) {
       toast.error(data?.error === "invalid_or_expired"
@@ -253,6 +313,51 @@ export default function PatientFormPublic() {
             label="Past Surgery Details"
             defaultValue={patient.past_surgery_details}
           />
+
+          <h2 className="font-display text-lg font-semibold pt-4">Upload Your Documents (Optional)</h2>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Medical reports, prescriptions, or any relevant documents. PDF/JPG/PNG, max {MAX_PUBLIC_DOC_SIZE_MB}MB each, up to {MAX_PUBLIC_DOC_COUNT} files.
+          </p>
+          <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/30 p-6 cursor-pointer hover:border-muted-foreground/50">
+            <Upload className="h-7 w-7 text-muted-foreground mb-1.5" />
+            <span className="text-sm font-medium">Tap to choose files</span>
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png"
+              className="hidden"
+              onChange={(e) => { addDocs(e.target.files); e.target.value = ""; }}
+              disabled={docs.length >= MAX_PUBLIC_DOC_COUNT}
+            />
+          </label>
+          {docs.length > 0 && (
+            <div className="space-y-2">
+              {docs.map((d, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-lg border bg-muted/30 p-2">
+                  <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm truncate">{d.file.name}</p>
+                    <p className="text-xs text-muted-foreground">{formatFileSize(d.file.size)}</p>
+                  </div>
+                  <select
+                    value={d.category}
+                    onChange={(e) => setDocs((s) => s.map((x, idx) => idx === i ? { ...x, category: e.target.value as DocumentCategory } : x))}
+                    className="h-8 rounded-md border bg-background px-2 text-xs"
+                  >
+                    {DOCUMENT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setDocs((s) => s.filter((_, idx) => idx !== i))}
+                    className="p-1 hover:bg-muted rounded"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              <Badge variant="outline" className="text-xs">{docs.length} / {MAX_PUBLIC_DOC_COUNT} files</Badge>
+            </div>
+          )}
 
           <Button type="submit" disabled={submitting} className="w-full" size="lg">
             {submitting ? "Saving..." : "Save My Details"}

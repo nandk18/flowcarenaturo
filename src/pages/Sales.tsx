@@ -8,6 +8,7 @@ import { useUrlState } from "@/hooks/useUrlState";
 import { usePersistedForm } from "@/hooks/usePersistedForm";
 import { useUnsavedChangesPrompt } from "@/hooks/useUnsavedChangesPrompt";
 import RestoreBanner from "@/components/RestoreBanner";
+import PatientDocumentsCard from "@/components/patient/PatientDocumentsCard";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -487,6 +488,15 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
           <Textarea id="surgery" rows={2} value={pastSurgery} onChange={(e) => setPastSurgery(e.target.value)} />
         </div>
       </div>
+
+      {isEdit && initial && (
+        <PatientDocumentsCard patientId={initial.id} clinicId={clinicId} />
+      )}
+      {!isEdit && (
+        <div className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground">
+          <strong className="text-foreground">Documents</strong> — save the patient first, then upload medical reports, prescriptions, and other documents from the patient profile.
+        </div>
+      )}
 
       <div className="flex justify-end">
         <Button type="submit" disabled={submitting}>
