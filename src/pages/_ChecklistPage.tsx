@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { getProfileId } from "@/utils/getProfileId";
 
 type Item = {
   id: string;
@@ -85,7 +86,7 @@ export default function ChecklistPage({
     const cur = logs[item.id];
     const next = !cur?.is_checked;
     const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id ?? null;
+    const userId = await getProfileId();
 
     if (cur) {
       const { error } = await supabase

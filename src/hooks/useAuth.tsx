@@ -2,6 +2,7 @@ import { useState, useEffect, useContext, createContext, ReactNode, useRef } fro
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { clearAllPersistedState } from "@/lib/persistedState";
+import { clearProfileCache } from "@/utils/getProfileId";
 
 type UserProfile = {
   id: string;
@@ -108,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     clearAllPersistedState();
+    clearProfileCache();
     await supabase.auth.signOut();
     setSession(null);
     setProfile(null);

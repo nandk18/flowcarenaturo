@@ -64,6 +64,7 @@ import { LeadForm } from "./Sales";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 import { openWhatsApp } from "@/lib/whatsapp";
+import { getProfileId } from "@/utils/getProfileId";
 import CheckInModal, { type CheckInData } from "@/components/queue/CheckInModal";
 import { ArrowRight, Play, Eye } from "lucide-react";
 
@@ -264,12 +265,14 @@ export default function SalesPatientDetail() {
       const token = crypto.randomUUID().replace(/-/g, "");
       const expires = new Date();
       expires.setDate(expires.getDate() + 7);
+      const profileId = await getProfileId();
       const { error } = await supabase.from("patient_form_tokens").insert({
         clinic_id: patient.clinic_id,
         patient_id: patient.id,
         token,
         expires_at: expires.toISOString(),
         is_active: true,
+        created_by: profileId,
       } as any);
       if (error) throw error;
       const url = `${window.location.origin}/patient-form/${token}`;

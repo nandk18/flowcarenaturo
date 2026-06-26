@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
+import { getProfileId } from "@/utils/getProfileId";
 
 type Row = Record<string, any>;
 type ValidRow = {
@@ -292,14 +293,12 @@ export default function PatientImportPage() {
     }
     setStarting(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const profileId = await getProfileId();
       const { data: job, error } = await supabase
         .from("import_jobs")
         .insert({
           clinic_id: profile.clinic_id,
-          created_by: user?.id ?? null,
+          created_by: profileId,
           status: "processing",
           file_name: fileName,
           total_rows: validRows.length,

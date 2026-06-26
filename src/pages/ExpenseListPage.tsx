@@ -17,6 +17,7 @@ import { Link } from "react-router-dom";
 import { useUrlState } from "@/hooks/useUrlState";
 import { usePersistedForm } from "@/hooks/usePersistedForm";
 import RestoreBanner from "@/components/RestoreBanner";
+import { getProfileId } from "@/utils/getProfileId";
 
 type Expense = {
   id: string;
@@ -281,8 +282,7 @@ function ExpenseModal({
     if (!amount || isNaN(Number(amount))) { toast.error("Amount required"); return; }
     if (!category) { toast.error("Category required"); return; }
     setBusy(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id ?? null;
+    const userId = await getProfileId();
     const payload = {
       clinic_id: clinicId,
       title: title.trim(),
