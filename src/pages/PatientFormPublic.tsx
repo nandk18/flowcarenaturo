@@ -131,12 +131,13 @@ export default function PatientFormPublic() {
     if (smk === null) delete updates.smoking; else updates.smoking = smk;
     if (food === null) delete updates.food_habits; else updates.food_habits = food;
 
-    const { data, error } = await (supabase as any).rpc("complete_patient_form", {
-      p_token: token,
-      p_updates: updates,
+    const { data, error } = await supabase.functions.invoke("submit-patient-form", {
+      body: { token, updates },
     });
-    if (error || data === false) {
-      toast.error(error?.message ?? "Failed to submit. Link may be expired.");
+    if (error || !data || data.error || data.success !== true) {
+      toast.error(data?.error === "invalid_or_expired"
+        ? "This link is invalid or has expired."
+        : (error?.message ?? data?.error ?? "Failed to submit."));
       setSubmitting(false);
       return;
     }
