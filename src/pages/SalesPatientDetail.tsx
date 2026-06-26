@@ -41,6 +41,7 @@ import { LeadForm } from "./Sales";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 import { openWhatsApp } from "@/lib/whatsapp";
+import { buildMessage } from "@/lib/messageTemplates";
 import { getProfileId } from "@/utils/getProfileId";
 import CheckInModal, { type CheckInData } from "@/components/queue/CheckInModal";
 import { ArrowRight, Play, Eye } from "lucide-react";
@@ -273,7 +274,13 @@ export default function SalesPatientDetail() {
       } as any);
       if (error) throw error;
       const url = `${window.location.origin}/patient-form/${token}`;
-      const msg = `Hi ${patient.name}, please fill in your details for your upcoming visit: ${url}\n\nThis link is valid for 7 days.`;
+      const { data: clinicRow } = await supabase
+        .from("clinics").select("name").eq("id", patient.clinic_id).maybeSingle();
+      const msg = await buildMessage(patient.clinic_id, "patient_form_link", {
+        patient_name: patient.name,
+        clinic_name: clinicRow?.name ?? "our clinic",
+        form_link: url,
+      });
       if (patient.phone) {
         openWhatsApp(patient.phone, msg);
         toast.success("WhatsApp opened with form link");
