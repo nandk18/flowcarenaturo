@@ -254,7 +254,7 @@ function ExpenseModal({
   const DEFAULTS = {
     title: "",
     category: "",
-    paymentType: "cash" as "cash" | "upi",
+    paymentType: "cash" as "cash" | "upi" | "petty_cash",
     amount: "",
     date: format(new Date(), "yyyy-MM-dd"),
     notes: "",
@@ -290,12 +290,13 @@ function ExpenseModal({
     if (!category) { toast.error("Category required"); return; }
     setBusy(true);
     const userId = await getProfileId();
+    const newAmount = Number(amount);
     const payload = {
       clinic_id: clinicId,
       title: title.trim(),
       category,
       payment_type: paymentType,
-      amount: Number(amount),
+      amount: newAmount,
       expense_date: date,
       notes: notes.trim() || null,
       created_by: userId,
@@ -303,6 +304,15 @@ function ExpenseModal({
     const res = initial
       ? await supabase.from("expense_list").update(payload).eq("id", initial.id)
       : await supabase.from("expense_list").insert(payload);
+    if (!res.error) {
+      // Adjust petty cash balance: refund previous if it was petty_cash, then deduct new
+      const prevPetty = initial?.payment_type === "petty_cash" ? Number(initial.amount) || 0 : 0;
+      const nextPetty = paymentType === "petty_cash" ? newAmount : 0;
+      const delta = prevPetty - nextPetty;
+      if (delta !== 0) {
+        await supabase.rpc("adjust_petty_cash", { p_clinic_id: clinicId, p_delta: delta });
+      }
+    }
     setBusy(false);
     if (res.error) { toast.error(res.error.message); return; }
     clearSaved();
@@ -338,6 +348,7 @@ function ExpenseModal({
                 <SelectContent>
                   <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="petty_cash">Petty Cash</SelectItem>
                 </SelectContent>
               </Select>
             </div>
