@@ -20,6 +20,8 @@ import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { buildMessage } from "@/lib/messageTemplates";
 import { getProfileId } from "@/utils/getProfileId";
+import { createShortLink } from "@/utils/createShortLink";
+
 import PatientDocumentsCard from "@/components/patient/PatientDocumentsCard";
 
 type Patient = {
