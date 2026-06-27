@@ -50,6 +50,8 @@ import SecurityPage from "./pages/SecurityPage";
 import BillingConfigPage from "./pages/BillingConfigPage";
 import InvoiceDetailPage from "./pages/InvoiceDetailPage";
 import PublicInvoiceViewer from "./pages/PublicInvoiceViewer";
+import ShortLinkRedirect from "./pages/ShortLinkRedirect";
+
 import NotFound from "./pages/NotFound";
 import CookieConsent from "./components/CookieConsent";
 import TestWhatsApp from "./pages/__TestWhatsApp";
