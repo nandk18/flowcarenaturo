@@ -558,6 +558,8 @@ export type Database = {
           gst_percentage: number | null
           id: string
           invoice_counter: number | null
+          invoice_footer_note: string | null
+          invoice_header_note: string | null
           invoice_prefix: string | null
           letterhead_url: string | null
           logo_url: string | null
@@ -566,6 +568,7 @@ export type Database = {
           phone: string | null
           prescription_template: string | null
           regional_language: string | null
+          show_logo_on_invoice: boolean
           website: string | null
         }
         Insert: {
@@ -576,6 +579,8 @@ export type Database = {
           gst_percentage?: number | null
           id?: string
           invoice_counter?: number | null
+          invoice_footer_note?: string | null
+          invoice_header_note?: string | null
           invoice_prefix?: string | null
           letterhead_url?: string | null
           logo_url?: string | null
@@ -584,6 +589,7 @@ export type Database = {
           phone?: string | null
           prescription_template?: string | null
           regional_language?: string | null
+          show_logo_on_invoice?: boolean
           website?: string | null
         }
         Update: {
@@ -594,6 +600,8 @@ export type Database = {
           gst_percentage?: number | null
           id?: string
           invoice_counter?: number | null
+          invoice_footer_note?: string | null
+          invoice_header_note?: string | null
           invoice_prefix?: string | null
           letterhead_url?: string | null
           logo_url?: string | null
@@ -602,6 +610,7 @@ export type Database = {
           phone?: string | null
           prescription_template?: string | null
           regional_language?: string | null
+          show_logo_on_invoice?: boolean
           website?: string | null
         }
         Relationships: []
@@ -1930,6 +1939,47 @@ export type Database = {
             columns: ["lab_id"]
             isOneToOne: false
             referencedRelation: "labs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      short_links: {
+        Row: {
+          click_count: number | null
+          clinic_id: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          link_type: string | null
+          original_url: string
+          short_code: string
+        }
+        Insert: {
+          click_count?: number | null
+          clinic_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          link_type?: string | null
+          original_url: string
+          short_code?: string
+        }
+        Update: {
+          click_count?: number | null
+          clinic_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          link_type?: string | null
+          original_url?: string
+          short_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "short_links_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
         ]
