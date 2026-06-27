@@ -70,7 +70,7 @@ export default function BookAppointmentModal({
 
   const [bookedAppt, setBookedAppt] = useState<{ id: string; patientName: string; time: string; patientId: string; doctorId: string } | null>(null);
 
-  type ServiceOption = { id: string; name: string; amount: number };
+  type ServiceOption = { id: string; name: string; description?: string | null; amount: number; gst_percentage?: number };
   const [services, setServices] = useState<ServiceOption[]>([]);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
 
@@ -125,15 +125,17 @@ export default function BookAppointmentModal({
     if (!open || !profile?.clinic_id) return;
     supabase
       .from("invoice_services")
-      .select("id, name, amount, is_default")
+      .select("id, name, description, amount, gst_percentage, is_default")
       .eq("clinic_id", profile.clinic_id)
       .eq("is_active", true)
       .order("is_default", { ascending: false })
       .order("name")
       .then(({ data }) => {
         const list = (data ?? []) as any[];
-        setServices(list.map((s) => ({ id: s.id, name: s.name, amount: Number(s.amount) })));
-        // Preselect default service if none chosen yet
+        setServices(list.map((s) => ({
+          id: s.id, name: s.name, description: s.description,
+          amount: Number(s.amount), gst_percentage: Number(s.gst_percentage ?? 0),
+        })));
         setSelectedServiceIds((prev) => {
           if (prev.length) return prev;
           const def = list.find((s) => s.is_default);
@@ -237,6 +239,50 @@ export default function BookAppointmentModal({
             service_id: sid,
           })),
         );
+
+        // Override the auto-created invoice's line_items with ALL selected services
+        const chosen = services.filter((s) => selectedServiceIds.includes(s.id));
+        if (chosen.length > 0) {
+          // Wait briefly for trigger to create the invoice
+          await new Promise((r) => setTimeout(r, 150));
+          const { data: inv } = await supabase
+            .from("invoices")
+            .select("id, paid_amount")
+            .eq("appointment_id", data.id)
+            .maybeSingle();
+          if (inv?.id) {
+            const lineItems = chosen.map((s) => {
+              const gstPct = s.gst_percentage ?? 0;
+              const lineTotal = s.amount + (s.amount * gstPct) / 100;
+              return {
+                name: s.name,
+                description: s.description ?? "",
+                quantity: 1,
+                unit_price: s.amount,
+                gst_percentage: gstPct,
+                total: lineTotal,
+                service_id: s.id,
+                appointment_id: data.id,
+              };
+            });
+            const subtotal = chosen.reduce((sum, s) => sum + s.amount, 0);
+            const gstAmount = chosen.reduce(
+              (sum, s) => sum + (s.amount * (s.gst_percentage ?? 0)) / 100, 0,
+            );
+            const total = subtotal + gstAmount;
+            const paid = Number(inv.paid_amount ?? 0);
+            await supabase.from("invoices").update({
+              line_items: lineItems as any,
+              subtotal,
+              gst_amount: gstAmount,
+              total_amount: total,
+              outstanding_amount: Math.max(0, total - paid),
+              pdf_url: null,
+              pdf_generated_at: null,
+              updated_at: new Date().toISOString(),
+            } as any).eq("id", inv.id);
+          }
+        }
       }
       await supabase.from("patients").update({ lead_status: "current" }).eq("id", patientId);
       toast.success("Appointment booked");

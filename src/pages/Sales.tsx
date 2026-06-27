@@ -504,11 +504,7 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
       </div>
     </form>
 
-    {isEdit && initial && (
-      <div className="mt-4">
-        <PatientDocumentsCard patientId={initial.id} clinicId={clinicId} />
-      </div>
-    )}
+    {/* Documents managed in patient profile General tab — not inside edit form */}
 
     <Dialog open={duplicates.length > 0} onOpenChange={(o) => !o && setDuplicates([])}>
       <DialogContent>
@@ -674,18 +670,43 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
     XLSX.writeFile(wb, `leads-${new Date().toISOString().slice(0,10)}.xlsx`);
   };
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: patients.length };
+    for (const p of patients) {
+      const k = p.lead_status ?? "none";
+      counts[k] = (counts[k] ?? 0) + 1;
+    }
+    return counts;
+  }, [patients]);
+
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
+        {STATUS_OPTIONS.map((o) => {
+          const active = statusFilter === o.value;
+          const count = statusCounts[o.value] ?? 0;
+          return (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => setStatusFilter(o.value)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                active
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background hover:bg-muted",
+              )}
+            >
+              {o.label}
+              <span className={cn(
+                "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                active ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground",
+              )}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
       <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4">
-        <div className="space-y-1">
-          <Label className="text-xs">Status</Label>
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as LeadStatus | "all")}>
-            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {STATUS_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
         <div className="space-y-1">
           <Label className="text-xs">Source</Label>
           <Select value={sourceFilter} onValueChange={setSourceFilter}>

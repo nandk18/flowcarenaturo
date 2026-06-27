@@ -13,10 +13,12 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Receipt, CreditCard, Package, MessageCircle, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Receipt, CreditCard, Package, MessageCircle, AlertTriangle, Printer, FileDown } from "lucide-react";
 import StoreItemPicker, { type StoreItemPick } from "./StoreItemPicker";
 import { useClinic } from "@/hooks/useClinic";
 import { openWhatsApp } from "@/lib/whatsapp";
+import { downloadInvoicePdf, getInvoicePdfUrl } from "@/lib/invoicePdf";
+import { printInvoice, buildInvoiceHtml } from "@/lib/invoiceUtils";
 
 type LineItem = {
   name?: string;
@@ -354,31 +356,50 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
   const distinctAppointments = new Set(items.map((i) => i.appointment_id).filter(Boolean));
   const showAppointmentGroups = distinctAppointments.size > 1;
 
+  const loadFullInvoice = async () => {
+    const { data } = await supabase
+      .from("invoices")
+      .select(`*,patients(id,name,healthcare_id,phone,email),doctors(id,name)`)
+      .eq("id", invoice.id)
+      .single();
+    return data;
+  };
+
+  const handlePrint = async () => {
+    const full = await loadFullInvoice();
+    if (!full) return toast.error("Failed to load invoice");
+    printInvoice(buildInvoiceHtml(full, clinic));
+  };
+
+  const handleDownload = async () => {
+    const full = await loadFullInvoice();
+    if (!full) return toast.error("Failed to load invoice");
+    downloadInvoicePdf(full, clinic);
+    toast.success("Invoice downloaded");
+  };
+
   const sendWhatsApp = async () => {
-    const { data: patient } = await supabase
-      .from("patients").select("name,phone").eq("id", patientId).single();
-    if (!patient?.phone) return toast.error("No phone number found for this patient");
+    const full = await loadFullInvoice();
+    if (!full) return toast.error("Failed to load invoice");
+    const phone = full.patients?.phone;
+    if (!phone) return toast.error("No phone number found for this patient");
+    toast.loading("Generating PDF…", { id: "pdf-share" });
+    let pdfUrl = "";
+    try {
+      pdfUrl = await getInvoicePdfUrl(full, clinic);
+      toast.success("PDF ready", { id: "pdf-share" });
+    } catch (e: any) {
+      return toast.error(e?.message || "Failed to generate PDF", { id: "pdf-share" });
+    }
     const clinicName = clinic?.name ?? "";
-    const lines = items.map((it) =>
-      `• ${it.name || it.description || "Item"} x${it.quantity} — ${fmtINR(Number(it.quantity) * Number(it.unit_price))}`
-    ).join("\n");
-    const statusLabel = (status || "unpaid").toUpperCase();
     const message =
-      `Payment Receipt - ${clinicName}\n\n` +
-      `Dear ${patient.name},\n\n` +
-      `Invoice No: ${invoice.invoice_number}\n` +
-      `Date: ${fmtInvoiceDate(invoice.invoice_date)}\n\n` +
-      `Items:\n${lines}\n\n` +
-      `Subtotal: ${fmtINR(totals.subtotal)}\n` +
-      `GST: ${fmtINR(totals.gstAmount)}\n` +
-      `Discount: ${fmtINR(discount)}\n` +
-      `Total: ${fmtINR(totals.total)}\n` +
-      `Paid: ${fmtINR(invoice.paid_amount)}\n` +
-      `Outstanding: ${fmtINR(totals.outstanding)}\n\n` +
-      `Status: ${statusLabel}\n\n` +
+      `Dear ${full.patients?.name ?? ""},\n\n` +
+      `Your invoice ${full.invoice_number} from ${clinicName} is ready.\n\n` +
+      `Total: ${fmtINR(full.total_amount)}\n` +
+      `Status: ${(full.status || "unpaid").toUpperCase()}\n\n` +
+      `View invoice: ${pdfUrl}\n\n` +
       `Thank you for visiting ${clinicName}!`;
-    toast.success("Opening WhatsApp...");
-    openWhatsApp(patient.phone, message);
+    openWhatsApp(phone, message);
   };
 
   return (
@@ -541,9 +562,15 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
         <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Invoice notes" rows={3} />
       </div>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 flex-wrap">
+        <Button variant="outline" onClick={handlePrint}>
+          <Printer className="h-4 w-4 mr-1" /> Print
+        </Button>
+        <Button variant="outline" onClick={handleDownload}>
+          <FileDown className="h-4 w-4 mr-1" /> Download PDF
+        </Button>
         <Button variant="outline" onClick={sendWhatsApp}>
-          <MessageCircle className="h-4 w-4 mr-1" /> Send via WhatsApp
+          <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
         </Button>
         <Button onClick={saveAll} disabled={saving}>{saving ? "Saving..." : "Save Invoice"}</Button>
       </div>
