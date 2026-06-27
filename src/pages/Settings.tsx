@@ -128,6 +128,8 @@ export default function Settings() {
       setClinicName(clinic.name || "");
       setClinicAddress(clinic.address || "");
       setClinicPhone(clinic.phone || "");
+      setClinicEmail((clinic as any).email || "");
+      setClinicWebsite((clinic as any).website || "");
       setRegionalLanguage((clinic as any).regional_language || "Tamil");
       setGstNumber((clinic as any).gst_number || "");
       setGstPercentage(Number((clinic as any).gst_percentage) || 0);
