@@ -522,7 +522,3 @@ function DayView({
     </CardContent></Card>
   );
 }
-      </div>
-    </CardContent></Card>
-  );
-}
