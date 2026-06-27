@@ -27,7 +27,7 @@ import AvailabilityPage from "./pages/AvailabilityPage";
 import PatientsListPage from "./pages/PatientsListPage";
 import PatientAddPage from "./pages/PatientAddPage";
 import CallTaskPage from "./pages/CallTaskPage";
-import CareCallPage from "./pages/CareCallPage";
+
 import OpeningChecklistPage from "./pages/OpeningChecklistPage";
 import ClosingChecklistPage from "./pages/ClosingChecklistPage";
 import ExpenseListPage from "./pages/ExpenseListPage";
