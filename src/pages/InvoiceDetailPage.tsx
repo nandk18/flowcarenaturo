@@ -53,7 +53,9 @@ export default function InvoiceDetailPage() {
     let pdfUrl = "";
     try {
       toast.loading("Preparing invoice PDF…", { id: "share-pdf" });
-      pdfUrl = await getInvoicePdfUrl(invoice, clinic);
+      const rawUrl = await getInvoicePdfUrl(invoice, clinic);
+      pdfUrl = await createShortLink(rawUrl, invoice.clinic_id, "invoice", null);
+
       toast.success("PDF ready", { id: "share-pdf" });
     } catch (e: any) {
       toast.error(e?.message || "Failed to prepare PDF", { id: "share-pdf" });
