@@ -12,7 +12,7 @@ import { Printer, Share2, Plus, XCircle, ArrowLeft, FileDown } from "lucide-reac
 import { toast } from "sonner";
 import { openWhatsApp, buildInvoiceMessage } from "@/lib/whatsapp";
 import { printInvoice, buildInvoiceHtml } from "@/lib/invoiceUtils";
-import { downloadInvoicePdf } from "@/lib/invoicePdf";
+import { downloadInvoicePdf, uploadInvoicePdf } from "@/lib/invoicePdf";
 import PatientLink from "@/components/PatientLink";
 
 export default function InvoiceDetailPage() {
@@ -46,11 +46,19 @@ export default function InvoiceDetailPage() {
     load();
   };
 
-  const share = () => {
+  const share = async () => {
     if (!invoice) return;
-    const url = `${window.location.origin}/invoice/${invoice.id}`;
+    let pdfUrl = "";
+    try {
+      toast.loading("Preparing invoice PDF…", { id: "share-pdf" });
+      pdfUrl = await uploadInvoicePdf(invoice, clinic);
+      toast.success("PDF ready", { id: "share-pdf" });
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to prepare PDF", { id: "share-pdf" });
+      return;
+    }
     const phone = invoice.patients?.phone?.replace(/\D/g, "");
-    if (!phone) { navigator.clipboard.writeText(url); toast.success("Link copied"); return; }
+    if (!phone) { navigator.clipboard.writeText(pdfUrl); toast.success("PDF link copied"); return; }
     openWhatsApp(
       invoice.patients?.phone,
       buildInvoiceMessage(
@@ -60,7 +68,7 @@ export default function InvoiceDetailPage() {
         invoice.status,
         invoice.id,
         clinic?.name || ""
-      )
+      ).replace(`${window.location.origin}/invoice/${invoice.id}`, pdfUrl)
     );
   };
 

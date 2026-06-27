@@ -1,7 +1,8 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { supabase } from "@/integrations/supabase/client";
 
-export function downloadInvoicePdf(invoice: any, clinic: any) {
+function buildInvoicePdf(invoice: any, clinic: any): jsPDF {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const page = doc.internal.pageSize;
   const w = page.getWidth();
@@ -35,17 +36,19 @@ export function downloadInvoicePdf(invoice: any, clinic: any) {
   doc.setFont("helvetica", "bold");
   doc.text("BILL TO", 14, 44);
   doc.setFont("helvetica", "normal");
-  doc.text(invoice.patients?.name || "", 14, 50);
-  if (invoice.patients?.healthcare_id) doc.text(invoice.patients.healthcare_id, 14, 55);
-  if (invoice.patients?.phone) doc.text(invoice.patients.phone, 14, 60);
-  if (invoice.doctors?.name) {
+  doc.text(invoice.patients?.name || invoice.patient?.name || "", 14, 50);
+  const pHc = invoice.patients?.healthcare_id || invoice.patient?.healthcare_id;
+  const pPh = invoice.patients?.phone || invoice.patient?.phone;
+  if (pHc) doc.text(pHc, 14, 55);
+  if (pPh) doc.text(pPh, 14, 60);
+  const dName = invoice.doctors?.name || invoice.doctor?.name;
+  if (dName) {
     doc.setFont("helvetica", "bold");
     doc.text("DOCTOR", w - 14, 44, { align: "right" });
     doc.setFont("helvetica", "normal");
-    doc.text(invoice.doctors.name, w - 14, 50, { align: "right" });
+    doc.text(dName, w - 14, 50, { align: "right" });
   }
 
-  // Line items
   const rows = (invoice.line_items as any[] || []).map((li, i) => [
     String(i + 1),
     li.description || li.name || "",
@@ -62,7 +65,7 @@ export function downloadInvoicePdf(invoice: any, clinic: any) {
     columnStyles: { 0: { cellWidth: 10 }, 2: { halign: "center", cellWidth: 14 }, 3: { halign: "right", cellWidth: 26 }, 4: { halign: "right", cellWidth: 28 } },
   });
 
-  let y = (doc as any).lastAutoTable.finalY + 6;
+  const y = (doc as any).lastAutoTable.finalY + 6;
   const totals: [string, string][] = [
     ["Subtotal", `₹${Number(invoice.subtotal).toLocaleString("en-IN")}`],
   ];
@@ -84,5 +87,35 @@ export function downloadInvoicePdf(invoice: any, clinic: any) {
   doc.setTextColor(148, 163, 184);
   doc.text(`Generated ${new Date().toLocaleDateString("en-IN")}`, w / 2, page.getHeight() - 8, { align: "center" });
 
+  return doc;
+}
+
+export function downloadInvoicePdf(invoice: any, clinic: any) {
+  const doc = buildInvoicePdf(invoice, clinic);
   doc.save(`${invoice.invoice_number || "invoice"}.pdf`);
+}
+
+/**
+ * Generate the invoice PDF, upload it to the `invoice-pdfs` bucket under
+ * `<clinic_id>/<invoice_id>.pdf`, save the storage path to invoices.pdf_url,
+ * and return a long-lived signed URL suitable for sharing.
+ */
+export async function uploadInvoicePdf(invoice: any, clinic: any): Promise<string> {
+  const doc = buildInvoicePdf(invoice, clinic);
+  const blob = doc.output("blob");
+  const path = `${invoice.clinic_id}/${invoice.id}.pdf`;
+  const { error: upErr } = await supabase.storage
+    .from("invoice-pdfs")
+    .upload(path, blob, { contentType: "application/pdf", upsert: true });
+  if (upErr) throw upErr;
+
+  // 1 year signed URL
+  const { data: signed, error: signErr } = await supabase.storage
+    .from("invoice-pdfs")
+    .createSignedUrl(path, 60 * 60 * 24 * 365);
+  if (signErr || !signed) throw signErr || new Error("Failed to sign URL");
+
+  await supabase.from("invoices").update({ pdf_url: path }).eq("id", invoice.id);
+
+  return signed.signedUrl;
 }

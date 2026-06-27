@@ -97,12 +97,18 @@ export default function ExpenseListPage() {
   const byPayment = useMemo(() => {
     const cash = rows.filter((r) => (r.payment_type ?? "cash") === "cash").reduce((s, r) => s + (Number(r.amount) || 0), 0);
     const upi = rows.filter((r) => r.payment_type === "upi").reduce((s, r) => s + (Number(r.amount) || 0), 0);
-    return { cash, upi };
+    const petty = rows.filter((r) => r.payment_type === "petty_cash").reduce((s, r) => s + (Number(r.amount) || 0), 0);
+    return { cash, upi, petty };
   }, [rows]);
 
   const remove = async (id: string) => {
     if (!confirm("Delete this expense?")) return;
+    const row = rows.find((r) => r.id === id);
     await supabase.from("expense_list").delete().eq("id", id);
+    if (row && row.payment_type === "petty_cash" && clinicId) {
+      // refund balance
+      await supabase.rpc("adjust_petty_cash", { p_clinic_id: clinicId, p_delta: Number(row.amount) || 0 });
+    }
     load();
   };
 
@@ -156,9 +162,10 @@ export default function ExpenseListPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border bg-card p-4 shadow-card">
             <div className="text-xs text-muted-foreground">By Payment Type</div>
-            <div className="mt-1 flex gap-4 text-sm">
+            <div className="mt-1 flex gap-4 text-sm flex-wrap">
               <span>Cash: <b>₹{byPayment.cash.toFixed(2)}</b></span>
               <span>UPI: <b>₹{byPayment.upi.toFixed(2)}</b></span>
+              <span>Petty Cash: <b>₹{byPayment.petty.toFixed(2)}</b></span>
             </div>
           </div>
         </div>
@@ -247,7 +254,7 @@ function ExpenseModal({
   const DEFAULTS = {
     title: "",
     category: "",
-    paymentType: "cash" as "cash" | "upi",
+    paymentType: "cash" as "cash" | "upi" | "petty_cash",
     amount: "",
     date: format(new Date(), "yyyy-MM-dd"),
     notes: "",
@@ -283,12 +290,13 @@ function ExpenseModal({
     if (!category) { toast.error("Category required"); return; }
     setBusy(true);
     const userId = await getProfileId();
+    const newAmount = Number(amount);
     const payload = {
       clinic_id: clinicId,
       title: title.trim(),
       category,
       payment_type: paymentType,
-      amount: Number(amount),
+      amount: newAmount,
       expense_date: date,
       notes: notes.trim() || null,
       created_by: userId,
@@ -296,6 +304,15 @@ function ExpenseModal({
     const res = initial
       ? await supabase.from("expense_list").update(payload).eq("id", initial.id)
       : await supabase.from("expense_list").insert(payload);
+    if (!res.error) {
+      // Adjust petty cash balance: refund previous if it was petty_cash, then deduct new
+      const prevPetty = initial?.payment_type === "petty_cash" ? Number(initial.amount) || 0 : 0;
+      const nextPetty = paymentType === "petty_cash" ? newAmount : 0;
+      const delta = prevPetty - nextPetty;
+      if (delta !== 0) {
+        await supabase.rpc("adjust_petty_cash", { p_clinic_id: clinicId, p_delta: delta });
+      }
+    }
     setBusy(false);
     if (res.error) { toast.error(res.error.message); return; }
     clearSaved();
@@ -331,6 +348,7 @@ function ExpenseModal({
                 <SelectContent>
                   <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="petty_cash">Petty Cash</SelectItem>
                 </SelectContent>
               </Select>
             </div>
