@@ -1,5 +1,8 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { supabase } from "@/integrations/supabase/client";
+
+function buildInvoicePdf(invoice: any, clinic: any): jsPDF {
 
 export function downloadInvoicePdf(invoice: any, clinic: any) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
