@@ -504,11 +504,7 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
       </div>
     </form>
 
-    {isEdit && initial && (
-      <div className="mt-4">
-        <PatientDocumentsCard patientId={initial.id} clinicId={clinicId} />
-      </div>
-    )}
+    {/* Documents managed in patient profile General tab — not inside edit form */}
 
     <Dialog open={duplicates.length > 0} onOpenChange={(o) => !o && setDuplicates([])}>
       <DialogContent>
