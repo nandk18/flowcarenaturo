@@ -45,7 +45,8 @@ import { openWhatsApp } from "@/lib/whatsapp";
 import { buildMessage } from "@/lib/messageTemplates";
 import { getProfileId } from "@/utils/getProfileId";
 import CheckInModal, { type CheckInData } from "@/components/queue/CheckInModal";
-import { ArrowRight, Play, Eye } from "lucide-react";
+import { ArrowRight, Play, Eye, X } from "lucide-react";
+import CancelAppointmentModal from "@/components/appointments/CancelAppointmentModal";
 
 import { Badge } from "@/components/ui/badge";
 
@@ -821,6 +822,7 @@ export default function SalesPatientDetail() {
               patientId={patient.id}
               clinicId={patient.clinic_id}
               patientName={patient.name}
+              patientPhone={patient.phone}
               appointments={appointments}
               onAdd={() => navigate(`/availability?patient=${patient.id}&book=1`)}
               onChanged={loadAppointments}
@@ -1372,6 +1374,7 @@ function AppointmentsTab({
   patientId,
   clinicId,
   patientName,
+  patientPhone,
   appointments,
   onAdd,
   onChanged,
@@ -1379,6 +1382,7 @@ function AppointmentsTab({
   patientId: string;
   clinicId: string;
   patientName: string;
+  patientPhone: string | null;
   appointments: AppointmentRow[];
   onAdd: () => void;
   onChanged: () => void;
@@ -1389,6 +1393,7 @@ function AppointmentsTab({
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
   const [startAppt, setStartAppt] = useState<AppointmentRow | null>(null);
+  const [cancelAppt, setCancelAppt] = useState<AppointmentRow | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);

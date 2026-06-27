@@ -1,48 +1,38 @@
-## Plan — Care Call, Cancel Flow, Templates, Sidebar
+## Goal
 
-Schema already in place: `appointments.care_call_required/done/due_date` and `call_logs.source` exist. No migration needed for those. I will add new template types via the seed RPC + UI.
+Consolidate Care Call + Cancelled Appointments into the Call Task page, and add a Cancel button on the patient profile's Appointments tab.
 
-### 1. Migration (single migration)
-- Update `seed_default_message_templates(p_clinic_id)` to also seed `care_call` and `appointment_cancelled_notice`.
-- Backfill: call the seed for all existing clinics so the new templates appear immediately in Settings.
+## Changes
 
-### 2. `src/lib/messageTemplates.ts`
-- Add `care_call` and `appointment_cancelled_notice` to `MessageTemplateType`, `TEMPLATE_META`, `DEFAULT_BODIES` (vars include `{reason}`, `{appointment_date}`, `{appointment_time}` for cancellation; `{patient_name}`, `{clinic_name}` for care call).
+### 1. `src/pages/CallTaskPage.tsx`
+Add two new sections to the existing Call Task page, below the current Tomorrow's Appointments section:
 
-### 3. Care call helper `src/lib/careCall.ts`
-- `checkAndSetCareCall(appointmentId, patientId, clinicId, completedDate)` exactly per spec (count first-ever appt, look for follow-up in 2 days, set `care_call_required=true` + due date = completed+2).
-- Call site: wherever an appointment is marked completed. Search the codebase for `status: 'completed'` / `.update({ status: "completed"` on appointments and invoke the helper.
+- **Care Call section** (heart-handshake icon, amber/red header)
+  - Same query as `CareCallPage`: `appointments` where `care_call_required=true AND care_call_done=false` for this clinic
+  - Split visually into Overdue (red) vs Due Today / Upcoming (amber), sorted by `care_call_due_date` asc
+  - Each row: patient link, phone + WhatsApp button (using `care_call` template), appointment date, doctor, days since visit, due date, inline note textarea, "Mark Called" button → inserts `contact_notes` row + updates `appointments.care_call_done=true`
+  - Section header shows pending count badge
 
-### 4. Care Call page `src/pages/CareCallPage.tsx` + route `/tasks/care-call`
-- Two sections: Overdue (red) vs Due Today/Upcoming (amber), sorted by due date asc.
-- Stats bar: Overdue / Due / Completed Today (today = appointments with care_call_done set today — track via `updated_at` of completed care calls; simplest: count rows where care_call_done=true and updated_at::date=today).
-- Per row: patient link, phone + WhatsApp icon (uses `care_call` template), appt completed date, doctor, days since, due date, note textarea, "Mark Called" → insert contact_note (if note) + update appointments.care_call_done=true. Persist draft notes via `formStorage`.
+- **Cancelled Appointments section** (red header)
+  - Query `call_logs` where `source='appointment_cancelled' AND called_at >= today-7d` for this clinic
+  - Rows: red "Cancelled" badge, patient link, phone + WhatsApp (uses `appointment_cancelled_notice` template), cancelled date, reason (parsed from notes), inline note textarea, "Mark Informed" button → inserts `contact_notes` row + tags the `call_logs.notes` with `[informed:<iso>]` prefix so it auto-hides after 24h
 
-### 5. Cancel appointment flow
-- New shared component `src/components/appointments/CancelAppointmentModal.tsx`:
-  - Step 1: reason dropdown + notes textarea; Keep/Cancel buttons.
-  - On confirm: update appointment status='cancelled' + notes; cancel linked UNPAID invoice; insert call_logs row with `source='appointment_cancelled'`; set `patients.call_due_date = today`.
-  - Step 2: result modal — patient name link, phone (click-to-copy), WhatsApp button using `appointment_cancelled_notice` template, Done closes.
-- Mount in:
-  - `AvailabilityPage` booked slot detail
-  - Patient profile Appointments tab (`SalesPatientDetail` appointments rows)
-  - Dashboard Today's Consultations widget (`TodayAppointmentsWidget`)
-- Calendar styling: cancelled slot → red bg, line-through patient name, "Cancelled" badge, not clickable to rebook (slot becomes free for new booking).
+Both sections reuse the existing Call Task page layout/cards and respect the `formStorage` draft note pattern already used there.
 
-### 6. Call Task page additions (`CallTaskPage.tsx`)
-- New "Cancelled Appointments" section (red header) below Tomorrow.
-- Source: `call_logs` where `source='appointment_cancelled'` and `called_at >= today-7d`.
-- Row: badge, patient link, phone + WhatsApp (cancellation template), cancelled date, reason (from notes), inline note, "Mark Informed" → inserts contact_note, marks local state "Informed ✓", auto-hides after 24h via `informed_at` stored as a new `call_logs.notes` suffix (simplest: track in-component via localStorage keyed by log id with timestamp, hide if >24h old since informed).
+### 2. Sidebar (`src/components/layout/MainShell.tsx`)
+- **Remove** the standalone "Care Call" nav item — it now lives inside Call Task.
+- Keep the red count badge logic, but attach it to the existing "Call Task" item (sum of pending care calls + pending cancelled-appointment informs).
 
-### 7. Sidebar
-- Find sidebar component, add Care Call entry between Call Task and Opening Checklist with heart-handshake icon and a red count badge (poll every 60s) of pending care calls for current clinic.
+### 3. Route cleanup (`src/App.tsx`)
+- Keep `/tasks/care-call` route as a redirect to `/tasks/call-task` (so any existing links still work), or remove the route entirely. Default: redirect, since `CareCallPage` becomes unused. Delete `src/pages/CareCallPage.tsx` after moving its logic into shared helpers inside `CallTaskPage.tsx`.
 
-### 8. Verification
-- Typecheck via `tsgo`.
-- Quick Playwright smoke is optional given scope; rely on build success and targeted reads.
+### 4. Patient profile — Appointments tab (`src/pages/PatientDetailPage.tsx`)
+- For each appointment row whose `status` is not already `cancelled` or `completed`, add a small red "Cancel" button next to the existing actions.
+- Clicking opens the existing `CancelAppointmentModal` with that appointment's data. On success, refresh the appointments list.
 
-### Notes / trade-offs
-- `call_logs.source` already exists; reusing as spec'd.
-- "Completed Today" stat uses `appointments.updated_at::date = today AND care_call_done=true` (no separate timestamp column).
-- "Cancelled appointments" auto-remove after 24h uses an `informed_at` marker stored in `call_logs.notes` (prefix `[informed:<iso>] `) — no schema change.
-- All grants/RLS already exist on these tables.
+### 5. No DB changes
+All required columns, enums, templates, and grants already exist.
+
+## Verification
+- `tsgo` typecheck.
+- Manual: open `/tasks/call-task` → see Care Call and Cancelled sections populated; sidebar shows combined count; open a patient profile → Appointments tab shows Cancel button → modal cancels appointment and creates the call_logs row that then appears in Cancelled Appointments section.
