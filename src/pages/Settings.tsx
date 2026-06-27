@@ -61,6 +61,8 @@ export default function Settings() {
   const [clinicName, setClinicName] = useState("");
   const [clinicAddress, setClinicAddress] = useState("");
   const [clinicPhone, setClinicPhone] = useState("");
+  const [clinicEmail, setClinicEmail] = useState("");
+  const [clinicWebsite, setClinicWebsite] = useState("");
   const [regionalLanguage, setRegionalLanguage] = useState("Tamil");
 
   // Billing settings
@@ -126,6 +128,8 @@ export default function Settings() {
       setClinicName(clinic.name || "");
       setClinicAddress(clinic.address || "");
       setClinicPhone(clinic.phone || "");
+      setClinicEmail((clinic as any).email || "");
+      setClinicWebsite((clinic as any).website || "");
       setRegionalLanguage((clinic as any).regional_language || "Tamil");
       setGstNumber((clinic as any).gst_number || "");
       setGstPercentage(Number((clinic as any).gst_percentage) || 0);
@@ -202,6 +206,8 @@ export default function Settings() {
         name: clinicName,
         address: clinicAddress || null,
         phone: clinicPhone || null,
+        email: clinicEmail || null,
+        website: clinicWebsite || null,
         regional_language: regionalLanguage,
       } as any).eq("id", profile.clinic_id);
       if (error) throw error;
@@ -619,6 +625,8 @@ export default function Settings() {
             <div className="space-y-2"><Label>Clinic Name</Label><Input value={clinicName} onChange={e => setClinicName(e.target.value)} className="rounded-lg" /></div>
             <div className="space-y-2"><Label>Address</Label><Input value={clinicAddress} onChange={e => setClinicAddress(e.target.value)} className="rounded-lg" /></div>
             <div className="space-y-2"><Label>Phone</Label><Input value={clinicPhone} onChange={e => setClinicPhone(e.target.value)} className="rounded-lg" /></div>
+            <div className="space-y-2"><Label>Email</Label><Input type="email" placeholder="contact@clinic.com" value={clinicEmail} onChange={e => setClinicEmail(e.target.value)} className="rounded-lg" /></div>
+            <div className="space-y-2"><Label>Website</Label><Input placeholder="www.clinic.com" value={clinicWebsite} onChange={e => setClinicWebsite(e.target.value)} className="rounded-lg" /></div>
             <div className="space-y-2">
               <Label className="flex items-center gap-2"><Globe className="h-4 w-4 text-primary" /> Regional Language</Label>
               <Select value={regionalLanguage} onValueChange={setRegionalLanguage}>

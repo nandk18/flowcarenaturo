@@ -553,6 +553,7 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string | null
+          email: string | null
           gst_number: string | null
           gst_percentage: number | null
           id: string
@@ -565,10 +566,12 @@ export type Database = {
           phone: string | null
           prescription_template: string | null
           regional_language: string | null
+          website: string | null
         }
         Insert: {
           address?: string | null
           created_at?: string | null
+          email?: string | null
           gst_number?: string | null
           gst_percentage?: number | null
           id?: string
@@ -581,10 +584,12 @@ export type Database = {
           phone?: string | null
           prescription_template?: string | null
           regional_language?: string | null
+          website?: string | null
         }
         Update: {
           address?: string | null
           created_at?: string | null
+          email?: string | null
           gst_number?: string | null
           gst_percentage?: number | null
           id?: string
@@ -597,6 +602,7 @@ export type Database = {
           phone?: string | null
           prescription_template?: string | null
           regional_language?: string | null
+          website?: string | null
         }
         Relationships: []
       }

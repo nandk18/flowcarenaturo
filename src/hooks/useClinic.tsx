@@ -34,7 +34,7 @@ export function useClinic() {
 
     const fetchData = async () => {
       const [clinicRes, doctorRes] = await Promise.all([
-        supabase.from("clinics").select("id, name, address, phone, logo_url, letterhead_url, regional_language").eq("id", profile.clinic_id!).single(),
+        supabase.from("clinics").select("id, name, address, phone, email, website, logo_url, letterhead_url, regional_language, gst_number, gst_percentage, invoice_prefix").eq("id", profile.clinic_id!).single(),
         supabase.from("doctors").select("id, name, qualification, registration_number, specialty, signature_url, availability, default_template_id").eq("clinic_id", profile.clinic_id!).eq("user_id", profile.user_id).single(),
       ]);
       if (clinicRes.data) setClinic(clinicRes.data as any);
@@ -47,7 +47,7 @@ export function useClinic() {
   const refetch = async () => {
     if (!profile?.clinic_id) return;
     const [clinicRes, doctorRes] = await Promise.all([
-      supabase.from("clinics").select("id, name, address, phone, logo_url, letterhead_url, regional_language").eq("id", profile.clinic_id!).single(),
+      supabase.from("clinics").select("id, name, address, phone, email, website, logo_url, letterhead_url, regional_language, gst_number, gst_percentage, invoice_prefix").eq("id", profile.clinic_id!).single(),
       supabase.from("doctors").select("id, name, qualification, registration_number, specialty, signature_url, availability, default_template_id").eq("clinic_id", profile.clinic_id!).eq("user_id", profile.user_id).single(),
     ]);
     if (clinicRes.data) setClinic(clinicRes.data as any);
