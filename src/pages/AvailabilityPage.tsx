@@ -19,6 +19,7 @@ import {
 import { cn, formatDoctorName } from "@/lib/utils";
 import PatientLink from "@/components/PatientLink";
 import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
+import CancelAppointmentModal from "@/components/appointments/CancelAppointmentModal";
 import {
   DoctorSchedule, DoctorException, ExistingAppointment,
   generateSlots, getDaySummary, getDayOfWeek, DaySummary,
@@ -27,11 +28,13 @@ import {
 type Doctor = { id: string; name: string };
 type Appt = {
   id: string;
+  clinic_id: string;
+  patient_id: string;
   appointment_date: string;
   appointment_time: string;
   status: string;
   reason: string | null;
-  patient: { id: string; name: string } | null;
+  patient: { id: string; name: string; phone: string | null } | null;
 };
 type View = "day" | "week" | "month";
 
@@ -98,6 +101,7 @@ export default function AvailabilityPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInit, setModalInit] = useState<{ date?: string; time?: string; patientId?: string; lockPatient?: boolean } | null>(null);
+  const [cancelAppt, setCancelAppt] = useState<Appt | null>(null);
 
   useEffect(() => {
     if (shouldAutoOpen) {
@@ -145,7 +149,7 @@ export default function AvailabilityPage() {
     const endStr = format(rangeEnd, "yyyy-MM-dd");
     const [aRes, eRes] = await Promise.all([
       supabase.from("appointments")
-        .select("id, appointment_date, appointment_time, status, reason, patients(id, name)")
+        .select("id, clinic_id, patient_id, appointment_date, appointment_time, status, reason, patients(id, name, phone)")
         .eq("clinic_id", profile.clinic_id)
         .eq("doctor_id", doctorId)
         .gte("appointment_date", startStr)
@@ -275,8 +279,24 @@ export default function AvailabilityPage() {
           exception={exceptionByDate.get(format(cursor, "yyyy-MM-dd")) ?? null}
           appts={apptsByDate.get(format(cursor, "yyyy-MM-dd")) ?? []}
           onPickSlot={(d, t) => openBook(d, t)}
+          onCancelAppt={(a) => setCancelAppt(a)}
         />
       )}
+
+      <CancelAppointmentModal
+        open={!!cancelAppt}
+        onClose={() => setCancelAppt(null)}
+        appointment={cancelAppt ? {
+          id: cancelAppt.id,
+          clinic_id: cancelAppt.clinic_id,
+          patient_id: cancelAppt.patient_id,
+          appointment_date: cancelAppt.appointment_date,
+          appointment_time: cancelAppt.appointment_time,
+          patient_name: cancelAppt.patient?.name ?? "Patient",
+          patient_phone: cancelAppt.patient?.phone ?? null,
+        } : null}
+        onCancelled={() => { setCancelAppt(null); fetchAppts(); }}
+      />
 
       <BookAppointmentModal
         open={modalOpen}
