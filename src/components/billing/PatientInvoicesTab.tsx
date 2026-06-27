@@ -357,12 +357,27 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
   const showAppointmentGroups = distinctAppointments.size > 1;
 
   const loadFullInvoice = async () => {
-    const { data } = await supabase
+    if (!invoice?.id) {
+      console.error("[invoice] missing invoice.id", invoice);
+      return null;
+    }
+    const { data: inv, error } = await supabase
       .from("invoices")
-      .select(`*,patients(id,name,healthcare_id,phone,email),doctors(id,name)`)
+      .select("*")
       .eq("id", invoice.id)
-      .single();
-    return data;
+      .maybeSingle();
+    if (error || !inv) {
+      console.error("[invoice] load failed", error);
+      toast.error(error?.message || "Invoice not found");
+      return null;
+    }
+    const [{ data: patient }, { data: doctor }] = await Promise.all([
+      supabase.from("patients").select("id,name,healthcare_id,phone,email").eq("id", inv.patient_id).maybeSingle(),
+      inv.doctor_id
+        ? supabase.from("doctors").select("id,name").eq("id", inv.doctor_id).maybeSingle()
+        : Promise.resolve({ data: null } as any),
+    ]);
+    return { ...inv, patients: patient, doctors: doctor };
   };
 
   const handlePrint = async () => {
