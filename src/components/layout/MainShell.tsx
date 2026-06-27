@@ -22,13 +22,25 @@ export default function MainShell({
     if (!clinicId) return;
     let cancelled = false;
     const fetchCount = async () => {
-      const { count } = await (supabase as any)
-        .from("appointments")
-        .select("id", { count: "exact", head: true })
-        .eq("clinic_id", clinicId)
-        .eq("care_call_required", true)
-        .eq("care_call_done", false);
-      if (!cancelled) setCareCallCount(count ?? 0);
+      const sevenAgoIso = new Date(Date.now() - 7 * 86400_000).toISOString();
+      const [careRes, cancelRes] = await Promise.all([
+        (supabase as any)
+          .from("appointments")
+          .select("id", { count: "exact", head: true })
+          .eq("clinic_id", clinicId)
+          .eq("care_call_required", true)
+          .eq("care_call_done", false),
+        (supabase as any)
+          .from("call_logs")
+          .select("id, notes", { count: "exact" })
+          .eq("clinic_id", clinicId)
+          .eq("source", "appointment_cancelled")
+          .gte("called_at", sevenAgoIso),
+      ]);
+      const cancelPending = ((cancelRes.data ?? []) as any[]).filter(
+        (r) => !/^\[informed:/.test(r.notes ?? ""),
+      ).length;
+      if (!cancelled) setCareCallCount((careRes.count ?? 0) + cancelPending);
     };
     fetchCount();
     const interval = setInterval(fetchCount, 60_000);
