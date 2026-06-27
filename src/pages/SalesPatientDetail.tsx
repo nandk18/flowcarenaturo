@@ -822,6 +822,7 @@ export default function SalesPatientDetail() {
               patientId={patient.id}
               clinicId={patient.clinic_id}
               patientName={patient.name}
+              patientPhone={patient.phone}
               appointments={appointments}
               onAdd={() => navigate(`/availability?patient=${patient.id}&book=1`)}
               onChanged={loadAppointments}
