@@ -133,6 +133,20 @@ function createPdfDoc(data: InvoiceData): jsPDF {
     doc.text(data.clinicName, margin, 22);
   }
 
+  // Optional header note under clinic name
+  if (data.headerNote) {
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(80, 80, 80);
+    const baseX = data.clinicLogoBase64 ? margin + 32 : margin;
+    const noteLines = doc.splitTextToSize(data.headerNote, 95);
+    let ny = 28;
+    noteLines.slice(0, 3).forEach((line: string) => {
+      doc.text(line, baseX, ny);
+      ny += 4;
+    });
+  }
+
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(60, 60, 60);
