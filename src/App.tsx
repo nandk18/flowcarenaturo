@@ -90,7 +90,9 @@ const isPublicRoute = (path: string) =>
   path === "/security" ||
   path.startsWith("/invoice/") ||
   path.startsWith("/rx/") ||
+  path.startsWith("/s/") ||
   path.startsWith("/patient-form/");
+
 
 const isAuthEntryRoute = (path: string) => path === "/" || path === "/auth" || path === "/login";
 
