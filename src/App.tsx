@@ -47,7 +47,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import DataProcessingAgreement from "./pages/DataProcessingAgreement";
 import SecurityPage from "./pages/SecurityPage";
-import BillingPage from "./pages/BillingPage";
+import BillingConfigPage from "./pages/BillingConfigPage";
 import InvoiceDetailPage from "./pages/InvoiceDetailPage";
 import PublicInvoiceViewer from "./pages/PublicInvoiceViewer";
 import NotFound from "./pages/NotFound";
@@ -314,7 +314,7 @@ function AppRoutes() {
       <Route path="/settings" element={<Navigate to="/settings/clinic" replace />} />
       <Route path="/settings/templates" element={<TemplatesPage />} />
       <Route path="/settings/analytics" element={<AnalyticsPage />} />
-      <Route path="/settings/billing-config" element={<BillingPage />} />
+      <Route path="/settings/billing-config" element={<BillingConfigPage />} />
       <Route path="/settings/billing-config/:invoiceId" element={<InvoiceDetailPage />} />
       <Route path="/settings/doctor-schedule" element={<DoctorSchedulePage />} />
       <Route path="/settings/patient-import" element={<PatientImportPage />} />

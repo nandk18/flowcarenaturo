@@ -43,8 +43,16 @@ export const buildInvoiceHtml = (invoice: any, clinic: any) => {
       ? "#6B7280"
       : "#EF4444";
 
-  const logoImg = clinic?.logo_url
+  const showLogo = clinic?.show_logo_on_invoice !== false;
+  const logoImg = clinic?.logo_url && showLogo
     ? `<img src="${clinic.logo_url}" alt="${escapeHtml(clinic?.name || "")}" style="height:56px;max-width:140px;object-fit:contain;display:block;margin-bottom:6px;" />`
+    : "";
+
+  const headerNote = clinic?.invoice_header_note
+    ? `<div style="font-size:11px;color:#555;font-style:italic;margin-top:4px;white-space:pre-line;">${escapeHtml(clinic.invoice_header_note)}</div>`
+    : "";
+  const footerNote = clinic?.invoice_footer_note
+    ? `<div style="font-size:11px;color:#555;margin-top:10px;white-space:pre-line;">${escapeHtml(clinic.invoice_footer_note)}</div>`
     : "";
 
   const invDate = invoice.invoice_date ? new Date(invoice.invoice_date) : new Date();
@@ -71,6 +79,7 @@ export const buildInvoiceHtml = (invoice: any, clinic: any) => {
           ${logoImg}
           <div style="font-size:20px;font-weight:700;letter-spacing:0.3px;color:#000;">${escapeHtml(clinic?.name || "Clinic")}</div>
           <div style="font-size:11px;color:#444;margin-top:6px;letter-spacing:1.5px;font-weight:600;">TAX INVOICE</div>
+          ${headerNote}
         </td>
         <td style="vertical-align:top;text-align:right;font-size:11px;color:#222;line-height:1.6;">
           ${clinic?.address ? `<div style="white-space:pre-line;">${escapeHtml(clinic.address)}</div>` : ""}
@@ -145,7 +154,8 @@ export const buildInvoiceHtml = (invoice: any, clinic: any) => {
 
     <!-- FOOTER -->
     <div style="text-align:center;margin-top:32px;padding-top:12px;border-top:1px solid #000;font-size:11px;color:#000;">
-      <div style="font-weight:700;letter-spacing:0.5px;">${escapeHtml(clinic?.name || "")}</div>
+      ${footerNote}
+      <div style="font-weight:700;letter-spacing:0.5px;margin-top:8px;">${escapeHtml(clinic?.name || "")}</div>
       <div style="color:#555;margin-top:2px;">Thank you for visiting${clinic?.name ? ` ${escapeHtml(clinic.name)}` : ""}</div>
     </div>
   </div>`;

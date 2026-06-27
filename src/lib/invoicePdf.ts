@@ -13,6 +13,8 @@ interface InvoiceData {
   clinicEmail: string;
   clinicWebsite: string;
   clinicLogoBase64: string | null;
+  headerNote: string;
+  footerNote: string;
   lineItems: Array<{
     name: string;
     unit: string;
@@ -50,7 +52,8 @@ async function buildInvoiceDataFromRecord(invoice: any, clinic: any): Promise<In
   // Resolve logo to base64
   let clinicLogoBase64: string | null = null;
   const logoRaw = clinic?.logo_url;
-  if (logoRaw) {
+  const showLogo = clinic?.show_logo_on_invoice !== false;
+  if (logoRaw && showLogo) {
     let logoUrl = logoRaw as string;
     if (!/^https?:\/\//i.test(logoUrl)) {
       const { data } = supabase.storage.from("clinic-assets").getPublicUrl(logoUrl);
@@ -94,6 +97,8 @@ async function buildInvoiceDataFromRecord(invoice: any, clinic: any): Promise<In
     clinicEmail: clinic?.email || "",
     clinicWebsite: clinic?.website || "",
     clinicLogoBase64,
+    headerNote: clinic?.invoice_header_note || "",
+    footerNote: clinic?.invoice_footer_note || "",
     lineItems,
     subtotal: Number(invoice.subtotal) || 0,
     gstPercentage: Number(invoice.gst_percentage) || 0,
@@ -126,6 +131,20 @@ function createPdfDoc(data: InvoiceData): jsPDF {
     doc.setFont("helvetica", "bold");
     doc.setTextColor(20, 20, 80);
     doc.text(data.clinicName, margin, 22);
+  }
+
+  // Optional header note under clinic name
+  if (data.headerNote) {
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(80, 80, 80);
+    const baseX = data.clinicLogoBase64 ? margin + 32 : margin;
+    const noteLines = doc.splitTextToSize(data.headerNote, 95);
+    let ny = 28;
+    noteLines.slice(0, 3).forEach((line: string) => {
+      doc.text(line, baseX, ny);
+      ny += 4;
+    });
   }
 
   doc.setFontSize(8);
@@ -313,18 +332,33 @@ function createPdfDoc(data: InvoiceData): jsPDF {
   doc.setTextColor(0);
 
   // ── FOOTER ──
+  let footerTop = H - 25;
+  if (data.footerNote) {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    doc.setTextColor(90, 90, 90);
+    const fLines = doc.splitTextToSize(data.footerNote, W - 2 * margin);
+    const linesToShow = fLines.slice(0, 3);
+    footerTop = H - 25 - linesToShow.length * 4;
+    let fy = H - 25 - (linesToShow.length - 1) * 4 - 2;
+    linesToShow.forEach((line: string) => {
+      doc.text(line, W / 2, fy, { align: "center" });
+      fy += 4;
+    });
+  }
+
   doc.setDrawColor(20, 20, 80);
   doc.setLineWidth(0.5);
-  doc.line(margin, H - 25, W - margin, H - 25);
+  doc.line(margin, footerTop, W - margin, footerTop);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(60, 60, 60);
-  doc.text(`For ${data.clinicName}`, W / 2, H - 18, { align: "center" });
+  doc.text(`For ${data.clinicName}`, W / 2, footerTop + 7, { align: "center" });
 
   doc.setFontSize(7);
   doc.setTextColor(150, 150, 150);
-  doc.text("Powered by FlowCare", W / 2, H - 12, { align: "center" });
+  doc.text("Powered by FlowCare", W / 2, footerTop + 13, { align: "center" });
 
   return doc;
 }
