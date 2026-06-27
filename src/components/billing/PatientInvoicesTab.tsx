@@ -128,10 +128,11 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
       .from("invoices")
       .select("*")
       .eq("patient_id", patientId)
+      .eq("clinic_id", clinicId)
       .order("created_at", { ascending: false });
     setInvoices((data ?? []) as Invoice[]);
     if (!selectedId && data && data.length) setSelectedId(data[0].id);
-  }, [patientId, selectedId]);
+  }, [patientId, clinicId, selectedId]);
 
   useEffect(() => {
     load();
