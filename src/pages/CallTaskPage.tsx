@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
@@ -9,9 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import PatientLink from "@/components/PatientLink";
-import { MessageCircle, CheckCircle2 } from "lucide-react";
+import { MessageCircle, CheckCircle2, HeartHandshake, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { format, addDays } from "date-fns";
+import { format, addDays, differenceInCalendarDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { formStorage } from "@/hooks/usePersistedForm";
 import { getProfileId } from "@/utils/getProfileId";
@@ -37,6 +37,26 @@ type CallLogEntry = {
   caller_name?: string | null;
 };
 
+type CareCallRow = {
+  id: string;
+  patient_id: string;
+  appointment_date: string;
+  appointment_time: string | null;
+  care_call_due_date: string | null;
+  patient: { id: string; name: string; phone: string | null } | null;
+  doctor: { name: string | null } | null;
+};
+
+type CancelledRow = {
+  id: string;
+  patient_id: string;
+  called_at: string;
+  notes: string | null;
+  patient: { id: string; name: string; phone: string | null } | null;
+};
+
+const INFORMED_PREFIX_RE = /^\[informed:([^\]]+)\]\s*/;
+
 export default function CallTaskPage() {
   const { profile } = useAuth();
   const { clinic } = useClinic();
@@ -47,6 +67,10 @@ export default function CallTaskPage() {
   const [doneCalls, setDoneCalls] = useState<CallLogEntry[]>([]);
   const [showDone, setShowDone] = useState(false);
   const [noteMap, setNoteMap] = useState<Record<string, string>>({});
+  const [careRows, setCareRows] = useState<CareCallRow[]>([]);
+  const [careNotes, setCareNotes] = useState<Record<string, string>>({});
+  const [cancelledRows, setCancelledRows] = useState<CancelledRow[]>([]);
+  const [cancelNotes, setCancelNotes] = useState<Record<string, string>>({});
 
   const sendApptReminder = async (a: TomorrowAppt) => {
     if (!clinicId || !a.patient?.phone) return;
@@ -70,10 +94,11 @@ export default function CallTaskPage() {
 
   const today = format(new Date(), "yyyy-MM-dd");
   const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
+  const sevenAgoIso = new Date(Date.now() - 7 * 86400_000).toISOString();
 
   const loadAll = useCallback(async () => {
     if (!clinicId) return;
-    const [apptsRes, callsRes] = await Promise.all([
+    const [apptsRes, callsRes, careRes, cancelRes] = await Promise.all([
       supabase
         .from("appointments")
         .select("id, appointment_time, patient_id, patients(id, name, phone), doctors(name)")
@@ -88,6 +113,20 @@ export default function CallTaskPage() {
         .gte("called_at", today + "T00:00:00")
         .lte("called_at", today + "T23:59:59")
         .order("called_at", { ascending: false }),
+      (supabase as any)
+        .from("appointments")
+        .select("id, patient_id, appointment_date, appointment_time, care_call_due_date, patients(id, name, phone), doctors(name)")
+        .eq("clinic_id", clinicId)
+        .eq("care_call_required", true)
+        .eq("care_call_done", false)
+        .order("care_call_due_date", { ascending: true }),
+      (supabase as any)
+        .from("call_logs")
+        .select("id, patient_id, called_at, notes, patients(id, name, phone)")
+        .eq("clinic_id", clinicId)
+        .eq("source", "appointment_cancelled")
+        .gte("called_at", sevenAgoIso)
+        .order("called_at", { ascending: false }),
     ]);
 
     const appts = (apptsRes.data ?? []).map((x: any) => ({
@@ -96,7 +135,7 @@ export default function CallTaskPage() {
       doctor: Array.isArray(x.doctors) ? x.doctors[0] : x.doctors,
     })) as TomorrowAppt[];
     setTomorrowAppts(appts);
-    // Restore any draft notes from prior session, keyed by patient_id.
+
     const restored: Record<string, string> = {};
     for (const a of appts) {
       const draft = formStorage.read<string>(`call_note_${a.patient_id}`, "");
@@ -119,12 +158,39 @@ export default function CallTaskPage() {
     }
     setDoneCalls(calls);
 
-    // Mark "called" rows for tomorrow patients we've already logged today
     const apptPidSet = new Set(appts.map((a) => a.patient_id));
     const called: Record<string, boolean> = {};
     calls.forEach((c) => { if (apptPidSet.has(c.patient_id)) called[c.patient_id] = true; });
     setCalledMap(called);
-  }, [clinicId, tomorrow, today]);
+
+    // Care calls
+    const care = ((careRes as any).data ?? []).map((r: any) => ({
+      ...r,
+      patient: Array.isArray(r.patients) ? r.patients[0] : r.patients,
+      doctor: Array.isArray(r.doctors) ? r.doctors[0] : r.doctors,
+    })) as CareCallRow[];
+    setCareRows(care);
+    const careRestored: Record<string, string> = {};
+    care.forEach((r) => {
+      const v = formStorage.read<string>(`care_call_note_${r.id}`, "");
+      if (v) careRestored[r.id] = v;
+    });
+    if (Object.keys(careRestored).length) setCareNotes((m) => ({ ...careRestored, ...m }));
+
+    // Cancelled appointments - filter out informed > 24h ago
+    const cancelled = ((cancelRes as any).data ?? [])
+      .map((r: any) => ({
+        ...r,
+        patient: Array.isArray(r.patients) ? r.patients[0] : r.patients,
+      }))
+      .filter((r: CancelledRow) => {
+        const m = r.notes?.match(INFORMED_PREFIX_RE);
+        if (!m) return true;
+        const informedAt = new Date(m[1]).getTime();
+        return Date.now() - informedAt < 24 * 3600_000;
+      }) as CancelledRow[];
+    setCancelledRows(cancelled);
+  }, [clinicId, tomorrow, today, sevenAgoIso]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
@@ -151,6 +217,85 @@ export default function CallTaskPage() {
     setNoteMap((m) => { const n = { ...m }; delete n[a.patient_id]; return n; });
     formStorage.clear(`call_note_${a.patient_id}`);
     toast.success("Call logged to contact notes");
+    loadAll();
+  };
+
+  // ===== Care Call helpers =====
+  const setCareNote = (id: string, v: string) => {
+    setCareNotes((m) => ({ ...m, [id]: v }));
+    if (v) formStorage.write(`care_call_note_${id}`, v);
+    else formStorage.clear(`care_call_note_${id}`);
+  };
+
+  const sendCareWhatsApp = async (r: CareCallRow) => {
+    if (!clinicId || !r.patient?.phone) return;
+    const msg = await buildMessage(clinicId, "care_call", {
+      patient_name: r.patient.name,
+      clinic_name: clinicName,
+    });
+    openWhatsApp(r.patient.phone, msg);
+  };
+
+  const markCareCalled = async (r: CareCallRow) => {
+    if (!clinicId) return;
+    const userId = await getProfileId();
+    const note = careNotes[r.id]?.trim();
+    if (note) {
+      await supabase.from("contact_notes").insert({
+        patient_id: r.patient_id,
+        clinic_id: clinicId,
+        note: `Care call: ${note}`,
+        created_by: userId,
+      });
+    }
+    const { error } = await (supabase as any)
+      .from("appointments")
+      .update({ care_call_done: true })
+      .eq("id", r.id);
+    if (error) { toast.error(error.message); return; }
+    formStorage.clear(`care_call_note_${r.id}`);
+    toast.success("Care call logged");
+    loadAll();
+  };
+
+  // ===== Cancelled helpers =====
+  const parseReason = (notes: string | null) => {
+    if (!notes) return "";
+    const cleaned = notes.replace(INFORMED_PREFIX_RE, "");
+    const m = cleaned.match(/Appointment cancelled:\s*(.*)/);
+    return (m ? m[1] : cleaned).split(" - ")[0];
+  };
+
+  const isInformed = (notes: string | null) => !!notes?.match(INFORMED_PREFIX_RE);
+
+  const setCancelNote = (id: string, v: string) => setCancelNotes((m) => ({ ...m, [id]: v }));
+
+  const sendCancelWhatsApp = async (r: CancelledRow) => {
+    if (!clinicId || !r.patient?.phone) return;
+    const msg = await buildMessage(clinicId, "appointment_cancelled_notice", {
+      patient_name: r.patient.name,
+      clinic_name: clinicName,
+      reason: parseReason(r.notes),
+      appointment_date: "",
+      appointment_time: "",
+    });
+    openWhatsApp(r.patient.phone, msg);
+  };
+
+  const markInformed = async (r: CancelledRow) => {
+    if (!clinicId) return;
+    const userId = await getProfileId();
+    const extra = cancelNotes[r.id]?.trim();
+    const informedNote = `Informed about cancellation${extra ? `: ${extra}` : ""}`;
+    await supabase.from("contact_notes").insert({
+      patient_id: r.patient_id,
+      clinic_id: clinicId,
+      note: informedNote,
+      created_by: userId,
+    });
+    const newNotes = `[informed:${new Date().toISOString()}] ${(r.notes ?? "").replace(INFORMED_PREFIX_RE, "")}`;
+    await (supabase as any).from("call_logs").update({ notes: newNotes }).eq("id", r.id);
+    toast.success("Marked informed");
     loadAll();
   };
 
@@ -212,6 +357,149 @@ export default function CallTaskPage() {
                         >
                           {called ? <><CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Called</> : "Mark Called"}
                         </Button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
+          {careRows.length > 0 && (
+            <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
+              <header className="flex items-center justify-between border-b bg-amber-50 px-4 py-3">
+                <h2 className="font-display text-sm font-semibold text-amber-900 flex items-center gap-2">
+                  <HeartHandshake className="h-4 w-4" />
+                  Care Call
+                  <span className="ml-2 rounded-full bg-amber-600 px-2 py-0.5 text-[10px] font-bold text-white">{careRows.length}</span>
+                </h2>
+                <span className="text-xs text-amber-800">First-visit follow-ups</span>
+              </header>
+              <ul className="divide-y">
+                {careRows.map((r) => {
+                  const apptDate = new Date(r.appointment_date);
+                  const daysSince = differenceInCalendarDays(new Date(), apptDate);
+                  const overdue = (r.care_call_due_date ?? "") < today;
+                  return (
+                    <li key={r.id} className="grid gap-2 px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-start">
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className={cn("text-[10px]", overdue ? "bg-red-100 text-red-700 border-red-200" : "bg-amber-100 text-amber-700 border-amber-200")}>
+                            {overdue ? "Overdue" : "Care Call"}
+                          </Badge>
+                          {r.patient && (
+                            <PatientLink patientId={r.patient.id} className="text-sm font-semibold">
+                              {r.patient.name}
+                            </PatientLink>
+                          )}
+                          {r.patient?.phone && (
+                            <>
+                              <span className="text-xs text-muted-foreground">· {r.patient.phone}</span>
+                              <button
+                                type="button"
+                                onClick={() => sendCareWhatsApp(r)}
+                                className="inline-flex items-center text-green-600 text-xs hover:underline"
+                                aria-label="Send WhatsApp care call"
+                              >
+                                <MessageCircle className="h-3 w-3" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                          <span>Visited {format(apptDate, "dd MMM")}</span>
+                          <span>· {r.doctor?.name ?? "Doctor"}</span>
+                          <span>· {daysSince}d ago</span>
+                          {r.care_call_due_date && (
+                            <span>· Due {format(new Date(r.care_call_due_date), "dd MMM")}</span>
+                          )}
+                        </div>
+                        <Textarea
+                          value={careNotes[r.id] ?? ""}
+                          onChange={(e) => setCareNote(r.id, e.target.value)}
+                          placeholder="Add care call note..."
+                          rows={1}
+                          className="min-h-[36px] text-sm"
+                        />
+                      </div>
+                      <div className="sm:self-center">
+                        <Button size="sm" onClick={() => markCareCalled(r)}>
+                          <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Mark Called
+                        </Button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
+          {cancelledRows.length > 0 && (
+            <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
+              <header className="flex items-center justify-between border-b bg-red-50 px-4 py-3">
+                <h2 className="font-display text-sm font-semibold text-red-900 flex items-center gap-2">
+                  <XCircle className="h-4 w-4" />
+                  Cancelled Appointments
+                  <span className="ml-2 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                    {cancelledRows.filter((r) => !isInformed(r.notes)).length}
+                  </span>
+                </h2>
+                <span className="text-xs text-red-700">Last 7 days</span>
+              </header>
+              <ul className="divide-y">
+                {cancelledRows.map((r) => {
+                  const informed = isInformed(r.notes);
+                  const reason = parseReason(r.notes);
+                  return (
+                    <li key={r.id} className="grid gap-2 px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-start">
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-[10px]">
+                            Cancelled
+                          </Badge>
+                          {r.patient && (
+                            <PatientLink patientId={r.patient.id} className="text-sm font-semibold">
+                              {r.patient.name}
+                            </PatientLink>
+                          )}
+                          {r.patient?.phone && (
+                            <>
+                              <span className="text-xs text-muted-foreground">· {r.patient.phone}</span>
+                              <button
+                                type="button"
+                                onClick={() => sendCancelWhatsApp(r)}
+                                className="inline-flex items-center text-green-600 text-xs hover:underline"
+                                aria-label="Send WhatsApp cancellation"
+                              >
+                                <MessageCircle className="h-3 w-3" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                          <span>Cancelled {format(new Date(r.called_at), "dd MMM, h:mm a")}</span>
+                          {reason && <span>· {reason}</span>}
+                        </div>
+                        {!informed && (
+                          <Textarea
+                            value={cancelNotes[r.id] ?? ""}
+                            onChange={(e) => setCancelNote(r.id, e.target.value)}
+                            placeholder="Add note about informing..."
+                            rows={1}
+                            className="min-h-[36px] text-sm"
+                          />
+                        )}
+                      </div>
+                      <div className="sm:self-center">
+                        {informed ? (
+                          <Badge variant="outline" className="text-green-700 border-green-300">
+                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Informed
+                          </Badge>
+                        ) : (
+                          <Button size="sm" onClick={() => markInformed(r)}>
+                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Mark Informed
+                          </Button>
+                        )}
                       </div>
                     </li>
                   );
