@@ -65,11 +65,7 @@ export default function Settings() {
   const [clinicWebsite, setClinicWebsite] = useState("");
   const [regionalLanguage, setRegionalLanguage] = useState("Tamil");
 
-  // Billing settings
-  const [gstNumber, setGstNumber] = useState("");
-  const [gstPercentage, setGstPercentage] = useState<number>(0);
-  const [invoicePrefix, setInvoicePrefix] = useState("INV");
-  const [savingBilling, setSavingBilling] = useState(false);
+  // Billing settings moved to /settings/billing-config (BillingConfigPage)
 
   const [doctorName, setDoctorName] = useState("");
   const [qualification, setQualification] = useState("");
@@ -131,9 +127,6 @@ export default function Settings() {
       setClinicEmail((clinic as any).email || "");
       setClinicWebsite((clinic as any).website || "");
       setRegionalLanguage((clinic as any).regional_language || "Tamil");
-      setGstNumber((clinic as any).gst_number || "");
-      setGstPercentage(Number((clinic as any).gst_percentage) || 0);
-      setInvoicePrefix((clinic as any).invoice_prefix || "INV");
     }
   }, [clinic]);
 
@@ -217,22 +210,7 @@ export default function Settings() {
     finally { setSaving(false); }
   };
 
-  const handleSaveBillingSettings = async () => {
-    if (!profile?.clinic_id) return;
-    setSavingBilling(true);
-    try {
-      const { error } = await supabase.from("clinics").update({
-        gst_number: gstNumber || null,
-        gst_percentage: gstPercentage,
-        invoice_prefix: invoicePrefix || "INV",
-      } as any).eq("id", profile.clinic_id);
-      if (error) throw error;
-      clientCache.delete(CACHE_KEYS.clinicSettings(profile.clinic_id));
-      toast.success("Billing settings saved");
-      refetch();
-    } catch (err: any) { toast.error(err.message); }
-    finally { setSavingBilling(false); }
-  };
+  // Billing settings handler removed — now in BillingConfigPage.
 
   const handleSaveDoctor = async () => {
     if (!profile?.clinic_id || !user) return;
