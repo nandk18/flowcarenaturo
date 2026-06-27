@@ -464,9 +464,23 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
             </tbody>
           </table>
         </div>
-        <Button variant="outline" size="sm" className="mt-2" onClick={() => setPickerOpen(true)}>
-          <Package className="h-3.5 w-3.5 mr-1" /> Add Store Item
-        </Button>
+        <div className="mt-2 flex flex-wrap gap-2 items-center">
+          <Button variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
+            <Package className="h-3.5 w-3.5 mr-1" /> Add Store Item
+          </Button>
+          <Select value="" onValueChange={addServiceItem}>
+            <SelectTrigger className="h-9 w-56"><SelectValue placeholder="Add Service…" /></SelectTrigger>
+            <SelectContent>
+              {services.length === 0 && <div className="px-2 py-2 text-xs text-muted-foreground">No services configured</div>}
+              {services.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name} — ₹{Number(s.amount).toLocaleString("en-IN")}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={addEmptyRow}>
+            <Plus className="h-3.5 w-3.5 mr-1" /> Add Empty Row
+          </Button>
+        </div>
       </div>
 
       {/* Financials */}
