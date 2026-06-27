@@ -206,6 +206,8 @@ export default function Settings() {
         name: clinicName,
         address: clinicAddress || null,
         phone: clinicPhone || null,
+        email: clinicEmail || null,
+        website: clinicWebsite || null,
         regional_language: regionalLanguage,
       } as any).eq("id", profile.clinic_id);
       if (error) throw error;
