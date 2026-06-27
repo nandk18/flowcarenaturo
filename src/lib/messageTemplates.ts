@@ -6,7 +6,9 @@ export type MessageTemplateType =
   | "appointment_reminder"
   | "patient_form_link"
   | "appointment_confirmation"
-  | "invoice_payment";
+  | "invoice_payment"
+  | "care_call"
+  | "appointment_cancelled_notice";
 
 export type MessageTemplate = {
   id: string;
@@ -58,6 +60,22 @@ export const TEMPLATE_META: Record<
       "{invoice_link}",
     ],
   },
+  care_call: {
+    label: "Care Call",
+    description: "Post-visit wellbeing check-in for first-time patients",
+    variables: ["{patient_name}", "{clinic_name}"],
+  },
+  appointment_cancelled_notice: {
+    label: "Appointment Cancellation",
+    description: "Sent to inform a patient that their appointment was cancelled",
+    variables: [
+      "{patient_name}",
+      "{clinic_name}",
+      "{appointment_date}",
+      "{appointment_time}",
+      "{reason}",
+    ],
+  },
 };
 
 export const TEMPLATE_TYPES = Object.keys(TEMPLATE_META) as MessageTemplateType[];
@@ -75,6 +93,10 @@ const DEFAULT_BODIES: Record<MessageTemplateType, string> = {
     "Hi {patient_name}, your appointment at {clinic_name} is confirmed for {appointment_date} at {appointment_time} with {doctor_name}. See you soon!",
   invoice_payment:
     "Hi {patient_name}, please find your invoice from {clinic_name}. Invoice No: {invoice_number} | Date: {invoice_date} | Total: {invoice_amount}. View here: {invoice_link}. Thank you!",
+  care_call:
+    "Hi {patient_name}, this is {clinic_name}. We hope you are feeling well after your recent visit. We are checking in to see how you are doing. Please feel free to reach out if you need anything or would like to schedule a follow-up appointment.",
+  appointment_cancelled_notice:
+    "Hi {patient_name}, we regret to inform you that your appointment at {clinic_name} on {appointment_date} at {appointment_time} has been cancelled due to {reason}. Please contact us to reschedule at your earliest convenience.",
 };
 
 export function renderTemplate(body: string, vars: Record<string, string | number | null | undefined>): string {
