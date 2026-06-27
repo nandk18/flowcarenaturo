@@ -18,6 +18,8 @@ import StoreItemPicker, { type StoreItemPick } from "./StoreItemPicker";
 import { useClinic } from "@/hooks/useClinic";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { downloadInvoicePdf, getInvoicePdfUrl } from "@/lib/invoicePdf";
+import { createShortLink } from "@/utils/createShortLink";
+
 import { printInvoice, buildInvoiceHtml } from "@/lib/invoiceUtils";
 
 type LineItem = {
