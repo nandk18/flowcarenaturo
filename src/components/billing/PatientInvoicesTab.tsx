@@ -291,7 +291,10 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
 
   const updateStatus = async (newStatus: string) => {
     setStatus(newStatus);
-    const { error } = await supabase.from("invoices").update({ status: newStatus }).eq("id", invoice.id);
+    const { error } = await supabase
+      .from("invoices")
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq("id", invoice.id);
     if (error) toast.error(error.message); else { toast.success("Status updated"); onChanged(); }
   };
 
@@ -306,7 +309,10 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
       total_amount: totals.total,
       outstanding_amount: totals.outstanding,
       notes: notes || null,
-    }).eq("id", invoice.id);
+      pdf_url: null,
+      pdf_generated_at: null,
+      updated_at: new Date().toISOString(),
+    } as any).eq("id", invoice.id);
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Invoice saved");
@@ -314,6 +320,30 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
   };
 
   const addStoreItem = (s: StoreItemPick) => {
+    setItems((cur) => [...cur, {
+      name: s.name,
+      description: s.description ?? "",
+      quantity: 1,
+      unit_price: Number(s.unit_price),
+      gst_percentage: Number(s.gst_percentage ?? 0),
+      appointment_id: null,
+    }]);
+  };
+  const addServiceItem = (id: string) => {
+    const s = services.find((x) => x.id === id);
+    if (!s) return;
+    setItems((cur) => [...cur, {
+      name: s.name,
+      description: s.description ?? "",
+      quantity: 1,
+      unit_price: Number(s.amount),
+      gst_percentage: Number(s.gst_percentage ?? 0),
+      appointment_id: null,
+    }]);
+  };
+  const addEmptyRow = () => {
+    setItems((cur) => [...cur, { name: "", description: "", quantity: 1, unit_price: 0, appointment_id: null }]);
+  };
     setItems((cur) => [...cur, {
       name: s.name,
       description: s.description ?? "",
