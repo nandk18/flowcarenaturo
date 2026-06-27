@@ -97,12 +97,18 @@ export default function ExpenseListPage() {
   const byPayment = useMemo(() => {
     const cash = rows.filter((r) => (r.payment_type ?? "cash") === "cash").reduce((s, r) => s + (Number(r.amount) || 0), 0);
     const upi = rows.filter((r) => r.payment_type === "upi").reduce((s, r) => s + (Number(r.amount) || 0), 0);
-    return { cash, upi };
+    const petty = rows.filter((r) => r.payment_type === "petty_cash").reduce((s, r) => s + (Number(r.amount) || 0), 0);
+    return { cash, upi, petty };
   }, [rows]);
 
   const remove = async (id: string) => {
     if (!confirm("Delete this expense?")) return;
+    const row = rows.find((r) => r.id === id);
     await supabase.from("expense_list").delete().eq("id", id);
+    if (row && row.payment_type === "petty_cash" && clinicId) {
+      // refund balance
+      await supabase.rpc("adjust_petty_cash", { p_clinic_id: clinicId, p_delta: Number(row.amount) || 0 });
+    }
     load();
   };
 
@@ -156,9 +162,10 @@ export default function ExpenseListPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border bg-card p-4 shadow-card">
             <div className="text-xs text-muted-foreground">By Payment Type</div>
-            <div className="mt-1 flex gap-4 text-sm">
+            <div className="mt-1 flex gap-4 text-sm flex-wrap">
               <span>Cash: <b>₹{byPayment.cash.toFixed(2)}</b></span>
               <span>UPI: <b>₹{byPayment.upi.toFixed(2)}</b></span>
+              <span>Petty Cash: <b>₹{byPayment.petty.toFixed(2)}</b></span>
             </div>
           </div>
         </div>
