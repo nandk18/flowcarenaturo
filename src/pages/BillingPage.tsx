@@ -115,8 +115,8 @@ export default function BillingPage() {
     let pdfUrl = "";
     try {
       toast.loading("Preparing invoice PDF…", { id: "share-pdf" });
-      const { uploadInvoicePdf } = await import("@/lib/invoicePdf");
-      pdfUrl = await uploadInvoicePdf(invoice, clinic);
+      const { getInvoicePdfUrl } = await import("@/lib/invoicePdf");
+      pdfUrl = await getInvoicePdfUrl(invoice, clinic);
       toast.success("PDF ready", { id: "share-pdf" });
     } catch (e: any) {
       toast.error(e?.message || "Failed to prepare PDF", { id: "share-pdf" });
