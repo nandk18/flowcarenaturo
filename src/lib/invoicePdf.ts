@@ -332,18 +332,33 @@ function createPdfDoc(data: InvoiceData): jsPDF {
   doc.setTextColor(0);
 
   // ── FOOTER ──
+  let footerTop = H - 25;
+  if (data.footerNote) {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    doc.setTextColor(90, 90, 90);
+    const fLines = doc.splitTextToSize(data.footerNote, W - 2 * margin);
+    const linesToShow = fLines.slice(0, 3);
+    footerTop = H - 25 - linesToShow.length * 4;
+    let fy = H - 25 - (linesToShow.length - 1) * 4 - 2;
+    linesToShow.forEach((line: string) => {
+      doc.text(line, W / 2, fy, { align: "center" });
+      fy += 4;
+    });
+  }
+
   doc.setDrawColor(20, 20, 80);
   doc.setLineWidth(0.5);
-  doc.line(margin, H - 25, W - margin, H - 25);
+  doc.line(margin, footerTop, W - margin, footerTop);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(60, 60, 60);
-  doc.text(`For ${data.clinicName}`, W / 2, H - 18, { align: "center" });
+  doc.text(`For ${data.clinicName}`, W / 2, footerTop + 7, { align: "center" });
 
   doc.setFontSize(7);
   doc.setTextColor(150, 150, 150);
-  doc.text("Powered by FlowCare", W / 2, H - 12, { align: "center" });
+  doc.text("Powered by FlowCare", W / 2, footerTop + 13, { align: "center" });
 
   return doc;
 }
