@@ -233,6 +233,17 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
 function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker, onPickerHandled }: { invoice: Invoice; onChanged: () => void; patientId: string; clinicId: string; autoOpenPicker?: boolean; onPickerHandled?: () => void }) {
   const { clinic } = useClinic();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [services, setServices] = useState<ServiceRow[]>([]);
+  useEffect(() => {
+    supabase
+      .from("invoice_services")
+      .select("*")
+      .eq("clinic_id", clinicId)
+      .eq("is_active", true)
+      .order("is_default", { ascending: false })
+      .order("created_at", { ascending: true })
+      .then(({ data }) => setServices((data ?? []) as ServiceRow[]));
+  }, [clinicId]);
 
   useEffect(() => {
     if (autoOpenPicker) {
