@@ -348,11 +348,17 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
       // Mirror completion on today's appointment for this patient
       try {
         const today = new Date().toISOString().slice(0, 10);
-        await supabase.from("appointments")
+        const { data: completedAppts } = await supabase.from("appointments")
           .update({ status: "completed" })
           .eq("patient_id", visit.patient_id)
           .eq("appointment_date", today)
-          .in("status", ["scheduled", "confirmed", "in_progress"]);
+          .in("status", ["scheduled", "confirmed", "in_progress"])
+          .select("id, clinic_id, patient_id, appointment_date");
+        // Care call check for first-ever appointment
+        const { checkAndSetCareCall } = await import("@/lib/careCall");
+        for (const a of completedAppts ?? []) {
+          await checkAndSetCareCall(a.id, a.patient_id, a.clinic_id, a.appointment_date);
+        }
       } catch { /* non-fatal */ }
 
       // Save default template for doctor (both name and id)

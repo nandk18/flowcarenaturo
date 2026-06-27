@@ -19,6 +19,7 @@ import {
 import { cn, formatDoctorName } from "@/lib/utils";
 import PatientLink from "@/components/PatientLink";
 import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
+import CancelAppointmentModal from "@/components/appointments/CancelAppointmentModal";
 import {
   DoctorSchedule, DoctorException, ExistingAppointment,
   generateSlots, getDaySummary, getDayOfWeek, DaySummary,
@@ -27,11 +28,13 @@ import {
 type Doctor = { id: string; name: string };
 type Appt = {
   id: string;
+  clinic_id: string;
+  patient_id: string;
   appointment_date: string;
   appointment_time: string;
   status: string;
   reason: string | null;
-  patient: { id: string; name: string } | null;
+  patient: { id: string; name: string; phone: string | null } | null;
 };
 type View = "day" | "week" | "month";
 
@@ -98,6 +101,7 @@ export default function AvailabilityPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInit, setModalInit] = useState<{ date?: string; time?: string; patientId?: string; lockPatient?: boolean } | null>(null);
+  const [cancelAppt, setCancelAppt] = useState<Appt | null>(null);
 
   useEffect(() => {
     if (shouldAutoOpen) {
@@ -145,7 +149,7 @@ export default function AvailabilityPage() {
     const endStr = format(rangeEnd, "yyyy-MM-dd");
     const [aRes, eRes] = await Promise.all([
       supabase.from("appointments")
-        .select("id, appointment_date, appointment_time, status, reason, patients(id, name)")
+        .select("id, clinic_id, patient_id, appointment_date, appointment_time, status, reason, patients(id, name, phone)")
         .eq("clinic_id", profile.clinic_id)
         .eq("doctor_id", doctorId)
         .gte("appointment_date", startStr)
@@ -275,8 +279,24 @@ export default function AvailabilityPage() {
           exception={exceptionByDate.get(format(cursor, "yyyy-MM-dd")) ?? null}
           appts={apptsByDate.get(format(cursor, "yyyy-MM-dd")) ?? []}
           onPickSlot={(d, t) => openBook(d, t)}
+          onCancelAppt={(a) => setCancelAppt(a)}
         />
       )}
+
+      <CancelAppointmentModal
+        open={!!cancelAppt}
+        onClose={() => setCancelAppt(null)}
+        appointment={cancelAppt ? {
+          id: cancelAppt.id,
+          clinic_id: cancelAppt.clinic_id,
+          patient_id: cancelAppt.patient_id,
+          appointment_date: cancelAppt.appointment_date,
+          appointment_time: cancelAppt.appointment_time,
+          patient_name: cancelAppt.patient?.name ?? "Patient",
+          patient_phone: cancelAppt.patient?.phone ?? null,
+        } : null}
+        onCancelled={() => { setCancelAppt(null); fetchAppts(); }}
+      />
 
       <BookAppointmentModal
         open={modalOpen}
@@ -396,25 +416,29 @@ function WeekView({
 }
 
 function DayView({
-  date, schedule, exception, appts, onPickSlot,
+  date, schedule, exception, appts, onPickSlot, onCancelAppt,
 }: {
   date: Date;
   schedule: DoctorSchedule | null;
   exception: DoctorException | null;
   appts: Appt[];
   onPickSlot: (date: string, time: string) => void;
+  onCancelAppt: (a: Appt) => void;
 }) {
   const dateStr = format(date, "yyyy-MM-dd");
+  // Cancelled appointments free up the slot — exclude from generator + booked map
+  const activeAppts = appts.filter((a) => a.status !== "cancelled");
+  const cancelledAppts = appts.filter((a) => a.status === "cancelled");
   const { slots, reason } = generateSlots({
     schedule,
     exception,
-    appointments: appts as unknown as ExistingAppointment[],
+    appointments: activeAppts as unknown as ExistingAppointment[],
     date: dateStr,
   });
 
-  // Map slot -> existing appt for full appointment metadata
+  // Map slot -> active existing appt for full appointment metadata
   const byTime = new Map<string, Appt>();
-  for (const a of appts) byTime.set(a.appointment_time?.substring(0, 5), a);
+  for (const a of activeAppts) byTime.set(a.appointment_time?.substring(0, 5), a);
 
   if (reason === "past") {
     return <Card className="shadow-card"><CardContent className="py-10 text-center text-sm text-muted-foreground">This date is in the past.</CardContent></Card>;
@@ -436,32 +460,63 @@ function DayView({
       <div className="space-y-1">
         {slots.map((s) => {
           const a = byTime.get(s.time);
-          return (
-            <button
-              key={s.time}
-              onClick={() => !a && !s.past && onPickSlot(dateStr, s.time)}
-              disabled={!!a || s.past}
-              className={cn(
-                "flex w-full items-center gap-3 rounded border px-3 py-2 text-left text-sm",
-                a ? "border-primary/30 bg-primary/5" : s.past ? "opacity-50" : "border-dashed hover:bg-muted",
-              )}
-            >
-              <span className="w-16 font-mono text-xs text-primary">{s.time}</span>
-              {a ? (
+          if (a) {
+            return (
+              <div
+                key={s.time}
+                className="flex w-full items-center gap-3 rounded border border-primary/30 bg-primary/5 px-3 py-2 text-left text-sm"
+              >
+                <span className="w-16 font-mono text-xs text-primary">{s.time}</span>
                 <div className="flex flex-1 items-center gap-2">
                   <span className={cn("h-2 w-2 rounded-full", statusDot[a.status] ?? "bg-muted-foreground")} />
                   {a.patient && <PatientLink patientId={a.patient.id}>{a.patient.name}</PatientLink>}
                   {a.reason && <span className="text-xs text-muted-foreground">— {a.reason}</span>}
                   <span className="ml-auto text-[10px] uppercase text-muted-foreground">{a.status}</span>
+                  {a.status !== "completed" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[10px] text-red-600 border-red-300 hover:bg-red-50"
+                      onClick={() => onCancelAppt(a)}
+                    >
+                      Cancel
+                    </Button>
+                  )}
                 </div>
-              ) : (
-                <span className="text-xs text-muted-foreground">{s.past ? "Past" : "Available — click to book"}</span>
+              </div>
+            );
+          }
+          return (
+            <button
+              key={s.time}
+              onClick={() => !s.past && onPickSlot(dateStr, s.time)}
+              disabled={s.past}
+              className={cn(
+                "flex w-full items-center gap-3 rounded border px-3 py-2 text-left text-sm",
+                s.past ? "opacity-50" : "border-dashed hover:bg-muted",
               )}
+            >
+              <span className="w-16 font-mono text-xs text-primary">{s.time}</span>
+              <span className="text-xs text-muted-foreground">{s.past ? "Past" : "Available — click to book"}</span>
             </button>
           );
         })}
         {slots.length === 0 && (
           <div className="py-6 text-center text-sm text-muted-foreground">No slots available for this day.</div>
+        )}
+        {cancelledAppts.length > 0 && (
+          <div className="mt-3 border-t pt-3">
+            <div className="mb-1 text-[10px] font-semibold uppercase text-red-700">Cancelled</div>
+            {cancelledAppts.map((a) => (
+              <div key={a.id} className="flex items-center gap-3 rounded border border-red-200 bg-red-50 px-3 py-1.5 text-sm">
+                <span className="w-16 font-mono text-xs text-red-700">{a.appointment_time?.slice(0, 5)}</span>
+                {a.patient && (
+                  <span className="text-red-700 line-through">{a.patient.name}</span>
+                )}
+                <span className="ml-auto rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">Cancelled</span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </CardContent></Card>
