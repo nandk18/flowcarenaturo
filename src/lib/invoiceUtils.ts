@@ -79,6 +79,7 @@ export const buildInvoiceHtml = (invoice: any, clinic: any) => {
           ${logoImg}
           <div style="font-size:20px;font-weight:700;letter-spacing:0.3px;color:#000;">${escapeHtml(clinic?.name || "Clinic")}</div>
           <div style="font-size:11px;color:#444;margin-top:6px;letter-spacing:1.5px;font-weight:600;">TAX INVOICE</div>
+          ${headerNote}
         </td>
         <td style="vertical-align:top;text-align:right;font-size:11px;color:#222;line-height:1.6;">
           ${clinic?.address ? `<div style="white-space:pre-line;">${escapeHtml(clinic.address)}</div>` : ""}
