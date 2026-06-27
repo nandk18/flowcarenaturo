@@ -1374,6 +1374,7 @@ function AppointmentsTab({
   patientId,
   clinicId,
   patientName,
+  patientPhone,
   appointments,
   onAdd,
   onChanged,
@@ -1381,6 +1382,7 @@ function AppointmentsTab({
   patientId: string;
   clinicId: string;
   patientName: string;
+  patientPhone: string | null;
   appointments: AppointmentRow[];
   onAdd: () => void;
   onChanged: () => void;
@@ -1391,6 +1393,7 @@ function AppointmentsTab({
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
   const [startAppt, setStartAppt] = useState<AppointmentRow | null>(null);
+  const [cancelAppt, setCancelAppt] = useState<AppointmentRow | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
