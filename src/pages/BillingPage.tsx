@@ -45,7 +45,7 @@ export default function BillingPage() {
     if (!clinicId) return;
     let q = supabase
       .from("invoices")
-      .select(`id,clinic_id,invoice_number,invoice_date,line_items,subtotal,gst_amount,discount_amount,total_amount,paid_amount,outstanding_amount,status,notes,patient_id,
+      .select(`id,clinic_id,invoice_number,invoice_date,line_items,subtotal,gst_percentage,gst_amount,discount_amount,total_amount,paid_amount,outstanding_amount,status,notes,patient_id,pdf_url,pdf_generated_at,updated_at,
         patients(id,name,healthcare_id,phone),
         doctors(id,name),
         visits(id,chief_complaint)`)
@@ -115,8 +115,8 @@ export default function BillingPage() {
     let pdfUrl = "";
     try {
       toast.loading("Preparing invoice PDF…", { id: "share-pdf" });
-      const { uploadInvoicePdf } = await import("@/lib/invoicePdf");
-      pdfUrl = await uploadInvoicePdf(invoice, clinic);
+      const { getInvoicePdfUrl } = await import("@/lib/invoicePdf");
+      pdfUrl = await getInvoicePdfUrl(invoice, clinic);
       toast.success("PDF ready", { id: "share-pdf" });
     } catch (e: any) {
       toast.error(e?.message || "Failed to prepare PDF", { id: "share-pdf" });

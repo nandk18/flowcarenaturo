@@ -96,9 +96,9 @@ export function downloadInvoicePdf(invoice: any, clinic: any) {
 }
 
 /**
- * Generate the invoice PDF, upload it to the `invoice-pdfs` bucket under
- * `<clinic_id>/<invoice_id>.pdf`, save the storage path to invoices.pdf_url,
- * and return a long-lived signed URL suitable for sharing.
+ * Generate the invoice PDF using ONLY the saved invoice record, upload it to
+ * the `invoice-pdfs` bucket under `<clinic_id>/<invoice_id>.pdf`, save the
+ * storage path + pdf_generated_at, and return a signed URL.
  */
 export async function uploadInvoicePdf(invoice: any, clinic: any): Promise<string> {
   const doc = buildInvoicePdf(invoice, clinic);
@@ -109,13 +109,39 @@ export async function uploadInvoicePdf(invoice: any, clinic: any): Promise<strin
     .upload(path, blob, { contentType: "application/pdf", upsert: true });
   if (upErr) throw upErr;
 
-  // 1 year signed URL
   const { data: signed, error: signErr } = await supabase.storage
     .from("invoice-pdfs")
     .createSignedUrl(path, 60 * 60 * 24 * 365);
   if (signErr || !signed) throw signErr || new Error("Failed to sign URL");
 
-  await supabase.from("invoices").update({ pdf_url: path }).eq("id", invoice.id);
+  await supabase
+    .from("invoices")
+    .update({ pdf_url: path, pdf_generated_at: new Date().toISOString() } as any)
+    .eq("id", invoice.id);
 
+  return signed.signedUrl;
+}
+
+/**
+ * Returns a signed URL for the invoice PDF. Regenerates the PDF whenever the
+ * invoice has been edited since the cached PDF was generated (or no cache exists).
+ * Always uses the saved invoice record as the single source of truth.
+ */
+export async function getInvoicePdfUrl(invoice: any, clinic: any): Promise<string> {
+  const generatedAt = invoice.pdf_generated_at ? new Date(invoice.pdf_generated_at).getTime() : 0;
+  const updatedAt = invoice.updated_at ? new Date(invoice.updated_at).getTime() : Date.now();
+  const needsNewPdf = !invoice.pdf_url || updatedAt > generatedAt;
+
+  if (needsNewPdf) {
+    return uploadInvoicePdf(invoice, clinic);
+  }
+
+  const { data: signed, error } = await supabase.storage
+    .from("invoice-pdfs")
+    .createSignedUrl(invoice.pdf_url, 60 * 60 * 24 * 365);
+  if (error || !signed) {
+    // fallback to regenerate
+    return uploadInvoicePdf(invoice, clinic);
+  }
   return signed.signedUrl;
 }

@@ -1,0 +1,1 @@
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS pdf_generated_at TIMESTAMPTZ;
