@@ -299,7 +299,7 @@ function AppRoutes() {
       {/* Tasks */}
       {/* Tasks */}
       <Route path="/tasks/call-task" element={<CallTaskPage />} />
-      <Route path="/tasks/care-call" element={<CareCallPage />} />
+      <Route path="/tasks/care-call" element={<Navigate to="/tasks/call-task" replace />} />
       <Route path="/tasks/opening-checklist" element={<OpeningChecklistPage />} />
       <Route path="/tasks/closing-checklist" element={<ClosingChecklistPage />} />
       <Route path="/tasks/expense-list" element={<ExpenseListPage />} />
