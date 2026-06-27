@@ -489,9 +489,6 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
         </div>
       </div>
 
-      {isEdit && initial && (
-        <PatientDocumentsCard patientId={initial.id} clinicId={clinicId} />
-      )}
       {!isEdit && (
         <div className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground">
           <strong className="text-foreground">Documents</strong> — save the patient first, then upload medical reports, prescriptions, and other documents from the patient profile.
@@ -504,6 +501,12 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
         </Button>
       </div>
     </form>
+
+    {isEdit && initial && (
+      <div className="mt-4">
+        <PatientDocumentsCard patientId={initial.id} clinicId={clinicId} />
+      </div>
+    )}
 
     <Dialog open={duplicates.length > 0} onOpenChange={(o) => !o && setDuplicates([])}>
       <DialogContent>
