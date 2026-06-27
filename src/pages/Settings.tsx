@@ -625,6 +625,8 @@ export default function Settings() {
             <div className="space-y-2"><Label>Clinic Name</Label><Input value={clinicName} onChange={e => setClinicName(e.target.value)} className="rounded-lg" /></div>
             <div className="space-y-2"><Label>Address</Label><Input value={clinicAddress} onChange={e => setClinicAddress(e.target.value)} className="rounded-lg" /></div>
             <div className="space-y-2"><Label>Phone</Label><Input value={clinicPhone} onChange={e => setClinicPhone(e.target.value)} className="rounded-lg" /></div>
+            <div className="space-y-2"><Label>Email</Label><Input type="email" placeholder="contact@clinic.com" value={clinicEmail} onChange={e => setClinicEmail(e.target.value)} className="rounded-lg" /></div>
+            <div className="space-y-2"><Label>Website</Label><Input placeholder="www.clinic.com" value={clinicWebsite} onChange={e => setClinicWebsite(e.target.value)} className="rounded-lg" /></div>
             <div className="space-y-2">
               <Label className="flex items-center gap-2"><Globe className="h-4 w-4 text-primary" /> Regional Language</Label>
               <Select value={regionalLanguage} onValueChange={setRegionalLanguage}>
