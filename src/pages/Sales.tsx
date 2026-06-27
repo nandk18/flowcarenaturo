@@ -865,8 +865,21 @@ function CallTaskRow({
   onAction: (p: Patient, outcome: CallOutcome, note: string) => Promise<void>;
 }) {
   const navigate = useNavigate();
+  const { clinic } = useClinic();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const sendWhatsApp = async () => {
+    if (!patient.phone || !patient.clinic_id) return;
+    const status = (patient.lead_status ?? "attempt1") as LeadStatus;
+    const type =
+      status === "attempt1" ? "attempt1_reminder" : "attempt2_reminder";
+    const msg = await buildMessage(patient.clinic_id, type as any, {
+      patient_name: patient.name,
+      clinic_name: clinic?.name ?? "our clinic",
+    });
+    openWhatsApp(patient.phone, msg);
+  };
   const today = todayISO();
   const due = patient.call_due_date;
   let sla: { label: string; cls: string } = { label: "—", cls: "text-muted-foreground" };
