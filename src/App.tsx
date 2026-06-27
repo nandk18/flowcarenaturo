@@ -50,6 +50,8 @@ import SecurityPage from "./pages/SecurityPage";
 import BillingConfigPage from "./pages/BillingConfigPage";
 import InvoiceDetailPage from "./pages/InvoiceDetailPage";
 import PublicInvoiceViewer from "./pages/PublicInvoiceViewer";
+import ShortLinkRedirect from "./pages/ShortLinkRedirect";
+
 import NotFound from "./pages/NotFound";
 import CookieConsent from "./components/CookieConsent";
 import TestWhatsApp from "./pages/__TestWhatsApp";
@@ -88,7 +90,9 @@ const isPublicRoute = (path: string) =>
   path === "/security" ||
   path.startsWith("/invoice/") ||
   path.startsWith("/rx/") ||
+  path.startsWith("/s/") ||
   path.startsWith("/patient-form/");
+
 
 const isAuthEntryRoute = (path: string) => path === "/" || path === "/auth" || path === "/login";
 
@@ -178,6 +182,7 @@ function AppRoutes() {
     path === "/dpa" ||
     path === "/security" ||
     path.startsWith("/invoice/") ||
+    path.startsWith("/s/") ||
     path.startsWith("/patient-form/")
   ) {
     return (
@@ -190,9 +195,11 @@ function AppRoutes() {
         <Route path="/dpa" element={<DataProcessingAgreement />} />
         <Route path="/security" element={<SecurityPage />} />
         <Route path="/invoice/:invoiceId" element={<PublicInvoiceViewer />} />
+        <Route path="/s/:code" element={<ShortLinkRedirect />} />
         <Route path="/patient-form/:token" element={<PatientFormPublic />} />
       </Routes>
     );
+
   }
 
   if (loading) {

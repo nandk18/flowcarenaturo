@@ -20,6 +20,8 @@ import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { buildMessage } from "@/lib/messageTemplates";
 import { getProfileId } from "@/utils/getProfileId";
+import { createShortLink } from "@/utils/createShortLink";
+
 import PatientDocumentsCard from "@/components/patient/PatientDocumentsCard";
 
 type Patient = {
@@ -73,7 +75,9 @@ export default function PatientDetailPage() {
         created_by: user?.id,
       } as any);
       if (error) throw error;
-      const url = `${window.location.origin}/patient-form/${token}`;
+      const rawUrl = `${window.location.origin}/patient-form/${token}`;
+      const url = await createShortLink(rawUrl, profile.clinic_id, "patient_form", expires);
+
       const msg = await buildMessage(profile.clinic_id, "patient_form_link", {
         patient_name: patient.name,
         clinic_name: clinic?.name ?? "our clinic",

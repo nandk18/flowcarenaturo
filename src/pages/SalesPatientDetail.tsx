@@ -44,6 +44,8 @@ import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { buildMessage } from "@/lib/messageTemplates";
 import { getProfileId } from "@/utils/getProfileId";
+import { createShortLink } from "@/utils/createShortLink";
+
 import CheckInModal, { type CheckInData } from "@/components/queue/CheckInModal";
 import { ArrowRight, Play, Eye, X } from "lucide-react";
 import CancelAppointmentModal from "@/components/appointments/CancelAppointmentModal";
@@ -275,7 +277,9 @@ export default function SalesPatientDetail() {
         created_by: user?.id,
       } as any);
       if (error) throw error;
-      const url = `${window.location.origin}/patient-form/${token}`;
+      const rawUrl = `${window.location.origin}/patient-form/${token}`;
+      const url = await createShortLink(rawUrl, patient.clinic_id, "patient_form", expires);
+
       const { data: clinicRow } = await supabase
         .from("clinics").select("name").eq("id", patient.clinic_id).maybeSingle();
       const msg = await buildMessage(patient.clinic_id, "patient_form_link", {

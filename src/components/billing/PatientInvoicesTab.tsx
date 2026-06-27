@@ -18,6 +18,8 @@ import StoreItemPicker, { type StoreItemPick } from "./StoreItemPicker";
 import { useClinic } from "@/hooks/useClinic";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { downloadInvoicePdf, getInvoicePdfUrl } from "@/lib/invoicePdf";
+import { createShortLink } from "@/utils/createShortLink";
+
 import { printInvoice, buildInvoiceHtml } from "@/lib/invoiceUtils";
 
 type LineItem = {
@@ -401,7 +403,8 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
     toast.loading("Generating PDF…", { id: "pdf-share" });
     let pdfUrl = "";
     try {
-      pdfUrl = await getInvoicePdfUrl(full, clinic);
+      const rawUrl = await getInvoicePdfUrl(full, clinic);
+      pdfUrl = await createShortLink(rawUrl, clinicId, "invoice", null);
       toast.success("PDF ready", { id: "pdf-share" });
     } catch (e: any) {
       return toast.error(e?.message || "Failed to generate PDF", { id: "pdf-share" });
@@ -415,6 +418,7 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
       `View invoice: ${pdfUrl}\n\n` +
       `Thank you for visiting ${clinicName}!`;
     openWhatsApp(phone, message);
+
   };
 
   return (
