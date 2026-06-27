@@ -356,31 +356,50 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
   const distinctAppointments = new Set(items.map((i) => i.appointment_id).filter(Boolean));
   const showAppointmentGroups = distinctAppointments.size > 1;
 
+  const loadFullInvoice = async () => {
+    const { data } = await supabase
+      .from("invoices")
+      .select(`*,patients(id,name,healthcare_id,phone,email),doctors(id,name)`)
+      .eq("id", invoice.id)
+      .single();
+    return data;
+  };
+
+  const handlePrint = async () => {
+    const full = await loadFullInvoice();
+    if (!full) return toast.error("Failed to load invoice");
+    printInvoice(buildInvoiceHtml(full, clinic));
+  };
+
+  const handleDownload = async () => {
+    const full = await loadFullInvoice();
+    if (!full) return toast.error("Failed to load invoice");
+    downloadInvoicePdf(full, clinic);
+    toast.success("Invoice downloaded");
+  };
+
   const sendWhatsApp = async () => {
-    const { data: patient } = await supabase
-      .from("patients").select("name,phone").eq("id", patientId).single();
-    if (!patient?.phone) return toast.error("No phone number found for this patient");
+    const full = await loadFullInvoice();
+    if (!full) return toast.error("Failed to load invoice");
+    const phone = full.patients?.phone;
+    if (!phone) return toast.error("No phone number found for this patient");
+    toast.loading("Generating PDF…", { id: "pdf-share" });
+    let pdfUrl = "";
+    try {
+      pdfUrl = await getInvoicePdfUrl(full, clinic);
+      toast.success("PDF ready", { id: "pdf-share" });
+    } catch (e: any) {
+      return toast.error(e?.message || "Failed to generate PDF", { id: "pdf-share" });
+    }
     const clinicName = clinic?.name ?? "";
-    const lines = items.map((it) =>
-      `• ${it.name || it.description || "Item"} x${it.quantity} — ${fmtINR(Number(it.quantity) * Number(it.unit_price))}`
-    ).join("\n");
-    const statusLabel = (status || "unpaid").toUpperCase();
     const message =
-      `Payment Receipt - ${clinicName}\n\n` +
-      `Dear ${patient.name},\n\n` +
-      `Invoice No: ${invoice.invoice_number}\n` +
-      `Date: ${fmtInvoiceDate(invoice.invoice_date)}\n\n` +
-      `Items:\n${lines}\n\n` +
-      `Subtotal: ${fmtINR(totals.subtotal)}\n` +
-      `GST: ${fmtINR(totals.gstAmount)}\n` +
-      `Discount: ${fmtINR(discount)}\n` +
-      `Total: ${fmtINR(totals.total)}\n` +
-      `Paid: ${fmtINR(invoice.paid_amount)}\n` +
-      `Outstanding: ${fmtINR(totals.outstanding)}\n\n` +
-      `Status: ${statusLabel}\n\n` +
+      `Dear ${full.patients?.name ?? ""},\n\n` +
+      `Your invoice ${full.invoice_number} from ${clinicName} is ready.\n\n` +
+      `Total: ${fmtINR(full.total_amount)}\n` +
+      `Status: ${(full.status || "unpaid").toUpperCase()}\n\n` +
+      `View invoice: ${pdfUrl}\n\n` +
       `Thank you for visiting ${clinicName}!`;
-    toast.success("Opening WhatsApp...");
-    openWhatsApp(patient.phone, message);
+    openWhatsApp(phone, message);
   };
 
   return (
