@@ -145,7 +145,12 @@ function InnerSidebar({
                           <Icon className="h-4 w-4" />
                           <span className="flex-1 truncate">{item.label}</span>
                           {item.badge && !collapsed && (
-                            <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium uppercase text-muted-foreground">
+                            <span className={cn(
+                              "ml-auto rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
+                              /^\d+$/.test(item.badge)
+                                ? "bg-red-500 text-white"
+                                : "bg-muted text-muted-foreground",
+                            )}>
                               {item.badge}
                             </span>
                           )}
