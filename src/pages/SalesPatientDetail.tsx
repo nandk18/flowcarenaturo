@@ -44,6 +44,8 @@ import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { buildMessage } from "@/lib/messageTemplates";
 import { getProfileId } from "@/utils/getProfileId";
+import { createShortLink } from "@/utils/createShortLink";
+
 import CheckInModal, { type CheckInData } from "@/components/queue/CheckInModal";
 import { ArrowRight, Play, Eye, X } from "lucide-react";
 import CancelAppointmentModal from "@/components/appointments/CancelAppointmentModal";
