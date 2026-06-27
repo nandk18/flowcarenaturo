@@ -562,9 +562,15 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
         <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Invoice notes" rows={3} />
       </div>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 flex-wrap">
+        <Button variant="outline" onClick={handlePrint}>
+          <Printer className="h-4 w-4 mr-1" /> Print
+        </Button>
+        <Button variant="outline" onClick={handleDownload}>
+          <FileDown className="h-4 w-4 mr-1" /> Download PDF
+        </Button>
         <Button variant="outline" onClick={sendWhatsApp}>
-          <MessageCircle className="h-4 w-4 mr-1" /> Send via WhatsApp
+          <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
         </Button>
         <Button onClick={saveAll} disabled={saving}>{saving ? "Saving..." : "Save Invoice"}</Button>
       </div>
