@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
 import { CallTask } from "./Sales";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -14,6 +15,8 @@ import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { formStorage } from "@/hooks/usePersistedForm";
 import { getProfileId } from "@/utils/getProfileId";
+import { buildMessage } from "@/lib/messageTemplates";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 type TomorrowAppt = {
   id: string;
