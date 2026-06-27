@@ -2127,6 +2127,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adjust_petty_cash: {
+        Args: { p_clinic_id: string; p_delta: number }
+        Returns: number
+      }
       complete_clinic_onboarding: {
         Args: {
           p_clinic_address?: string
