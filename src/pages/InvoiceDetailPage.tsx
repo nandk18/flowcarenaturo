@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { openWhatsApp, buildInvoiceMessage } from "@/lib/whatsapp";
 import { printInvoice, buildInvoiceHtml } from "@/lib/invoiceUtils";
 import { downloadInvoicePdf, getInvoicePdfUrl } from "@/lib/invoicePdf";
+import { createShortLink } from "@/utils/createShortLink";
+
 import PatientLink from "@/components/PatientLink";
 
 export default function InvoiceDetailPage() {
