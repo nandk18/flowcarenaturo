@@ -13,6 +13,8 @@ interface InvoiceData {
   clinicEmail: string;
   clinicWebsite: string;
   clinicLogoBase64: string | null;
+  headerNote: string;
+  footerNote: string;
   lineItems: Array<{
     name: string;
     unit: string;
@@ -50,7 +52,8 @@ async function buildInvoiceDataFromRecord(invoice: any, clinic: any): Promise<In
   // Resolve logo to base64
   let clinicLogoBase64: string | null = null;
   const logoRaw = clinic?.logo_url;
-  if (logoRaw) {
+  const showLogo = clinic?.show_logo_on_invoice !== false;
+  if (logoRaw && showLogo) {
     let logoUrl = logoRaw as string;
     if (!/^https?:\/\//i.test(logoUrl)) {
       const { data } = supabase.storage.from("clinic-assets").getPublicUrl(logoUrl);
@@ -94,6 +97,8 @@ async function buildInvoiceDataFromRecord(invoice: any, clinic: any): Promise<In
     clinicEmail: clinic?.email || "",
     clinicWebsite: clinic?.website || "",
     clinicLogoBase64,
+    headerNote: clinic?.invoice_header_note || "",
+    footerNote: clinic?.invoice_footer_note || "",
     lineItems,
     subtotal: Number(invoice.subtotal) || 0,
     gstPercentage: Number(invoice.gst_percentage) || 0,
