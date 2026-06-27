@@ -182,6 +182,7 @@ function AppRoutes() {
     path === "/dpa" ||
     path === "/security" ||
     path.startsWith("/invoice/") ||
+    path.startsWith("/s/") ||
     path.startsWith("/patient-form/")
   ) {
     return (
@@ -194,9 +195,11 @@ function AppRoutes() {
         <Route path="/dpa" element={<DataProcessingAgreement />} />
         <Route path="/security" element={<SecurityPage />} />
         <Route path="/invoice/:invoiceId" element={<PublicInvoiceViewer />} />
+        <Route path="/s/:code" element={<ShortLinkRedirect />} />
         <Route path="/patient-form/:token" element={<PatientFormPublic />} />
       </Routes>
     );
+
   }
 
   if (loading) {
