@@ -135,7 +135,7 @@ export default function PatientDocumentsCard({ patientId, clinicId }: Props) {
                   </div>
                 </div>
                 {isAdmin && (
-                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteDoc(doc)}>
+                  <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => deleteDoc(doc)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
