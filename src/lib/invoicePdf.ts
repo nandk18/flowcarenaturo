@@ -373,26 +373,26 @@ export async function downloadInvoicePdf(invoice: any, clinic: any) {
   doc.save(`${invoice.invoice_number || "invoice"}.pdf`);
 }
 
+const INVOICE_BUCKET = "invoice-pdfs";
+
 export async function uploadInvoicePdf(invoice: any, clinic: any): Promise<string> {
   const doc = await buildInvoicePdf(invoice, clinic);
   const blob = doc.output("blob");
-  const path = `${invoice.clinic_id}/${invoice.id}.pdf`;
+  const path = `${invoice.clinic_id}/${invoice.invoice_number || invoice.id}.pdf`;
   const { error: upErr } = await supabase.storage
-    .from("invoice-pdfs")
+    .from(INVOICE_BUCKET)
     .upload(path, blob, { contentType: "application/pdf", upsert: true });
   if (upErr) throw upErr;
 
-  const { data: signed, error: signErr } = await supabase.storage
-    .from("invoice-pdfs")
-    .createSignedUrl(path, 60 * 60 * 24 * 365);
-  if (signErr || !signed) throw signErr || new Error("Failed to sign URL");
+  const { data: pub } = supabase.storage.from(INVOICE_BUCKET).getPublicUrl(path);
+  const publicUrl = pub.publicUrl;
 
   await supabase
     .from("invoices")
     .update({ pdf_url: path, pdf_generated_at: new Date().toISOString() } as any)
     .eq("id", invoice.id);
 
-  return signed.signedUrl;
+  return publicUrl;
 }
 
 export async function getInvoicePdfUrl(invoice: any, clinic: any): Promise<string> {
@@ -404,11 +404,7 @@ export async function getInvoicePdfUrl(invoice: any, clinic: any): Promise<strin
     return uploadInvoicePdf(invoice, clinic);
   }
 
-  const { data: signed, error } = await supabase.storage
-    .from("invoice-pdfs")
-    .createSignedUrl(invoice.pdf_url, 60 * 60 * 24 * 365);
-  if (error || !signed) {
-    return uploadInvoicePdf(invoice, clinic);
-  }
-  return signed.signedUrl;
+  const { data: pub } = supabase.storage.from(INVOICE_BUCKET).getPublicUrl(invoice.pdf_url);
+  return pub.publicUrl;
 }
+
