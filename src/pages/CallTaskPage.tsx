@@ -39,12 +39,28 @@ type CallLogEntry = {
 
 export default function CallTaskPage() {
   const { profile } = useAuth();
+  const { clinic } = useClinic();
   const clinicId = profile?.clinic_id;
+  const clinicName = clinic?.name ?? "our clinic";
   const [tomorrowAppts, setTomorrowAppts] = useState<TomorrowAppt[]>([]);
   const [calledMap, setCalledMap] = useState<Record<string, boolean>>({});
   const [doneCalls, setDoneCalls] = useState<CallLogEntry[]>([]);
   const [showDone, setShowDone] = useState(false);
   const [noteMap, setNoteMap] = useState<Record<string, string>>({});
+
+  const sendApptReminder = async (a: TomorrowAppt) => {
+    if (!clinicId || !a.patient?.phone) return;
+    const apptDate = format(addDays(new Date(), 1), "dd MMM yyyy");
+    const apptTime = a.appointment_time ? a.appointment_time.slice(0, 5) : "";
+    const msg = await buildMessage(clinicId, "appointment_reminder", {
+      patient_name: a.patient?.name ?? "",
+      clinic_name: clinicName,
+      appointment_date: apptDate,
+      appointment_time: apptTime,
+      doctor_name: a.doctor?.name ?? "the doctor",
+    });
+    openWhatsApp(a.patient.phone, msg);
+  };
 
   const setNoteForPatient = (patientId: string, value: string) => {
     setNoteMap((m) => ({ ...m, [patientId]: value }));
