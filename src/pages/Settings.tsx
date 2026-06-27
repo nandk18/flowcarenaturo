@@ -655,60 +655,7 @@ export default function Settings() {
         {showStoreItems && <StoreItemsSection />}
 
 
-        {/* Billing Settings */}
-        {showBilling && (
-        <Card className="rounded-2xl border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-display">
-              <Receipt className="h-5 w-5 text-primary" /> Billing Settings
-            </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              Configure invoicing for your clinic. Leave GST blank if your clinic is GST exempt (most healthcare providers are exempt).
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>GST Number (optional)</Label>
-              <Input
-                value={gstNumber}
-                onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
-                placeholder="e.g. 33AAAAA0000A1ZX"
-                maxLength={15}
-                className="rounded-lg"
-              />
-              <p className="text-xs text-muted-foreground">15-character GSTIN number</p>
-            </div>
-            <div className="space-y-2">
-              <Label>GST on Consultations</Label>
-              <Select value={String(gstPercentage)} onValueChange={(v) => setGstPercentage(Number(v))}>
-                <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">0% — GST Exempt (recommended for clinics)</SelectItem>
-                  <SelectItem value="5">5% GST</SelectItem>
-                  <SelectItem value="12">12% GST</SelectItem>
-                  <SelectItem value="18">18% GST</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Invoice Number Prefix</Label>
-              <Input
-                value={invoicePrefix}
-                onChange={(e) => setInvoicePrefix(e.target.value.toUpperCase())}
-                placeholder="INV"
-                maxLength={6}
-                className="rounded-lg"
-              />
-              <p className="text-xs text-muted-foreground">
-                Invoices will be numbered: {invoicePrefix || "INV"}-{new Date().getFullYear()}-0001
-              </p>
-            </div>
-            <Button onClick={handleSaveBillingSettings} disabled={savingBilling} className="rounded-lg">
-              <Save className="mr-2 h-4 w-4" /> {savingBilling ? "Saving..." : "Save Billing Settings"}
-            </Button>
-          </CardContent>
-        </Card>
-        )}
+        {/* Billing Settings moved to /settings/billing-config */}
 
         {/* Doctor Profile (only for doctor/admin roles) */}
         {showClinic && profile?.role === "admin" && (
