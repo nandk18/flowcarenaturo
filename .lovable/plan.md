@@ -1,40 +1,48 @@
-## Problem
+## Plan — Care Call, Cancel Flow, Templates, Sidebar
 
-**Issue 1 — Filter shows only Current:**
-The patient list in `src/pages/Sales.tsx` (`LeadList`) fetches patients with `.limit(1000)` and filters by status **client-side**. The DB has **12,615 current** patients vs. only ~13 in other statuses, so the 1000-row window is 100% "current" — clicking Attempt 1/2/3/Closed returns nothing because those rows are never fetched. Counts in the filter pills are also wrong (computed from the same 1000-row slice).
+Schema already in place: `appointments.care_call_required/done/due_date` and `call_logs.source` exist. No migration needed for those. I will add new template types via the seed RPC + UI.
 
-**Issue 2 — Documents not shown on `/patients/:id`:**
-Route `/patients/:patientId` mounts `SalesPatientDetail.tsx`, **not** `PatientDetailPage.tsx`. `SalesPatientDetail` loads `patient_documents` but only renders them grouped under each visit row. Documents uploaded at the patient level (no `visit_id`) are bucketed under `_patient` and never displayed. There is no `PatientDocumentsCard` on this page.
+### 1. Migration (single migration)
+- Update `seed_default_message_templates(p_clinic_id)` to also seed `care_call` and `appointment_cancelled_notice`.
+- Backfill: call the seed for all existing clinics so the new templates appear immediately in Settings.
 
-## Fix Plan
+### 2. `src/lib/messageTemplates.ts`
+- Add `care_call` and `appointment_cancelled_notice` to `MessageTemplateType`, `TEMPLATE_META`, `DEFAULT_BODIES` (vars include `{reason}`, `{appointment_date}`, `{appointment_time}` for cancellation; `{patient_name}`, `{clinic_name}` for care call).
 
-### 1. Server-side status filtering + counts in `LeadList` (`src/pages/Sales.tsx`)
+### 3. Care call helper `src/lib/careCall.ts`
+- `checkAndSetCareCall(appointmentId, patientId, clinicId, completedDate)` exactly per spec (count first-ever appt, look for follow-up in 2 days, set `care_call_required=true` + due date = completed+2).
+- Call site: wherever an appointment is marked completed. Search the codebase for `status: 'completed'` / `.update({ status: "completed"` on appointments and invoke the helper.
 
-- Replace the single `.limit(1000)` query with a query that applies `statusFilter` server-side:
-  - When `statusFilter !== "all"` and no search term → `.eq("lead_status", statusFilter)`.
-  - When search term is present → keep current behavior (search overrides status), still capped but using `.or(name/phone/email ilike)` server-side so we don't depend on a windowed slice.
-- Re-run the query when `statusFilter` / `search` / date range changes (add to the `useEffect` deps).
-- Compute pill **counts** from a separate lightweight query: one `count: "exact", head: true` per status (run in parallel with `Promise.all`) filtered by `clinic_id` (and date range when set). Cache so it only re-runs when `clinicId` / date range changes, not on every filter click.
-- Drop client-side `statusFilter` predicate from the `filtered` memo (server already filtered).
-- Keep source / date / search client-side filters on the fetched window.
+### 4. Care Call page `src/pages/CareCallPage.tsx` + route `/tasks/care-call`
+- Two sections: Overdue (red) vs Due Today/Upcoming (amber), sorted by due date asc.
+- Stats bar: Overdue / Due / Completed Today (today = appointments with care_call_done set today — track via `updated_at` of completed care calls; simplest: count rows where care_call_done=true and updated_at::date=today).
+- Per row: patient link, phone + WhatsApp icon (uses `care_call` template), appt completed date, doctor, days since, due date, note textarea, "Mark Called" → insert contact_note (if note) + update appointments.care_call_done=true. Persist draft notes via `formStorage`.
 
-### 2. Show patient-level Documents on `/patients/:id` (`src/pages/SalesPatientDetail.tsx`)
+### 5. Cancel appointment flow
+- New shared component `src/components/appointments/CancelAppointmentModal.tsx`:
+  - Step 1: reason dropdown + notes textarea; Keep/Cancel buttons.
+  - On confirm: update appointment status='cancelled' + notes; cancel linked UNPAID invoice; insert call_logs row with `source='appointment_cancelled'`; set `patients.call_due_date = today`.
+  - Step 2: result modal — patient name link, phone (click-to-copy), WhatsApp button using `appointment_cancelled_notice` template, Done closes.
+- Mount in:
+  - `AvailabilityPage` booked slot detail
+  - Patient profile Appointments tab (`SalesPatientDetail` appointments rows)
+  - Dashboard Today's Consultations widget (`TodayAppointmentsWidget`)
+- Calendar styling: cancelled slot → red bg, line-through patient name, "Cancelled" badge, not clickable to rebook (slot becomes free for new booking).
 
-- Import `PatientDocumentsCard` from `@/components/patient/PatientDocumentsCard`.
-- Render it once in the General / Overview tab (above or below "Medical History"), passing `patientId` and `clinicId`.
-- Leave the existing per-visit document chips in the Visits tab unchanged — that's a different surface.
+### 6. Call Task page additions (`CallTaskPage.tsx`)
+- New "Cancelled Appointments" section (red header) below Tomorrow.
+- Source: `call_logs` where `source='appointment_cancelled'` and `called_at >= today-7d`.
+- Row: badge, patient link, phone + WhatsApp (cancellation template), cancelled date, reason (from notes), inline note, "Mark Informed" → inserts contact_note, marks local state "Informed ✓", auto-hides after 24h via `informed_at` stored as a new `call_logs.notes` suffix (simplest: track in-component via localStorage keyed by log id with timestamp, hide if >24h old since informed).
 
-## Out of scope
+### 7. Sidebar
+- Find sidebar component, add Care Call entry between Call Task and Opening Checklist with heart-handshake icon and a red count badge (poll every 60s) of pending care calls for current clinic.
 
-- No schema changes, no migrations.
-- No changes to `PatientDetailPage.tsx` (unused for this route) or to `ConsultPatients`.
-- Edit-patient form, invoice flows, WhatsApp — unchanged.
+### 8. Verification
+- Typecheck via `tsgo`.
+- Quick Playwright smoke is optional given scope; rely on build success and targeted reads.
 
-## Verification
-
-1. Open `/patients` → default shows Current with correct count.
-2. Click Attempt 1 → list refetches and shows the 10 attempt1 rows; count badge matches.
-3. Click Closed → shows the 1 closed row.
-4. Click All → paginated list across all statuses.
-5. Search "name" → returns matches across all statuses regardless of pill.
-6. Open `/patients/<id>` → "Documents" card visible in the General/Overview section; Upload works; uploaded files appear immediately.
+### Notes / trade-offs
+- `call_logs.source` already exists; reusing as spec'd.
+- "Completed Today" stat uses `appointments.updated_at::date = today AND care_call_done=true` (no separate timestamp column).
+- "Cancelled appointments" auto-remove after 24h uses an `informed_at` marker stored in `call_logs.notes` (prefix `[informed:<iso>] `) — no schema change.
+- All grants/RLS already exist on these tables.
