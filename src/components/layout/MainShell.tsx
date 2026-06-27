@@ -67,11 +67,10 @@ export default function MainShell({
     {
       label: "Tasks",
       items: [
-        { to: "/tasks/call-task", icon: Phone, label: "Call Task" },
         {
-          to: "/tasks/care-call",
-          icon: HeartHandshake,
-          label: "Care Call",
+          to: "/tasks/call-task",
+          icon: Phone,
+          label: "Call Task",
           badge: careCallCount > 0 ? String(careCallCount) : undefined,
         },
         { to: "/tasks/opening-checklist", icon: Sun, label: "Opening Checklist" },
