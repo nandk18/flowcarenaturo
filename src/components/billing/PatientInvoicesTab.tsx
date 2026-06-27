@@ -361,17 +361,23 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
       console.error("[invoice] missing invoice.id", invoice);
       return null;
     }
-    const { data, error } = await supabase
+    const { data: inv, error } = await supabase
       .from("invoices")
-      .select(`*,patients(id,name,healthcare_id,phone,email),doctors(id,name)`)
+      .select("*")
       .eq("id", invoice.id)
       .maybeSingle();
-    if (error) {
+    if (error || !inv) {
       console.error("[invoice] load failed", error);
-      toast.error(error.message);
+      toast.error(error?.message || "Invoice not found");
       return null;
     }
-    return data;
+    const [{ data: patient }, { data: doctor }] = await Promise.all([
+      supabase.from("patients").select("id,name,healthcare_id,phone,email").eq("id", inv.patient_id).maybeSingle(),
+      inv.doctor_id
+        ? supabase.from("doctors").select("id,name").eq("id", inv.doctor_id).maybeSingle()
+        : Promise.resolve({ data: null } as any),
+    ]);
+    return { ...inv, patients: patient, doctors: doctor };
   };
 
   const handlePrint = async () => {
