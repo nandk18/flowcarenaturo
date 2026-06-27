@@ -1051,6 +1051,7 @@ export type Database = {
           outstanding_amount: number | null
           paid_amount: number | null
           patient_id: string
+          pdf_generated_at: string | null
           pdf_url: string | null
           status: string | null
           subtotal: number | null
@@ -1075,6 +1076,7 @@ export type Database = {
           outstanding_amount?: number | null
           paid_amount?: number | null
           patient_id: string
+          pdf_generated_at?: string | null
           pdf_url?: string | null
           status?: string | null
           subtotal?: number | null
@@ -1099,6 +1101,7 @@ export type Database = {
           outstanding_amount?: number | null
           paid_amount?: number | null
           patient_id?: string
+          pdf_generated_at?: string | null
           pdf_url?: string | null
           status?: string | null
           subtotal?: number | null
