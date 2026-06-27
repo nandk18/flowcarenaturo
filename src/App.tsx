@@ -27,6 +27,7 @@ import AvailabilityPage from "./pages/AvailabilityPage";
 import PatientsListPage from "./pages/PatientsListPage";
 import PatientAddPage from "./pages/PatientAddPage";
 import CallTaskPage from "./pages/CallTaskPage";
+import CareCallPage from "./pages/CareCallPage";
 
 import OpeningChecklistPage from "./pages/OpeningChecklistPage";
 import ClosingChecklistPage from "./pages/ClosingChecklistPage";
@@ -299,7 +300,7 @@ function AppRoutes() {
       {/* Tasks */}
       {/* Tasks */}
       <Route path="/tasks/call-task" element={<CallTaskPage />} />
-      <Route path="/tasks/care-call" element={<Navigate to="/tasks/call-task" replace />} />
+      <Route path="/tasks/care-call" element={<CareCallPage />} />
       <Route path="/tasks/opening-checklist" element={<OpeningChecklistPage />} />
       <Route path="/tasks/closing-checklist" element={<ClosingChecklistPage />} />
       <Route path="/tasks/expense-list" element={<ExpenseListPage />} />

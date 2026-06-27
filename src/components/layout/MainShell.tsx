@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
-import { Users, UserPlus, CalendarDays, Phone, Sun, Moon, Receipt, CheckSquare } from "lucide-react";
+import { Users, UserPlus, CalendarDays, Phone, Sun, Moon, Receipt, CheckSquare, HeartHandshake } from "lucide-react";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
 import GlobalSearch from "./GlobalSearch";
 import NotificationBell from "./NotificationBell";
@@ -72,6 +72,11 @@ export default function MainShell({
           icon: Phone,
           label: "Call Task",
           badge: careCallCount > 0 ? String(careCallCount) : undefined,
+        },
+        {
+          to: "/tasks/care-call",
+          icon: HeartHandshake,
+          label: "Care Call",
         },
         { to: "/tasks/opening-checklist", icon: Sun, label: "Opening Checklist" },
         { to: "/tasks/closing-checklist", icon: Moon, label: "Closing Checklist" },
