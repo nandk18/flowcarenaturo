@@ -184,13 +184,14 @@ export default function CallTaskPage() {
                         {a.patient?.phone && (
                           <>
                             <span className="text-xs text-muted-foreground">· {a.patient.phone}</span>
-                            <a
-                              href={`https://wa.me/${a.patient.phone.replace(/[^\d]/g, "")}`}
-                              target="_blank" rel="noopener noreferrer"
+                            <button
+                              type="button"
+                              onClick={() => sendApptReminder(a)}
                               className="inline-flex items-center text-green-600 text-xs hover:underline"
+                              aria-label="Send WhatsApp reminder"
                             >
                               <MessageCircle className="h-3 w-3" />
-                            </a>
+                            </button>
                           </>
                         )}
                       </div>
