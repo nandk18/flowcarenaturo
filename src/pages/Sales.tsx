@@ -60,6 +60,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
+import { buildMessage } from "@/lib/messageTemplates";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 type LeadStatus = "attempt1" | "attempt2" | "attempt3" | "closed" | "current";
 
@@ -489,9 +491,6 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
         </div>
       </div>
 
-      {isEdit && initial && (
-        <PatientDocumentsCard patientId={initial.id} clinicId={clinicId} />
-      )}
       {!isEdit && (
         <div className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground">
           <strong className="text-foreground">Documents</strong> — save the patient first, then upload medical reports, prescriptions, and other documents from the patient profile.
@@ -504,6 +503,12 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
         </Button>
       </div>
     </form>
+
+    {isEdit && initial && (
+      <div className="mt-4">
+        <PatientDocumentsCard patientId={initial.id} clinicId={clinicId} />
+      </div>
+    )}
 
     <Dialog open={duplicates.length > 0} onOpenChange={(o) => !o && setDuplicates([])}>
       <DialogContent>
@@ -860,8 +865,21 @@ function CallTaskRow({
   onAction: (p: Patient, outcome: CallOutcome, note: string) => Promise<void>;
 }) {
   const navigate = useNavigate();
+  const { clinic } = useClinic();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const sendWhatsApp = async () => {
+    if (!patient.phone || !patient.clinic_id) return;
+    const status = (patient.lead_status ?? "attempt1") as LeadStatus;
+    const type =
+      status === "attempt1" ? "attempt1_reminder" : "attempt2_reminder";
+    const msg = await buildMessage(patient.clinic_id, type as any, {
+      patient_name: patient.name,
+      clinic_name: clinic?.name ?? "our clinic",
+    });
+    openWhatsApp(patient.phone, msg);
+  };
   const today = todayISO();
   const due = patient.call_due_date;
   let sla: { label: string; cls: string } = { label: "—", cls: "text-muted-foreground" };
@@ -904,14 +922,15 @@ function CallTaskRow({
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <span>{patient.phone ?? "—"}</span>
         {patient.phone && (
-          <Button variant="ghost" size="icon" asChild aria-label="WhatsApp" className="h-7 w-7">
-            <a
-              href={`https://wa.me/${patient.phone.replace(/[^\d]/g, "")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <MessageCircle className="h-4 w-4 text-green-600" />
-            </a>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Send WhatsApp"
+            className="h-7 w-7"
+            onClick={sendWhatsApp}
+          >
+            <MessageCircle className="h-4 w-4 text-green-600" />
           </Button>
         )}
         {patient.convenient_time && (

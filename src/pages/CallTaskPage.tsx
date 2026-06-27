@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
 import { CallTask } from "./Sales";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -14,6 +15,8 @@ import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { formStorage } from "@/hooks/usePersistedForm";
 import { getProfileId } from "@/utils/getProfileId";
+import { buildMessage } from "@/lib/messageTemplates";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 type TomorrowAppt = {
   id: string;
@@ -36,12 +39,28 @@ type CallLogEntry = {
 
 export default function CallTaskPage() {
   const { profile } = useAuth();
+  const { clinic } = useClinic();
   const clinicId = profile?.clinic_id;
+  const clinicName = clinic?.name ?? "our clinic";
   const [tomorrowAppts, setTomorrowAppts] = useState<TomorrowAppt[]>([]);
   const [calledMap, setCalledMap] = useState<Record<string, boolean>>({});
   const [doneCalls, setDoneCalls] = useState<CallLogEntry[]>([]);
   const [showDone, setShowDone] = useState(false);
   const [noteMap, setNoteMap] = useState<Record<string, string>>({});
+
+  const sendApptReminder = async (a: TomorrowAppt) => {
+    if (!clinicId || !a.patient?.phone) return;
+    const apptDate = format(addDays(new Date(), 1), "dd MMM yyyy");
+    const apptTime = a.appointment_time ? a.appointment_time.slice(0, 5) : "";
+    const msg = await buildMessage(clinicId, "appointment_reminder", {
+      patient_name: a.patient?.name ?? "",
+      clinic_name: clinicName,
+      appointment_date: apptDate,
+      appointment_time: apptTime,
+      doctor_name: a.doctor?.name ?? "the doctor",
+    });
+    openWhatsApp(a.patient.phone, msg);
+  };
 
   const setNoteForPatient = (patientId: string, value: string) => {
     setNoteMap((m) => ({ ...m, [patientId]: value }));
@@ -165,13 +184,14 @@ export default function CallTaskPage() {
                         {a.patient?.phone && (
                           <>
                             <span className="text-xs text-muted-foreground">· {a.patient.phone}</span>
-                            <a
-                              href={`https://wa.me/${a.patient.phone.replace(/[^\d]/g, "")}`}
-                              target="_blank" rel="noopener noreferrer"
+                            <button
+                              type="button"
+                              onClick={() => sendApptReminder(a)}
                               className="inline-flex items-center text-green-600 text-xs hover:underline"
+                              aria-label="Send WhatsApp reminder"
                             >
                               <MessageCircle className="h-3 w-3" />
-                            </a>
+                            </button>
                           </>
                         )}
                       </div>

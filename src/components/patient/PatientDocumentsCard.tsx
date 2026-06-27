@@ -102,7 +102,7 @@ export default function PatientDocumentsCard({ patientId, clinicId }: Props) {
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-display font-semibold">Documents</h3>
-          <Button size="sm" variant="outline" onClick={() => setModalOpen(true)}>
+          <Button type="button" size="sm" variant="outline" onClick={() => setModalOpen(true)}>
             <Upload className="mr-1.5 h-3.5 w-3.5" /> Upload
           </Button>
         </div>
@@ -135,7 +135,7 @@ export default function PatientDocumentsCard({ patientId, clinicId }: Props) {
                   </div>
                 </div>
                 {isAdmin && (
-                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteDoc(doc)}>
+                  <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => deleteDoc(doc)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
