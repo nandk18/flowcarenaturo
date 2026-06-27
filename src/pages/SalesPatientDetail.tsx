@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import PatientDocumentsCard from "@/components/patient/PatientDocumentsCard";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -792,7 +793,12 @@ export default function SalesPatientDetail() {
                 </section>
               </div>
             </div>
+
+            <div className="mt-6">
+              <PatientDocumentsCard patientId={patient.id} clinicId={patient.clinic_id} />
+            </div>
           </TabsContent>
+
 
           {/* ===== CLINICAL NOTES ===== */}
           <TabsContent value="clinical" className="mt-6">

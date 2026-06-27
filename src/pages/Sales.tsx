@@ -558,6 +558,33 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
   const [sourceFilter, setSourceFilter] = useUrlState("source", "all");
   const [search, setSearch] = useUrlState("search", "");
   const [fromDate, setFromDate] = useUrlState("from", "");
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+
+  // Fetch counts per status (independent of active filter)
+  useEffect(() => {
+    let cancelled = false;
+    const loadCounts = async () => {
+      const statuses: LeadStatus[] = ["attempt1", "attempt2", "attempt3", "closed", "current"];
+      const results = await Promise.all([
+        supabase.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", clinicId),
+        ...statuses.map((s) =>
+          supabase
+            .from("patients")
+            .select("id", { count: "exact", head: true })
+            .eq("clinic_id", clinicId)
+            .eq("lead_status", s),
+        ),
+      ]);
+      if (cancelled) return;
+      const counts: Record<string, number> = { all: results[0].count ?? 0 };
+      statuses.forEach((s, i) => {
+        counts[s] = results[i + 1].count ?? 0;
+      });
+      setStatusCounts(counts);
+    };
+    loadCounts();
+    return () => { cancelled = true; };
+  }, [clinicId]);
   const [toDate, setToDate] = useUrlState("to", "");
   const [pageStr, setPageStr] = useUrlState("page", "1");
   const [pageSizeStr, setPageSizeStr] = useUrlState("per_page", "20");
@@ -573,10 +600,20 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
     let cancelled = false;
     const load = async () => {
       setLoading(true);
-      const { data: patientsData } = await supabase
+      let query = supabase
         .from("patients")
         .select("id, clinic_id, name, first_name, last_name, phone, email, dob, gender, blood_group, lead_status, call_due_date, sla_breach_days, created_at, convenient_time, lead_source")
-        .eq("clinic_id", clinicId)
+        .eq("clinic_id", clinicId);
+
+      const q = search.trim();
+      if (q) {
+        const safe = q.replace(/[%,()]/g, " ");
+        query = query.or(`name.ilike.%${safe}%,phone.ilike.%${safe}%,email.ilike.%${safe}%`);
+      } else if (statusFilter !== "all") {
+        query = query.eq("lead_status", statusFilter);
+      }
+
+      const { data: patientsData } = await query
         .order("created_at", { ascending: false })
         .limit(1000);
       if (cancelled) return;
@@ -595,12 +632,14 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
           if (n.patient_id && !map[n.patient_id]) map[n.patient_id] = n.note;
         });
         if (!cancelled) setNotesByPatient(map);
+      } else {
+        if (!cancelled) setNotesByPatient({});
       }
       setLoading(false);
     };
     load();
     return () => { cancelled = true; };
-  }, [clinicId]);
+  }, [clinicId, statusFilter, search]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -670,14 +709,6 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
     XLSX.writeFile(wb, `leads-${new Date().toISOString().slice(0,10)}.xlsx`);
   };
 
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: patients.length };
-    for (const p of patients) {
-      const k = p.lead_status ?? "none";
-      counts[k] = (counts[k] ?? 0) + 1;
-    }
-    return counts;
-  }, [patients]);
 
   return (
     <div className="space-y-4">
