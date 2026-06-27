@@ -15,6 +15,7 @@ import {
   Sun,
   Moon,
   Tag,
+  Wallet,
 } from "lucide-react";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
 
@@ -49,6 +50,7 @@ const NAV: ShellNavGroup[] = [
       { to: "/settings/store-items", icon: ShoppingBag, label: "Store Items" },
       { to: "/settings/billing-config", icon: SlidersHorizontal, label: "Billing" },
       { to: "/settings/expense-categories", icon: Tag, label: "Expense Categories" },
+      { to: "/settings/petty-cash", icon: Wallet, label: "Petty Cash" },
     ],
   },
   {
