@@ -48,7 +48,7 @@ const NAV: ShellNavGroup[] = [
     items: [
       { to: "/settings/services", icon: Receipt, label: "Invoice Services" },
       { to: "/settings/store-items", icon: ShoppingBag, label: "Store Items" },
-      { to: "/settings/billing-config", icon: SlidersHorizontal, label: "Billing" },
+      { to: "/settings/billing-config", icon: BarChart3, label: "Invoice Analytics" },
       { to: "/settings/expense-categories", icon: Tag, label: "Expense Categories" },
       { to: "/settings/petty-cash", icon: Wallet, label: "Petty Cash" },
     ],
