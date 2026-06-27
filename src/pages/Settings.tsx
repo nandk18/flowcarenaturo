@@ -61,6 +61,8 @@ export default function Settings() {
   const [clinicName, setClinicName] = useState("");
   const [clinicAddress, setClinicAddress] = useState("");
   const [clinicPhone, setClinicPhone] = useState("");
+  const [clinicEmail, setClinicEmail] = useState("");
+  const [clinicWebsite, setClinicWebsite] = useState("");
   const [regionalLanguage, setRegionalLanguage] = useState("Tamil");
 
   // Billing settings
