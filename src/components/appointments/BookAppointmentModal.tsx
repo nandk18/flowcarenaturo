@@ -125,15 +125,17 @@ export default function BookAppointmentModal({
     if (!open || !profile?.clinic_id) return;
     supabase
       .from("invoice_services")
-      .select("id, name, amount, is_default")
+      .select("id, name, description, amount, gst_percentage, is_default")
       .eq("clinic_id", profile.clinic_id)
       .eq("is_active", true)
       .order("is_default", { ascending: false })
       .order("name")
       .then(({ data }) => {
         const list = (data ?? []) as any[];
-        setServices(list.map((s) => ({ id: s.id, name: s.name, amount: Number(s.amount) })));
-        // Preselect default service if none chosen yet
+        setServices(list.map((s) => ({
+          id: s.id, name: s.name, description: s.description,
+          amount: Number(s.amount), gst_percentage: Number(s.gst_percentage ?? 0),
+        })));
         setSelectedServiceIds((prev) => {
           if (prev.length) return prev;
           const def = list.find((s) => s.is_default);
