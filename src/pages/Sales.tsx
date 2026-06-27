@@ -709,14 +709,6 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
     XLSX.writeFile(wb, `leads-${new Date().toISOString().slice(0,10)}.xlsx`);
   };
 
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: patients.length };
-    for (const p of patients) {
-      const k = p.lead_status ?? "none";
-      counts[k] = (counts[k] ?? 0) + 1;
-    }
-    return counts;
-  }, [patients]);
 
   return (
     <div className="space-y-4">
