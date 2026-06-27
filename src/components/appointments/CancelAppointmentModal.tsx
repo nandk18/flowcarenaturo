@@ -73,7 +73,7 @@ export default function CancelAppointmentModal({ open, onClose, appointment, onC
       // 1. Cancel the appointment
       const { error: apptErr } = await (supabase as any)
         .from("appointments")
-        .update({ status: "cancelled", notes: combinedNote, updated_at: new Date().toISOString() })
+        .update({ status: "cancelled", notes: combinedNote })
         .eq("id", appointment.id);
       if (apptErr) throw apptErr;
 
