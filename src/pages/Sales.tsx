@@ -922,14 +922,15 @@ function CallTaskRow({
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <span>{patient.phone ?? "—"}</span>
         {patient.phone && (
-          <Button variant="ghost" size="icon" asChild aria-label="WhatsApp" className="h-7 w-7">
-            <a
-              href={`https://wa.me/${patient.phone.replace(/[^\d]/g, "")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <MessageCircle className="h-4 w-4 text-green-600" />
-            </a>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Send WhatsApp"
+            className="h-7 w-7"
+            onClick={sendWhatsApp}
+          >
+            <MessageCircle className="h-4 w-4 text-green-600" />
           </Button>
         )}
         {patient.convenient_time && (
