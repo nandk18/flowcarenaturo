@@ -289,7 +289,8 @@ function ExpenseModal({
     if (!amount || isNaN(Number(amount))) { toast.error("Amount required"); return; }
     if (!category) { toast.error("Category required"); return; }
     setBusy(true);
-    const userId = await getProfileId();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id ?? null;
     const newAmount = Number(amount);
     const payload = {
       clinic_id: clinicId,
