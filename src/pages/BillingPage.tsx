@@ -111,12 +111,21 @@ export default function BillingPage() {
     );
   }, [invoices, search]);
 
-  const shareInvoice = (invoice: any) => {
-    const url = `${window.location.origin}/invoice/${invoice.id}`;
+  const shareInvoice = async (invoice: any) => {
+    let pdfUrl = "";
+    try {
+      toast.loading("Preparing invoice PDF…", { id: "share-pdf" });
+      const { uploadInvoicePdf } = await import("@/lib/invoicePdf");
+      pdfUrl = await uploadInvoicePdf(invoice, clinic);
+      toast.success("PDF ready", { id: "share-pdf" });
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to prepare PDF", { id: "share-pdf" });
+      return;
+    }
     const phone = invoice.patients?.phone?.replace(/\D/g, "");
     if (!phone) {
-      navigator.clipboard.writeText(url);
-      toast.success("Invoice link copied");
+      navigator.clipboard.writeText(pdfUrl);
+      toast.success("PDF link copied");
       return;
     }
     openWhatsApp(
@@ -128,7 +137,7 @@ export default function BillingPage() {
         invoice.status,
         invoice.id,
         clinic?.name || "the clinic"
-      )
+      ).replace(`${window.location.origin}/invoice/${invoice.id}`, pdfUrl)
     );
   };
 
