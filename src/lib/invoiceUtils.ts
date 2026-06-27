@@ -43,8 +43,16 @@ export const buildInvoiceHtml = (invoice: any, clinic: any) => {
       ? "#6B7280"
       : "#EF4444";
 
-  const logoImg = clinic?.logo_url
+  const showLogo = clinic?.show_logo_on_invoice !== false;
+  const logoImg = clinic?.logo_url && showLogo
     ? `<img src="${clinic.logo_url}" alt="${escapeHtml(clinic?.name || "")}" style="height:56px;max-width:140px;object-fit:contain;display:block;margin-bottom:6px;" />`
+    : "";
+
+  const headerNote = clinic?.invoice_header_note
+    ? `<div style="font-size:11px;color:#555;font-style:italic;margin-top:4px;white-space:pre-line;">${escapeHtml(clinic.invoice_header_note)}</div>`
+    : "";
+  const footerNote = clinic?.invoice_footer_note
+    ? `<div style="font-size:11px;color:#555;margin-top:10px;white-space:pre-line;">${escapeHtml(clinic.invoice_footer_note)}</div>`
     : "";
 
   const invDate = invoice.invoice_date ? new Date(invoice.invoice_date) : new Date();
