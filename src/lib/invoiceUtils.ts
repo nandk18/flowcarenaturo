@@ -154,7 +154,8 @@ export const buildInvoiceHtml = (invoice: any, clinic: any) => {
 
     <!-- FOOTER -->
     <div style="text-align:center;margin-top:32px;padding-top:12px;border-top:1px solid #000;font-size:11px;color:#000;">
-      <div style="font-weight:700;letter-spacing:0.5px;">${escapeHtml(clinic?.name || "")}</div>
+      ${footerNote}
+      <div style="font-weight:700;letter-spacing:0.5px;margin-top:8px;">${escapeHtml(clinic?.name || "")}</div>
       <div style="color:#555;margin-top:2px;">Thank you for visiting${clinic?.name ? ` ${escapeHtml(clinic.name)}` : ""}</div>
     </div>
   </div>`;
