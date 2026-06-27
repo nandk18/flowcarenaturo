@@ -128,10 +128,11 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
       .from("invoices")
       .select("*")
       .eq("patient_id", patientId)
+      .eq("clinic_id", clinicId)
       .order("created_at", { ascending: false });
     setInvoices((data ?? []) as Invoice[]);
     if (!selectedId && data && data.length) setSelectedId(data[0].id);
-  }, [patientId, selectedId]);
+  }, [patientId, clinicId, selectedId]);
 
   useEffect(() => {
     load();
@@ -232,6 +233,17 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
 function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker, onPickerHandled }: { invoice: Invoice; onChanged: () => void; patientId: string; clinicId: string; autoOpenPicker?: boolean; onPickerHandled?: () => void }) {
   const { clinic } = useClinic();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [services, setServices] = useState<ServiceRow[]>([]);
+  useEffect(() => {
+    supabase
+      .from("invoice_services")
+      .select("*")
+      .eq("clinic_id", clinicId)
+      .eq("is_active", true)
+      .order("is_default", { ascending: false })
+      .order("created_at", { ascending: true })
+      .then(({ data }) => setServices((data ?? []) as ServiceRow[]));
+  }, [clinicId]);
 
   useEffect(() => {
     if (autoOpenPicker) {
@@ -279,7 +291,10 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
 
   const updateStatus = async (newStatus: string) => {
     setStatus(newStatus);
-    const { error } = await supabase.from("invoices").update({ status: newStatus }).eq("id", invoice.id);
+    const { error } = await supabase
+      .from("invoices")
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq("id", invoice.id);
     if (error) toast.error(error.message); else { toast.success("Status updated"); onChanged(); }
   };
 
@@ -294,7 +309,10 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
       total_amount: totals.total,
       outstanding_amount: totals.outstanding,
       notes: notes || null,
-    }).eq("id", invoice.id);
+      pdf_url: null,
+      pdf_generated_at: null,
+      updated_at: new Date().toISOString(),
+    } as any).eq("id", invoice.id);
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Invoice saved");
@@ -310,6 +328,21 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
       gst_percentage: Number(s.gst_percentage ?? 0),
       appointment_id: null,
     }]);
+  };
+  const addServiceItem = (id: string) => {
+    const s = services.find((x) => x.id === id);
+    if (!s) return;
+    setItems((cur) => [...cur, {
+      name: s.name,
+      description: s.description ?? "",
+      quantity: 1,
+      unit_price: Number(s.amount),
+      gst_percentage: Number(s.gst_percentage ?? 0),
+      appointment_id: null,
+    }]);
+  };
+  const addEmptyRow = () => {
+    setItems((cur) => [...cur, { name: "", description: "", quantity: 1, unit_price: 0, appointment_id: null }]);
   };
   const updateItem = (idx: number, field: keyof LineItem, v: any) => {
     const next = [...items];
@@ -431,9 +464,23 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
             </tbody>
           </table>
         </div>
-        <Button variant="outline" size="sm" className="mt-2" onClick={() => setPickerOpen(true)}>
-          <Package className="h-3.5 w-3.5 mr-1" /> Add Store Item
-        </Button>
+        <div className="mt-2 flex flex-wrap gap-2 items-center">
+          <Button variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
+            <Package className="h-3.5 w-3.5 mr-1" /> Add Store Item
+          </Button>
+          <Select value="" onValueChange={addServiceItem}>
+            <SelectTrigger className="h-9 w-56"><SelectValue placeholder="Add Service…" /></SelectTrigger>
+            <SelectContent>
+              {services.length === 0 && <div className="px-2 py-2 text-xs text-muted-foreground">No services configured</div>}
+              {services.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name} — ₹{Number(s.amount).toLocaleString("en-IN")}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={addEmptyRow}>
+            <Plus className="h-3.5 w-3.5 mr-1" /> Add Empty Row
+          </Button>
+        </div>
       </div>
 
       {/* Financials */}
