@@ -793,7 +793,12 @@ export default function SalesPatientDetail() {
                 </section>
               </div>
             </div>
+
+            <div className="mt-6">
+              <PatientDocumentsCard patientId={patient.id} clinicId={patient.clinic_id} />
+            </div>
           </TabsContent>
+
 
           {/* ===== CLINICAL NOTES ===== */}
           <TabsContent value="clinical" className="mt-6">
