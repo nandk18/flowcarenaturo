@@ -12,7 +12,7 @@ import { Printer, Share2, Plus, XCircle, ArrowLeft, FileDown } from "lucide-reac
 import { toast } from "sonner";
 import { openWhatsApp, buildInvoiceMessage } from "@/lib/whatsapp";
 import { printInvoice, buildInvoiceHtml } from "@/lib/invoiceUtils";
-import { downloadInvoicePdf, uploadInvoicePdf } from "@/lib/invoicePdf";
+import { downloadInvoicePdf, getInvoicePdfUrl } from "@/lib/invoicePdf";
 import PatientLink from "@/components/PatientLink";
 
 export default function InvoiceDetailPage() {
