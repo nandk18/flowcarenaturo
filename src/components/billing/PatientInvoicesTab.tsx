@@ -357,11 +357,20 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
   const showAppointmentGroups = distinctAppointments.size > 1;
 
   const loadFullInvoice = async () => {
-    const { data } = await supabase
+    if (!invoice?.id) {
+      console.error("[invoice] missing invoice.id", invoice);
+      return null;
+    }
+    const { data, error } = await supabase
       .from("invoices")
       .select(`*,patients(id,name,healthcare_id,phone,email),doctors(id,name)`)
       .eq("id", invoice.id)
-      .single();
+      .maybeSingle();
+    if (error) {
+      console.error("[invoice] load failed", error);
+      toast.error(error.message);
+      return null;
+    }
     return data;
   };
 
