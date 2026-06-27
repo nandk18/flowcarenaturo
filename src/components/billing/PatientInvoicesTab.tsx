@@ -344,15 +344,6 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
   const addEmptyRow = () => {
     setItems((cur) => [...cur, { name: "", description: "", quantity: 1, unit_price: 0, appointment_id: null }]);
   };
-    setItems((cur) => [...cur, {
-      name: s.name,
-      description: s.description ?? "",
-      quantity: 1,
-      unit_price: Number(s.unit_price),
-      gst_percentage: Number(s.gst_percentage ?? 0),
-      appointment_id: null,
-    }]);
-  };
   const updateItem = (idx: number, field: keyof LineItem, v: any) => {
     const next = [...items];
     (next[idx] as any)[field] = field === "name" || field === "description" ? v : Number(v);
