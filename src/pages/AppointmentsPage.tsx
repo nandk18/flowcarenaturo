@@ -98,7 +98,7 @@ export default function AppointmentsPage() {
     const endDate = format(addDays(weekStart, 6), "yyyy-MM-dd");
     const { data } = await (supabase as any)
       .from("appointments")
-      .select("*, patients(name, healthcare_id, phone), doctors(name)")
+      .select("*, patients(name, healthcare_id, phone), doctors(name), appointment_services(invoice_services(name))")
       .eq("clinic_id", profile.clinic_id)
       .gte("appointment_date", startDate)
       .lte("appointment_date", endDate)
@@ -109,6 +109,9 @@ export default function AppointmentsPage() {
         ...a,
         patient: Array.isArray(a.patients) ? a.patients[0] : a.patients,
         doctor: Array.isArray(a.doctors) ? a.doctors[0] : a.doctors,
+        services: (a.appointment_services ?? [])
+          .map((s: any) => s.invoice_services?.name)
+          .filter(Boolean) as string[],
       })));
     }
     setLoading(false);
