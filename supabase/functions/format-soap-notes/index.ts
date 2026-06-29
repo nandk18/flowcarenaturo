@@ -81,7 +81,7 @@ Return ONLY a valid JSON object with no extra text, no markdown, no code blocks:
 Doctor's dictation to convert:
 "${transcript}"
 
-Convert this into the structured SOAP JSON format.`,
+${isFreeform ? "Return the cleaned dictation as JSON: { \"formatted_text\": \"...\" }." : "Convert this into the structured SOAP JSON format."}`,
           },
         ],
       }),
