@@ -221,7 +221,7 @@ export default function VoiceRecorder({
     setIsTranscribing(true);
     try {
       const { data, error } = await supabase.functions.invoke("format-soap-notes", {
-        body: { transcript: transcript.trim() },
+        body: { transcript: transcript.trim(), mode: freeformMode ? "freeform" : undefined },
       });
       if (error) { toast.error("Failed to generate SOAP notes."); return; }
       if (data?.error) { toast.error(data.error); return; }
