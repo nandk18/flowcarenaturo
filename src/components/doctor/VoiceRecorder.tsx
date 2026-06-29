@@ -292,14 +292,9 @@ export default function VoiceRecorder({
             </p>
             {!isRecording && (
               <div className="flex flex-col items-center gap-1">
-                <button
-                  type="button"
-                  onClick={toggleFreeform}
-                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${freeformMode ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
-                  title="Free-form: returns cleaned dictation. Template: structured SOAP."
-                >
-                  {freeformMode ? "Free-form mode" : "Template (SOAP) mode"}
-                </button>
+                <span className="rounded-full border border-border bg-muted/40 px-3 py-1 text-[11px] text-muted-foreground">
+                  Template: {templateName || "SOAP Notes"}{freeformMode ? " (free-form)" : ""}
+                </span>
                 <Button variant="link" size="sm" onClick={() => setManualMode(true)} className="text-muted-foreground">
                   Or type notes manually
                 </Button>
