@@ -371,7 +371,12 @@ function MonthView({
                   <div key={a.id} className="flex items-center gap-1 truncate rounded bg-background/70 px-1 py-0.5">
                     <span className={cn("h-1.5 w-1.5 rounded-full", statusDot[a.status] ?? "bg-muted-foreground")} />
                     <span className="font-mono">{a.appointment_time?.substring(0, 5)}</span>
-                    <span className="truncate">{a.patient?.name ?? "—"}</span>
+                    <span className="truncate">
+                      {a.patient?.name ?? "—"}
+                      {a.services && a.services.length > 0 && (
+                        <span className="text-muted-foreground"> · {a.services.slice(0, 2).join(", ")}</span>
+                      )}
+                    </span>
                   </div>
                 ))}
                 {items.length > 3 && <div className="text-[10px] text-muted-foreground">+{items.length - 3} more</div>}
