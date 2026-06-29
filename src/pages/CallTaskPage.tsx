@@ -429,7 +429,14 @@ export default function CallTaskPage() {
                 <span className="text-xs text-amber-800">First-visit follow-ups</span>
               </header>
               <ul className="divide-y">
-                {careRows.map((r) => {
+                {careRows
+                  .filter((r) => {
+                    const due = r.care_call_due_date ?? "";
+                    if (statusTab === "overdue") return due && due < today;
+                    if (statusTab === "due") return due === today;
+                    return false; // "done" — care_call_done=true rows already excluded by query
+                  })
+                  .map((r) => {
                   const apptDate = new Date(r.appointment_date);
                   const daysSince = differenceInCalendarDays(new Date(), apptDate);
                   const overdue = (r.care_call_due_date ?? "") < today;
