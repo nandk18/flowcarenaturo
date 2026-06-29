@@ -15,7 +15,7 @@ import { Copy, MessageCircle } from "lucide-react";
 import PatientLink from "@/components/PatientLink";
 import { buildMessage } from "@/lib/messageTemplates";
 import { openWhatsApp } from "@/lib/whatsapp";
-import { getProfileId } from "@/utils/getProfileId";
+
 import { useClinic } from "@/hooks/useClinic";
 
 type Props = {
