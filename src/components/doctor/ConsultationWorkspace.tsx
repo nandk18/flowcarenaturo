@@ -75,6 +75,7 @@ const SECTION_LABELS: Record<string, { label: string; placeholder: string }> = {
   treatment_history: { label: "Treatment History", placeholder: "Previous treatments..." },
   chief_complaint: { label: "Chief Complaint", placeholder: "Primary complaint..." },
   treatment_plan: { label: "Treatment Plan", placeholder: "Treatment plan..." },
+  formatted: { label: "Clinical Notes", placeholder: "Free-form clinical notes — dictate or type freely..." },
 };
 
 const tabs = ["summary", "history", "voice", "soap", "prescription", "documents"] as const;
