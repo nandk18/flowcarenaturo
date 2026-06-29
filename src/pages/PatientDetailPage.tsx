@@ -405,6 +405,15 @@ export default function PatientDetailPage() {
         </div>
       )}
 
+      {/* Patient-linked tasks */}
+      {patientId && profile?.clinic_id && (
+        <div className="mt-6">
+          <PatientTodoCard patientId={patientId} clinicId={profile.clinic_id} />
+        </div>
+      )}
+
+
+
 
       {/* Edit Visit Sheet */}
       <EditVisitSheet
