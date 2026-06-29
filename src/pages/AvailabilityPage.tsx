@@ -30,11 +30,13 @@ type Appt = {
   id: string;
   clinic_id: string;
   patient_id: string;
+  doctor_id?: string | null;
   appointment_date: string;
   appointment_time: string;
   status: string;
   reason: string | null;
   patient: { id: string; name: string; phone: string | null } | null;
+  services?: string[];
 };
 type View = "day" | "week" | "month";
 
