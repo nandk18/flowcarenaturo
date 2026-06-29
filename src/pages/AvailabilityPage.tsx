@@ -286,6 +286,11 @@ export default function AvailabilityPage() {
           appts={apptsByDate.get(format(cursor, "yyyy-MM-dd")) ?? []}
           onPickSlot={(d, t) => openBook(d, t)}
           onCancelAppt={(a) => setCancelAppt(a)}
+          onReschedule={(a) => {
+            setModalInit({ patientId: a.patient_id, lockPatient: false });
+            setModalOpen(true);
+          }}
+          onOpenAppt={(a) => setDetailAppt(a)}
         />
       )}
 
