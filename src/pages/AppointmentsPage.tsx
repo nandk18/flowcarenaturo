@@ -614,13 +614,6 @@ export default function AppointmentsPage() {
                 </div>
                 <div className="text-sm text-muted-foreground">{formatDoctorName(detailAppt.doctor?.name)}</div>
                 {detailAppt.reason && <div className="text-sm">Reason: {detailAppt.reason}</div>}
-                {detailAppt.services && detailAppt.services.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {detailAppt.services.map((s) => (
-                      <Badge key={s} variant="outline" className="text-[10px]">{s}</Badge>
-                    ))}
-                  </div>
-                )}
                 <Badge variant="outline" className={`capitalize ${STATUS_COLORS[detailAppt.status] || ""}`}>
                   {detailAppt.status.replace("_", " ")}
                 </Badge>
@@ -630,20 +623,6 @@ export default function AppointmentsPage() {
                 {detailAppt.status === "scheduled" && (
                   <Button size="sm" variant="outline" onClick={() => updateStatus(detailAppt.id, "confirmed")}>
                     <CheckCircle className="mr-1 h-3 w-3" /> Confirm
-                  </Button>
-                )}
-                {detailAppt.status !== "completed" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const appt = detailAppt;
-                      setDetailAppt(null);
-                      navigate(`/appointments?patient_id=${appt.patient_id}&doctor_id=${appt.doctor_id}&date=${format(new Date(), "yyyy-MM-dd")}`);
-                      setBookOpen(true);
-                    }}
-                  >
-                    <Calendar className="mr-1 h-3 w-3" /> Reschedule
                   </Button>
                 )}
                 {detailAppt.status !== "cancelled" && detailAppt.status !== "completed" && (

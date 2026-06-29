@@ -1,110 +1,56 @@
-# Plan: Multi-area workflow improvements
+## Fixes for prior pass
 
-## 1. Searchable Service pickers (replace dropdowns)
+### 1. Move calendar enhancements to Availability page
 
-**`src/components/billing/ServicePicker.tsx`** — replace `Select` with a `Command`-based typeahead combobox:
-- Input filters `invoice_services` by `name` (case-insensitive, substring).
-- Multi-select: clicking an item appends to selected list; selected services render as removable chips above the input.
-- Keyboard: ↑/↓ to navigate, Enter to add, Backspace on empty input removes last chip.
-- Used in `CreateInvoiceModal` and `InvoiceServicesSection` (already imports `ServicePicker`).
+The Reschedule button, "show services next to patient name", and clickable cancelled rows were added to `AppointmentsPage.tsx`. They should live on `AvailabilityPage.tsx` (the actual calendar view) instead.
 
-**`src/components/appointments/BookAppointmentModal.tsx`** — same combobox for "Services" field (currently a `Select`). Stores selected service IDs on `appointment_services` link rows just like today.
+- **`src/pages/AvailabilityPage.tsx`**
+  - Extend the appointments query to include `appointment_services(invoice_services(name))`, map into `services: string[]` on each `Appt`.
+  - In day/week/month cell renderers, show services after patient name: `Asha Rao · Consultation, Panchakarma` (first 2 + `+N`).
+  - Add a **Reschedule** button next to **Cancel** in the appointment popover/sheet; opens `BookAppointmentModal` pre-filled with patient + services and sets old row `status='rescheduled'` on submit.
+  - Wrap cancelled rows in the bottom list (if present) — or the cancelled badge in the cell — in a clickable button that opens the same popover (read-only + Reschedule).
+- **`src/pages/AppointmentsPage.tsx`** — revert the three additions (services line, Reschedule button, clickable cancelled rows) so the page goes back to its previous behaviour.
 
-## 2. Calendar improvements
+### 2. Call Tasks: top-level KPI tabs
 
-**`src/pages/AppointmentsPage.tsx`** (calendar view) and the appointment detail popover/sheet:
+Restructure `src/pages/CallTaskPage.tsx`:
 
-- **Show services next to patient name** in calendar cells/list rows: fetch `appointment_services → invoice_services.name`, render as small muted text after patient name (e.g. `Asha Rao · Consultation, Panchakarma`). Limit to first 2 + "+N".
-- **Reschedule button** next to Cancel on the appointment detail popover:
-  - Opens existing `BookAppointmentModal` pre-filled with patient, doctor, services.
-  - On submit: insert new appointment, set old row `status = 'rescheduled'` (add to enum if missing).
-- **Cancelled appointments clickable**: in the bottom "Cancelled" list, wrap each row in a button that opens the same detail popover (read-only badge + Reschedule option). Today they're rendered as plain text.
+- **Primary tabs (top, apply across all types):** `Overdue` · `Due Today` · `Done Today`. Show counts. Drives a `statusFilter` state.
+- **Secondary tabs (below):** `Appointment Tomorrow` · `Care Call` · `Cancelled Call` · `Lead Call` (existing 4). Drives `typeFilter`.
+- Each section's list is filtered by the combination. URL state: `?status=overdue&type=care`.
+- "Due today" definitions per type:
+  - Appt Tomorrow → due = today (always).
+  - Care Call → `care_call_due_date = today`; overdue → `< today`.
+  - Cancelled Call → not yet informed and `called_at::date = today` (overdue: older than today).
+  - Lead Call → patients in `attempt1/2/3` with `call_due_date` today / before today; done today = `call_logs` rows with `outcome` set today.
 
-**`src/components/appointments/CancelAppointmentModal.tsx`** — reason dropdown becomes exactly:
-- `Patient Requested`
-- `No Show`
-- `Other` (shows free-text input)
+### 3. Voice Scribe: Freeform as a template
 
-Remove all other reasons. Remove the "create cancel call" side-effect that currently runs for non-doctor-leave cancellations.
+Currently Free-form is a separate toggle in `VoiceRecorder.tsx`. Change it to a real template.
 
-## 3. Doctor's Leave → bulk Cancel Calls
+- **DB (seed only, via insert tool — not a schema change):** add a system row in `note_templates` with `name='Free-form'`, `is_system=true`, `sections=[]` (or a single `formatted` section). Already-present `Free-form` rows are upserted by name+is_system.
+- **`src/components/doctor/TemplateSelector.tsx`** — no code change; the new template shows up automatically. Doctors can pick "Free-form" as default in Settings → Doctor profile (existing UI).
+- **`src/components/doctor/VoiceRecorder.tsx`** — remove the freeform localStorage toggle; instead detect `template.name === "Free-form"` and pass `mode: "freeform"` to the edge function based on that.
+- **`src/components/doctor/ConsultationWorkspace.tsx`** — when the active template is "Free-form", render the existing single-textarea formatted output in the SOAP section (same component as today, just driven by template, not toggle).
+- **`supabase/functions/format-soap-notes/index.ts`** — keep the `mode === "freeform"` branch; no change needed.
 
-**`src/pages/DoctorSchedulePage.tsx`** — add "Mark Leave" action per doctor/day:
-- Picks date(s); on confirm: set all that day's appointments for that doctor to `cancelled` with reason `doctor_leave`, AND insert a `call_logs`-style task row for each affected patient into Call Tasks with type `cancelled_call`.
-- This is the ONLY path that generates cancelled-call tasks. Patient/No-show/Other cancellations do NOT create call tasks.
+### 4. Patient To-Dos: move under Patients tab area + link in sidebar Todo
 
-No new settings page — leave-cancel flow lives entirely on Doctor Schedule.
+`PatientTodoCard` is already on the patient detail page (line 411). Ensure it lives inside the Patients/* tab strip rather than a free-floating card, and confirm `TodoListPage` shows the patient chip with link.
 
-## 4. Call Tasks redesign
+- **`src/pages/PatientDetailPage.tsx`** — move `<PatientTodoCard …/>` into the patient tabs as a new tab "To-Do" (alongside Appointments / Notes / Invoices), so it's clearly under `/patients/:id`.
+- **`src/pages/TodoListPage.tsx`** — verify patient chip renders for tasks with `patient_id`, clicking navigates to `/patients/:id`. Add if missing.
+- No DB change — `todo_list.patient_id` already exists from prior migration.
 
-**`src/pages/CallTaskPage.tsx`**:
+### Out of scope
+- Changes to BookAppointmentModal beyond pre-fill support (already done).
+- Reworking the Lead Call query — only wraps with the new status/type filters.
 
-Top KPI cards become clickable filter tabs:
-- `Overdue`
-- `Due Today`
-- `Done Today`
-
-Below KPIs, a secondary tab strip with four type filters (combine with the KPI filter above):
-- `Appointment Tomorrow`
-- `Care Call`
-- `Cancelled Call`
-- `Lead Call`
-
-List re-queries based on the combination. URL state via `useUrlState` for shareability.
-
-**`src/components/layout/MainShell.tsx` / sidebar** — remove the standalone "Care Call" sidebar item. Care calls only live inside Call Tasks now.
-
-## 5. Petty Cash → Front Desk Expenses
-
-- **Move** the Top-up / Withdraw + balance UI out of `src/pages/PettyCashSettingsPage.tsx`.
-- **Add a "Petty Cash" panel** at the top of `src/pages/ExpenseListPage.tsx`:
-  - Cards: Current Balance, Total Spent (sum of `expense_list` paid via Petty Cash for current month), Limit.
-  - Inline Top-up / Withdraw buttons (uses existing `adjust_petty_cash` RPC).
-- **Settings → Petty Cash page**: keep only the Maximum Limit field (admin policy setting). Remove from sidebar if user prefers; default keep with limit-only.
-- Remove sidebar "Petty Cash" settings item — fold limit into Billing Config or leave a slim settings entry. (Will keep slim settings entry for limit; confirm if you want it gone entirely.)
-
-## 6. Patient-linked To-Dos
-
-**`src/pages/PatientDetailPage.tsx`** — add "To-Do" section/tab:
-- Lists `todo_list` rows where `patient_id = currentPatient.id`.
-- "Add task" inline form; saves with `patient_id`, `clinic_id`, `created_by`.
-
-**`src/pages/TodoListPage.tsx`** — show linked patient name as a chip; clicking jumps to `/patients/:id`.
-
-Migration: ensure `todo_list.patient_id uuid references patients(id) on delete set null` exists; add if missing + index.
-
-## 7. Voice scribe — free-form mode
-
-**`src/components/doctor/VoiceRecorder.tsx`** + **`src/components/doctor/TemplateSelector.tsx`**:
-- New default mode: "Free-form" — sends transcript to a new lightweight formatter prompt (no SOAP fields, just cleaned/punctuated paragraphs in clinical English; preserves bullet structure if dictated).
-- Template selector keeps existing SOAP/custom templates as an opt-in toggle: "Free-form ↔ Use template".
-- **`supabase/functions/format-soap-notes/index.ts`**: branch on `mode === "freeform"` → return `{ formatted_text: "..." }` instead of SOAP JSON. Component renders the text in a single editable textarea when free-form.
-
-## Technical notes
-
-- DB:
-  - Add `appointment_status` enum value `rescheduled` if not present.
-  - Add `call_logs.type` enum value `cancelled_call` if not present.
-  - Ensure `todo_list.patient_id` FK + index.
-- No new public-schema tables expected; all changes are columns/enums on existing tables, so no new GRANT blocks needed beyond existing.
-- Realtime: existing channels on `appointments` and `todo_list` cover the new flows.
-- Routing: no new routes; existing `/call-tasks`, `/expenses`, `/patients/:id`, `/appointments`, `/doctor-schedule` reused.
-
-## Out of scope (ask if wanted)
-
-- Recurring doctor leave (multi-day vacations) — single-day for now.
-- WhatsApp auto-notify on doctor-leave cancellations — uses existing message template if present, otherwise skipped.
-- Migrating historical cancellation reasons to the new 3-value set.
-
-## Verification
-
-1. Book Appointment: typing in Services filters list; multi-select chips work.
-2. Create Invoice: same typeahead behavior; selected services appear as line items.
-3. Calendar cell shows `Patient · Service1, Service2`.
-4. Click cancelled patient → popover opens; Reschedule pre-fills Book modal.
-5. Cancel modal shows only 3 reasons; no Call Task created.
-6. Doctor Schedule → Mark Leave → all that day's appointments cancelled + Call Tasks list shows new Cancelled Calls.
-7. Call Tasks: clicking Overdue/Due Today/Done Today filters; sub-tabs filter by type. Sidebar Care Call gone.
-8. Expenses page: Petty Cash card with balance/spent + Top-up works. Settings → Petty Cash shows only limit.
-9. Patient detail → To-Do tab → add task → appears in main Todo list with patient chip.
-10. Consult voice recorder: default free-form produces formatted paragraphs; toggle to template restores SOAP output.
+### Verification
+1. `/availability` calendar cells show `Patient · Service1, Service2`.
+2. Click an appointment → popover shows Reschedule + Cancel; Reschedule opens prefilled Book modal; old row becomes `rescheduled`.
+3. Cancelled appointments in calendar are clickable.
+4. `/appointments` no longer shows those three additions.
+5. `/call-tasks` shows Overdue / Due Today / Done Today as primary tabs; type tabs below; counts match the filter combo.
+6. In consult, picking "Free-form" template makes voice transcription return free-form text into the SOAP section.
+7. `/patients/:id` has a To-Do tab; tasks added there appear in sidebar Todo with a clickable patient chip.

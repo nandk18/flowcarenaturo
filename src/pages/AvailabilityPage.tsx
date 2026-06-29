@@ -30,11 +30,13 @@ type Appt = {
   id: string;
   clinic_id: string;
   patient_id: string;
+  doctor_id?: string | null;
   appointment_date: string;
   appointment_time: string;
   status: string;
   reason: string | null;
   patient: { id: string; name: string; phone: string | null } | null;
+  services?: string[];
 };
 type View = "day" | "week" | "month";
 
@@ -102,6 +104,7 @@ export default function AvailabilityPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInit, setModalInit] = useState<{ date?: string; time?: string; patientId?: string; lockPatient?: boolean } | null>(null);
   const [cancelAppt, setCancelAppt] = useState<Appt | null>(null);
+  const [detailAppt, setDetailAppt] = useState<Appt | null>(null);
 
   useEffect(() => {
     if (shouldAutoOpen) {
@@ -148,8 +151,8 @@ export default function AvailabilityPage() {
     const startStr = format(rangeStart, "yyyy-MM-dd");
     const endStr = format(rangeEnd, "yyyy-MM-dd");
     const [aRes, eRes] = await Promise.all([
-      supabase.from("appointments")
-        .select("id, clinic_id, patient_id, appointment_date, appointment_time, status, reason, patients(id, name, phone)")
+      (supabase as any).from("appointments")
+        .select("id, clinic_id, patient_id, doctor_id, appointment_date, appointment_time, status, reason, patients(id, name, phone), appointment_services(invoice_services(name))")
         .eq("clinic_id", profile.clinic_id)
         .eq("doctor_id", doctorId)
         .gte("appointment_date", startStr)
@@ -164,6 +167,9 @@ export default function AvailabilityPage() {
     setAppts((aRes.data ?? []).map((a: any) => ({
       ...a,
       patient: Array.isArray(a.patients) ? a.patients[0] : a.patients,
+      services: (a.appointment_services ?? [])
+        .map((s: any) => s.invoice_services?.name)
+        .filter(Boolean) as string[],
     })));
     setExceptions((eRes.data ?? []) as DoctorException[]);
   }, [profile?.clinic_id, doctorId, rangeStart, rangeEnd]);
@@ -280,6 +286,11 @@ export default function AvailabilityPage() {
           appts={apptsByDate.get(format(cursor, "yyyy-MM-dd")) ?? []}
           onPickSlot={(d, t) => openBook(d, t)}
           onCancelAppt={(a) => setCancelAppt(a)}
+          onReschedule={(a) => {
+            setModalInit({ patientId: a.patient_id, lockPatient: false });
+            setModalOpen(true);
+          }}
+          onOpenAppt={(a) => setDetailAppt(a)}
         />
       )}
 
@@ -315,6 +326,37 @@ export default function AvailabilityPage() {
         initialPatientId={modalInit?.patientId}
         lockPatient={modalInit?.lockPatient}
       />
+
+      {/* Cancelled / appt detail dialog */}
+      {detailAppt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setDetailAppt(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-lg font-semibold">Appointment</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {detailAppt.patient?.name} · {detailAppt.appointment_date} {detailAppt.appointment_time?.slice(0, 5)}
+            </p>
+            {detailAppt.services && detailAppt.services.length > 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">Services: {detailAppt.services.join(", ")}</p>
+            )}
+            {detailAppt.reason && <p className="mt-1 text-xs text-muted-foreground">Reason: {detailAppt.reason}</p>}
+            <p className="mt-1 text-xs uppercase tracking-wide text-red-700">Status: {detailAppt.status}</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setDetailAppt(null)}>Close</Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  const a = detailAppt;
+                  setDetailAppt(null);
+                  setModalInit({ patientId: a.patient_id, lockPatient: false });
+                  setModalOpen(true);
+                }}
+              >
+                Reschedule
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </MainShell>
   );
 }
@@ -360,7 +402,12 @@ function MonthView({
                   <div key={a.id} className="flex items-center gap-1 truncate rounded bg-background/70 px-1 py-0.5">
                     <span className={cn("h-1.5 w-1.5 rounded-full", statusDot[a.status] ?? "bg-muted-foreground")} />
                     <span className="font-mono">{a.appointment_time?.substring(0, 5)}</span>
-                    <span className="truncate">{a.patient?.name ?? "—"}</span>
+                    <span className="truncate">
+                      {a.patient?.name ?? "—"}
+                      {a.services && a.services.length > 0 && (
+                        <span className="text-muted-foreground"> · {a.services.slice(0, 2).join(", ")}</span>
+                      )}
+                    </span>
                   </div>
                 ))}
                 {items.length > 3 && <div className="text-[10px] text-muted-foreground">+{items.length - 3} more</div>}
@@ -404,6 +451,11 @@ function WeekView({
                       <span className="font-mono">{a.appointment_time?.substring(0, 5)}</span>
                     </div>
                     {a.patient && <PatientLink patientId={a.patient.id} className="block truncate text-xs">{a.patient.name}</PatientLink>}
+                    {a.services && a.services.length > 0 && (
+                      <div className="truncate text-[10px] text-muted-foreground">
+                        {a.services.slice(0, 2).join(", ")}{a.services.length > 2 ? ` +${a.services.length - 2}` : ""}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -416,7 +468,7 @@ function WeekView({
 }
 
 function DayView({
-  date, schedule, exception, appts, onPickSlot, onCancelAppt,
+  date, schedule, exception, appts, onPickSlot, onCancelAppt, onReschedule, onOpenAppt,
 }: {
   date: Date;
   schedule: DoctorSchedule | null;
@@ -424,6 +476,8 @@ function DayView({
   appts: Appt[];
   onPickSlot: (date: string, time: string) => void;
   onCancelAppt: (a: Appt) => void;
+  onReschedule: (a: Appt) => void;
+  onOpenAppt: (a: Appt) => void;
 }) {
   const dateStr = format(date, "yyyy-MM-dd");
   // Cancelled appointments free up the slot — exclude from generator + booked map
@@ -464,23 +518,38 @@ function DayView({
             return (
               <div
                 key={s.time}
-                className="flex w-full items-center gap-3 rounded border border-primary/30 bg-primary/5 px-3 py-2 text-left text-sm"
+                className="flex w-full flex-wrap items-center gap-3 rounded border border-primary/30 bg-primary/5 px-3 py-2 text-left text-sm"
               >
                 <span className="w-16 font-mono text-xs text-primary">{s.time}</span>
-                <div className="flex flex-1 items-center gap-2">
+                <div className="flex flex-1 flex-wrap items-center gap-2">
                   <span className={cn("h-2 w-2 rounded-full", statusDot[a.status] ?? "bg-muted-foreground")} />
                   {a.patient && <PatientLink patientId={a.patient.id}>{a.patient.name}</PatientLink>}
+                  {a.services && a.services.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      · {a.services.slice(0, 2).join(", ")}{a.services.length > 2 ? ` +${a.services.length - 2}` : ""}
+                    </span>
+                  )}
                   {a.reason && <span className="text-xs text-muted-foreground">— {a.reason}</span>}
                   <span className="ml-auto text-[10px] uppercase text-muted-foreground">{a.status}</span>
                   {a.status !== "completed" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2 text-[10px] text-red-600 border-red-300 hover:bg-red-50"
-                      onClick={() => onCancelAppt(a)}
-                    >
-                      Cancel
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[10px]"
+                        onClick={() => onReschedule(a)}
+                      >
+                        Reschedule
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[10px] text-red-600 border-red-300 hover:bg-red-50"
+                        onClick={() => onCancelAppt(a)}
+                      >
+                        Cancel
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -508,13 +577,21 @@ function DayView({
           <div className="mt-3 border-t pt-3">
             <div className="mb-1 text-[10px] font-semibold uppercase text-red-700">Cancelled</div>
             {cancelledAppts.map((a) => (
-              <div key={a.id} className="flex items-center gap-3 rounded border border-red-200 bg-red-50 px-3 py-1.5 text-sm">
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => onOpenAppt(a)}
+                className="flex w-full items-center gap-3 rounded border border-red-200 bg-red-50 px-3 py-1.5 text-left text-sm hover:bg-red-100"
+              >
                 <span className="w-16 font-mono text-xs text-red-700">{a.appointment_time?.slice(0, 5)}</span>
                 {a.patient && (
                   <span className="text-red-700 line-through">{a.patient.name}</span>
                 )}
+                {a.services && a.services.length > 0 && (
+                  <span className="text-xs text-red-700/70">· {a.services.slice(0, 2).join(", ")}</span>
+                )}
                 <span className="ml-auto rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">Cancelled</span>
-              </div>
+              </button>
             ))}
           </div>
         )}

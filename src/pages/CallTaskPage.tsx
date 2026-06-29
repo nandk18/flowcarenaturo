@@ -77,6 +77,10 @@ export default function CallTaskPage() {
     "appt" | "care" | "cancel" | "lead",
     (v: "appt" | "care" | "cancel" | "lead") => void,
   ];
+  const [statusTab, setStatusTab] = useUrlState("status", "due") as [
+    "overdue" | "due" | "done",
+    (v: "overdue" | "due" | "done") => void,
+  ];
 
   const sendApptReminder = async (a: TomorrowAppt) => {
     if (!clinicId || !a.patient?.phone) return;
@@ -311,6 +315,14 @@ export default function CallTaskPage() {
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">Loading clinic...</div>
       ) : (
         <div className="space-y-5">
+          <Tabs value={statusTab} onValueChange={(v) => setStatusTab(v as any)}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="overdue">Overdue</TabsTrigger>
+              <TabsTrigger value="due">Due Today</TabsTrigger>
+              <TabsTrigger value="done">Done Today</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
             <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
               <TabsTrigger value="appt">
@@ -349,7 +361,14 @@ export default function CallTaskPage() {
                 <span className="text-xs text-blue-700">Confirm tomorrow's bookings</span>
               </header>
               <ul className="divide-y">
-                {tomorrowAppts.map((a) => {
+                {tomorrowAppts
+                  .filter((a) => {
+                    const called = !!calledMap[a.patient_id];
+                    if (statusTab === "done") return called;
+                    if (statusTab === "overdue") return false;
+                    return !called;
+                  })
+                  .map((a) => {
                   const called = calledMap[a.patient_id];
                   return (
                     <li key={a.id} className="grid gap-2 px-4 py-3 sm:grid-cols-[auto_1fr_auto] sm:items-start">
@@ -410,7 +429,14 @@ export default function CallTaskPage() {
                 <span className="text-xs text-amber-800">First-visit follow-ups</span>
               </header>
               <ul className="divide-y">
-                {careRows.map((r) => {
+                {careRows
+                  .filter((r) => {
+                    const due = r.care_call_due_date ?? "";
+                    if (statusTab === "overdue") return due && due < today;
+                    if (statusTab === "due") return due === today;
+                    return false; // "done" — care_call_done=true rows already excluded by query
+                  })
+                  .map((r) => {
                   const apptDate = new Date(r.appointment_date);
                   const daysSince = differenceInCalendarDays(new Date(), apptDate);
                   const overdue = (r.care_call_due_date ?? "") < today;
@@ -481,7 +507,15 @@ export default function CallTaskPage() {
                 <span className="text-xs text-red-700">Last 7 days</span>
               </header>
               <ul className="divide-y">
-                {cancelledRows.map((r) => {
+                {cancelledRows
+                  .filter((r) => {
+                    const informed = isInformed(r.notes);
+                    const day = r.called_at.slice(0, 10);
+                    if (statusTab === "done") return informed && day === today;
+                    if (statusTab === "overdue") return !informed && day < today;
+                    return !informed && day === today;
+                  })
+                  .map((r) => {
                   const informed = isInformed(r.notes);
                   const reason = parseReason(r.notes);
                   return (

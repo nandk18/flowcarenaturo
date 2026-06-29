@@ -32,21 +32,11 @@ export default function VoiceRecorder({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [manualMode, setManualMode] = useState(false);
-  const [freeformMode, setFreeformMode] = useState<boolean>(() => {
-    try { return localStorage.getItem("voice_freeform_mode") !== "0"; } catch { return true; }
-  });
+  const freeformMode = templateName === "Free-form";
   const [elapsed, setElapsed] = useState(0);
   const [audioLevels, setAudioLevels] = useState<number[]>(new Array(24).fill(0));
   const [processingStatus, setProcessingStatus] = useState<string>("");
   const { enqueue, waitForJob } = useJobQueue();
-
-  const toggleFreeform = () => {
-    setFreeformMode((m) => {
-      const next = !m;
-      try { localStorage.setItem("voice_freeform_mode", next ? "1" : "0"); } catch {}
-      return next;
-    });
-  };
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -302,14 +292,9 @@ export default function VoiceRecorder({
             </p>
             {!isRecording && (
               <div className="flex flex-col items-center gap-1">
-                <button
-                  type="button"
-                  onClick={toggleFreeform}
-                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${freeformMode ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
-                  title="Free-form: returns cleaned dictation. Template: structured SOAP."
-                >
-                  {freeformMode ? "Free-form mode" : "Template (SOAP) mode"}
-                </button>
+                <span className="rounded-full border border-border bg-muted/40 px-3 py-1 text-[11px] text-muted-foreground">
+                  Template: {templateName || "SOAP Notes"}{freeformMode ? " (free-form)" : ""}
+                </span>
                 <Button variant="link" size="sm" onClick={() => setManualMode(true)} className="text-muted-foreground">
                   Or type notes manually
                 </Button>
@@ -329,13 +314,9 @@ export default function VoiceRecorder({
               <Button variant="outline" size="sm" onClick={() => setManualMode(false)} className="rounded-lg">
                 <Mic className="mr-2 h-4 w-4" /> Use Microphone
               </Button>
-              <button
-                type="button"
-                onClick={toggleFreeform}
-                className={`rounded-full border px-3 py-1 text-xs transition-colors ${freeformMode ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
-              >
-                {freeformMode ? "Free-form" : "Template (SOAP)"}
-              </button>
+              <span className="rounded-full border border-border bg-muted/40 px-3 py-1 text-[11px] text-muted-foreground">
+                {templateName || "SOAP Notes"}{freeformMode ? " · free-form" : ""}
+              </span>
               <Button onClick={processManualTranscript} disabled={isTranscribing || !transcript.trim()} className="flex-1 rounded-lg">
                 {freeformMode ? "Format Notes with AI" : "Generate SOAP Notes with AI"}
               </Button>
