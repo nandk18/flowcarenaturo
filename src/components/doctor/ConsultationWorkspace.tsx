@@ -493,7 +493,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
 
           {tab === "summary" && renderSummary()}
           {tab === "history" && visit.patient && <PatientHistory patientId={visit.patient.id} currentVisitId={visit.id} />}
-          {tab === "voice" && <VoiceRecorder visitId={visit.id} onTranscriptProcessed={handleTranscriptProcessed} />}
+          {tab === "voice" && <VoiceRecorder visitId={visit.id} onTranscriptProcessed={handleTranscriptProcessed} clinicId={profile?.clinic_id} doctorId={doctor?.id} templateName={selectedTemplate?.name} templateFields={activeSections} />}
           {tab === "soap" && renderSoap()}
           {tab === "prescription" && renderPrescription()}
           {tab === "documents" && visit.patient && profile?.clinic_id && (
