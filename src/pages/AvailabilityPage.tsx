@@ -151,8 +151,8 @@ export default function AvailabilityPage() {
     const startStr = format(rangeStart, "yyyy-MM-dd");
     const endStr = format(rangeEnd, "yyyy-MM-dd");
     const [aRes, eRes] = await Promise.all([
-      supabase.from("appointments")
-        .select("id, clinic_id, patient_id, appointment_date, appointment_time, status, reason, patients(id, name, phone)")
+      (supabase as any).from("appointments")
+        .select("id, clinic_id, patient_id, doctor_id, appointment_date, appointment_time, status, reason, patients(id, name, phone), appointment_services(invoice_services(name))")
         .eq("clinic_id", profile.clinic_id)
         .eq("doctor_id", doctorId)
         .gte("appointment_date", startStr)
@@ -167,6 +167,9 @@ export default function AvailabilityPage() {
     setAppts((aRes.data ?? []).map((a: any) => ({
       ...a,
       patient: Array.isArray(a.patients) ? a.patients[0] : a.patients,
+      services: (a.appointment_services ?? [])
+        .map((s: any) => s.invoice_services?.name)
+        .filter(Boolean) as string[],
     })));
     setExceptions((eRes.data ?? []) as DoctorException[]);
   }, [profile?.clinic_id, doctorId, rangeStart, rangeEnd]);
