@@ -77,6 +77,10 @@ export default function CallTaskPage() {
     "appt" | "care" | "cancel" | "lead",
     (v: "appt" | "care" | "cancel" | "lead") => void,
   ];
+  const [statusTab, setStatusTab] = useUrlState("status", "due") as [
+    "overdue" | "due" | "done",
+    (v: "overdue" | "due" | "done") => void,
+  ];
 
   const sendApptReminder = async (a: TomorrowAppt) => {
     if (!clinicId || !a.patient?.phone) return;
