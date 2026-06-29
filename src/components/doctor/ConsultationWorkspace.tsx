@@ -521,7 +521,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
             {visit.patient && <PatientHistory patientId={visit.patient.id} currentVisitId={visit.id} />}
           </TabsContent>
           <TabsContent value="voice">
-            <VoiceRecorder visitId={visit.id} onTranscriptProcessed={handleTranscriptProcessed} />
+            <VoiceRecorder visitId={visit.id} onTranscriptProcessed={handleTranscriptProcessed} clinicId={profile?.clinic_id} doctorId={doctor?.id} templateName={selectedTemplate?.name} templateFields={activeSections} />
           </TabsContent>
           <TabsContent value="soap">{renderSoap()}</TabsContent>
           <TabsContent value="prescription">{renderPrescription()}</TabsContent>
