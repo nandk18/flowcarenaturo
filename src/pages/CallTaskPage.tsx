@@ -315,6 +315,14 @@ export default function CallTaskPage() {
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">Loading clinic...</div>
       ) : (
         <div className="space-y-5">
+          <Tabs value={statusTab} onValueChange={(v) => setStatusTab(v as any)}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="overdue">Overdue</TabsTrigger>
+              <TabsTrigger value="due">Due Today</TabsTrigger>
+              <TabsTrigger value="done">Done Today</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
             <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
               <TabsTrigger value="appt">
