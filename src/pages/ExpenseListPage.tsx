@@ -136,6 +136,7 @@ export default function ExpenseListPage() {
       await supabase.rpc("adjust_petty_cash", { p_clinic_id: clinicId, p_delta: Number(row.amount) || 0 });
     }
     load();
+    loadPetty();
   };
 
   const exportCsv = () => {
