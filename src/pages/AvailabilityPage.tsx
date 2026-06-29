@@ -415,6 +415,11 @@ function WeekView({
                       <span className="font-mono">{a.appointment_time?.substring(0, 5)}</span>
                     </div>
                     {a.patient && <PatientLink patientId={a.patient.id} className="block truncate text-xs">{a.patient.name}</PatientLink>}
+                    {a.services && a.services.length > 0 && (
+                      <div className="truncate text-[10px] text-muted-foreground">
+                        {a.services.slice(0, 2).join(", ")}{a.services.length > 2 ? ` +${a.services.length - 2}` : ""}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
