@@ -72,35 +72,7 @@ Return ONLY a valid JSON object with no extra text, no markdown, no code blocks:
       body: JSON.stringify({
         model: "claude-opus-4-5",
         max_tokens: 2000,
-        system: `You are an expert medical scribe for Indian outpatient clinics.
-Convert the doctor's dictation into structured clinical documentation.
-The dictation may be in English or any Indian regional language (Hindi, Tamil,
-Telugu, Kannada, Malayalam, Marathi, Bengali, Gujarati, Punjabi).
-Always write the output in English regardless of input language.
-${templateInstruction}
-
-Return ONLY a valid JSON object with no extra text, no markdown, no code blocks:
-{
-  "subjective": "patient complaint and history in clinical English",
-  "objective": "examination findings and vitals",
-  "assessment": "diagnosis or differential diagnosis",
-  "plan": "management plan",
-  "medications": [
-    {
-      "name": "drug name",
-      "dosage": "500mg",
-      "morning": true,
-      "afternoon": false,
-      "evening": true,
-      "night": true,
-      "duration": "5 days",
-      "notes": "after food"
-    }
-  ],
-  "investigations": ["CBC", "Blood Sugar Fasting"],
-  "icd_suggestions": ["J06.9 - Acute upper respiratory infection"],
-  "follow_up_days": 5
-}`,
+        system: systemPrompt,
         messages: [
           {
             role: "user",
