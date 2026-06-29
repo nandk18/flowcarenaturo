@@ -1,84 +1,110 @@
-# Plan: Refocus Settings → Billing Config
+# Plan: Multi-area workflow improvements
 
-## Goal
+## 1. Searchable Service pickers (replace dropdowns)
 
-- Per-invoice creation / payment / sharing lives **only** in the patient's Invoices tab (already implemented there).
-- `/settings/billing-config` becomes **Invoice Analytics + Invoice Configuration** (GST details, invoice header/footer, numbering).
-- Move the GST/Invoice fields out of "Clinic Profile" in Settings into this new combined page.
+**`src/components/billing/ServicePicker.tsx`** — replace `Select` with a `Command`-based typeahead combobox:
+- Input filters `invoice_services` by `name` (case-insensitive, substring).
+- Multi-select: clicking an item appends to selected list; selected services render as removable chips above the input.
+- Keyboard: ↑/↓ to navigate, Enter to add, Backspace on empty input removes last chip.
+- Used in `CreateInvoiceModal` and `InvoiceServicesSection` (already imports `ServicePicker`).
 
-## Changes
+**`src/components/appointments/BookAppointmentModal.tsx`** — same combobox for "Services" field (currently a `Select`). Stores selected service IDs on `appointment_services` link rows just like today.
 
-### 1. New page `src/pages/BillingConfigPage.tsx`
+## 2. Calendar improvements
 
-Two tabs inside one `SettingsShell`:
+**`src/pages/AppointmentsPage.tsx`** (calendar view) and the appointment detail popover/sheet:
 
-**Tab A — Analytics** (read-only dashboard, no per-invoice actions)
-- Summary cards: Today's Collection, Outstanding, Invoices Today, Paid Today
-- Date-range filter (From / To)
-- Daily Collection line chart (last 30 days)
-- Payment Method breakdown
-- Outstanding Patients list — each row links to `/patients/:id?tab=invoices`
-- Totals row: Total Invoiced, Total Collected, Outstanding, Collection Rate
-- Export CSV (analytics summary only)
-- Realtime subscription on `invoices` + `payments` preserved
-- **Removed:** Create Invoice button, per-invoice list with View / Record Payment / Share buttons, status filter tabs
+- **Show services next to patient name** in calendar cells/list rows: fetch `appointment_services → invoice_services.name`, render as small muted text after patient name (e.g. `Asha Rao · Consultation, Panchakarma`). Limit to first 2 + "+N".
+- **Reschedule button** next to Cancel on the appointment detail popover:
+  - Opens existing `BookAppointmentModal` pre-filled with patient, doctor, services.
+  - On submit: insert new appointment, set old row `status = 'rescheduled'` (add to enum if missing).
+- **Cancelled appointments clickable**: in the bottom "Cancelled" list, wrap each row in a button that opens the same detail popover (read-only badge + Reschedule option). Today they're rendered as plain text.
 
-**Tab B — Invoice Configuration** (admin-only form)
-- GST Number (GSTIN, 15 char)
-- GST % default (0 / 5 / 12 / 18)
-- Invoice Number Prefix (preview: `PREFIX-YYYY-0001`)
-- **NEW:** Invoice Header Note (multi-line, shown under clinic info on PDF/print)
-- **NEW:** Invoice Footer Note (multi-line, shown above "Thank you for visiting")
-- **NEW:** Show clinic logo on invoice (toggle, defaults true)
-- Save button → updates `clinics` row, invalidates `useClinic` cache
+**`src/components/appointments/CancelAppointmentModal.tsx`** — reason dropdown becomes exactly:
+- `Patient Requested`
+- `No Show`
+- `Other` (shows free-text input)
 
-### 2. `src/pages/Settings.tsx`
+Remove all other reasons. Remove the "create cancel call" side-effect that currently runs for non-doctor-leave cancellations.
 
-- Remove the "Billing Settings" card (GST number, GST %, invoice prefix) and the `handleSaveBillingSettings` handler + related state — these now live in BillingConfigPage. Clinic Profile keeps name / address / phone / email / website / logo / regional language only.
+## 3. Doctor's Leave → bulk Cancel Calls
 
-### 3. `src/App.tsx`
+**`src/pages/DoctorSchedulePage.tsx`** — add "Mark Leave" action per doctor/day:
+- Picks date(s); on confirm: set all that day's appointments for that doctor to `cancelled` with reason `doctor_leave`, AND insert a `call_logs`-style task row for each affected patient into Call Tasks with type `cancelled_call`.
+- This is the ONLY path that generates cancelled-call tasks. Patient/No-show/Other cancellations do NOT create call tasks.
 
-- `/settings/billing-config` → `BillingConfigPage` (was `BillingPage`).
-- Drop `/settings/billing-config/:invoiceId` (invoice detail is reached from the patient Invoices tab via `/dashboard/billing/:id`, route already exists).
-- Keep legacy redirect `/dashboard/billing → /settings/billing-config`.
-- Remove the now-unused `BillingPage` import (delete `src/pages/BillingPage.tsx`).
+No new settings page — leave-cancel flow lives entirely on Doctor Schedule.
 
-### 4. `src/components/layout/SettingsShell.tsx`
+## 4. Call Tasks redesign
 
-- Rename sidebar item `"Billing"` → `"Invoice Analytics"` (icon: `BarChart3`).
+**`src/pages/CallTaskPage.tsx`**:
 
-### 5. `src/lib/invoicePdf.ts` and `src/lib/invoiceUtils.ts`
+Top KPI cards become clickable filter tabs:
+- `Overdue`
+- `Due Today`
+- `Done Today`
 
-- Read the new optional `clinic.invoice_header_note`, `clinic.invoice_footer_note`, `clinic.show_logo_on_invoice` and render them when present. Existing layout otherwise unchanged.
+Below KPIs, a secondary tab strip with four type filters (combine with the KPI filter above):
+- `Appointment Tomorrow`
+- `Care Call`
+- `Cancelled Call`
+- `Lead Call`
 
-### 6. `src/hooks/useClinic.tsx`
+List re-queries based on the combination. URL state via `useUrlState` for shareability.
 
-- Add the three new columns to the `clinics` select list.
+**`src/components/layout/MainShell.tsx` / sidebar** — remove the standalone "Care Call" sidebar item. Care calls only live inside Call Tasks now.
 
-## Database migration
+## 5. Petty Cash → Front Desk Expenses
 
-Add three nullable columns to `public.clinics`:
+- **Move** the Top-up / Withdraw + balance UI out of `src/pages/PettyCashSettingsPage.tsx`.
+- **Add a "Petty Cash" panel** at the top of `src/pages/ExpenseListPage.tsx`:
+  - Cards: Current Balance, Total Spent (sum of `expense_list` paid via Petty Cash for current month), Limit.
+  - Inline Top-up / Withdraw buttons (uses existing `adjust_petty_cash` RPC).
+- **Settings → Petty Cash page**: keep only the Maximum Limit field (admin policy setting). Remove from sidebar if user prefers; default keep with limit-only.
+- Remove sidebar "Petty Cash" settings item — fold limit into Billing Config or leave a slim settings entry. (Will keep slim settings entry for limit; confirm if you want it gone entirely.)
 
-```sql
-ALTER TABLE public.clinics
-  ADD COLUMN IF NOT EXISTS invoice_header_note text,
-  ADD COLUMN IF NOT EXISTS invoice_footer_note text,
-  ADD COLUMN IF NOT EXISTS show_logo_on_invoice boolean NOT NULL DEFAULT true;
-```
+## 6. Patient-linked To-Dos
 
-No RLS / grant changes (existing clinic policies cover new columns).
+**`src/pages/PatientDetailPage.tsx`** — add "To-Do" section/tab:
+- Lists `todo_list` rows where `patient_id = currentPatient.id`.
+- "Add task" inline form; saves with `patient_id`, `clinic_id`, `created_by`.
 
-## Out of scope
+**`src/pages/TodoListPage.tsx`** — show linked patient name as a chip; clicking jumps to `/patients/:id`.
 
-- No change to `PatientInvoicesTab` — already the single entry point for per-invoice management.
-- No change to invoice number generation logic.
-- No change to `InvoiceDetailPage` route (kept for direct linking).
+Migration: ensure `todo_list.patient_id uuid references patients(id) on delete set null` exists; add if missing + index.
+
+## 7. Voice scribe — free-form mode
+
+**`src/components/doctor/VoiceRecorder.tsx`** + **`src/components/doctor/TemplateSelector.tsx`**:
+- New default mode: "Free-form" — sends transcript to a new lightweight formatter prompt (no SOAP fields, just cleaned/punctuated paragraphs in clinical English; preserves bullet structure if dictated).
+- Template selector keeps existing SOAP/custom templates as an opt-in toggle: "Free-form ↔ Use template".
+- **`supabase/functions/format-soap-notes/index.ts`**: branch on `mode === "freeform"` → return `{ formatted_text: "..." }` instead of SOAP JSON. Component renders the text in a single editable textarea when free-form.
+
+## Technical notes
+
+- DB:
+  - Add `appointment_status` enum value `rescheduled` if not present.
+  - Add `call_logs.type` enum value `cancelled_call` if not present.
+  - Ensure `todo_list.patient_id` FK + index.
+- No new public-schema tables expected; all changes are columns/enums on existing tables, so no new GRANT blocks needed beyond existing.
+- Realtime: existing channels on `appointments` and `todo_list` cover the new flows.
+- Routing: no new routes; existing `/call-tasks`, `/expenses`, `/patients/:id`, `/appointments`, `/doctor-schedule` reused.
+
+## Out of scope (ask if wanted)
+
+- Recurring doctor leave (multi-day vacations) — single-day for now.
+- WhatsApp auto-notify on doctor-leave cancellations — uses existing message template if present, otherwise skipped.
+- Migrating historical cancellation reasons to the new 3-value set.
 
 ## Verification
 
-1. `/settings/billing-config` → shows only Analytics tab + Configuration tab; no Create Invoice button, no invoice list.
-2. Settings → Clinic Profile no longer shows GST / Invoice Prefix fields.
-3. Sidebar label reads "Invoice Analytics".
-4. Editing Invoice Header Note → save → open a patient invoice → Print and Download PDF both show the new header line.
-5. Outstanding Patients row click → opens `/patients/:id?tab=invoices`.
-6. Patient → Invoices tab still creates / records payment / shares invoices.
+1. Book Appointment: typing in Services filters list; multi-select chips work.
+2. Create Invoice: same typeahead behavior; selected services appear as line items.
+3. Calendar cell shows `Patient · Service1, Service2`.
+4. Click cancelled patient → popover opens; Reschedule pre-fills Book modal.
+5. Cancel modal shows only 3 reasons; no Call Task created.
+6. Doctor Schedule → Mark Leave → all that day's appointments cancelled + Call Tasks list shows new Cancelled Calls.
+7. Call Tasks: clicking Overdue/Due Today/Done Today filters; sub-tabs filter by type. Sidebar Care Call gone.
+8. Expenses page: Petty Cash card with balance/spent + Top-up works. Settings → Petty Cash shows only limit.
+9. Patient detail → To-Do tab → add task → appears in main Todo list with patient chip.
+10. Consult voice recorder: default free-form produces formatted paragraphs; toggle to template restores SOAP output.
