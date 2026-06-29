@@ -536,13 +536,21 @@ function DayView({
           <div className="mt-3 border-t pt-3">
             <div className="mb-1 text-[10px] font-semibold uppercase text-red-700">Cancelled</div>
             {cancelledAppts.map((a) => (
-              <div key={a.id} className="flex items-center gap-3 rounded border border-red-200 bg-red-50 px-3 py-1.5 text-sm">
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => onOpenAppt(a)}
+                className="flex w-full items-center gap-3 rounded border border-red-200 bg-red-50 px-3 py-1.5 text-left text-sm hover:bg-red-100"
+              >
                 <span className="w-16 font-mono text-xs text-red-700">{a.appointment_time?.slice(0, 5)}</span>
                 {a.patient && (
                   <span className="text-red-700 line-through">{a.patient.name}</span>
                 )}
+                {a.services && a.services.length > 0 && (
+                  <span className="text-xs text-red-700/70">· {a.services.slice(0, 2).join(", ")}</span>
+                )}
                 <span className="ml-auto rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">Cancelled</span>
-              </div>
+              </button>
             ))}
           </div>
         )}
