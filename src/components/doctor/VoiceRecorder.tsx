@@ -156,7 +156,7 @@ export default function VoiceRecorder({
         toast.success("Transcription complete! Processing SOAP notes...");
         try {
           const { data: soapData, error: soapError } = await supabase.functions.invoke("format-soap-notes", {
-            body: { transcript: data.transcript },
+            body: { transcript: data.transcript, mode: freeformMode ? "freeform" : undefined },
           });
           if (soapError) { toast.error("Failed to generate SOAP notes."); setManualMode(true); return; }
           if (soapData?.error) { toast.error(soapData.error); setManualMode(true); return; }
