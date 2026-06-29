@@ -614,31 +614,54 @@ export default function AppointmentsPage() {
                 </div>
                 <div className="text-sm text-muted-foreground">{formatDoctorName(detailAppt.doctor?.name)}</div>
                 {detailAppt.reason && <div className="text-sm">Reason: {detailAppt.reason}</div>}
+                {detailAppt.services && detailAppt.services.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {detailAppt.services.map((s) => (
+                      <Badge key={s} variant="outline" className="text-[10px]">{s}</Badge>
+                    ))}
+                  </div>
+                )}
                 <Badge variant="outline" className={`capitalize ${STATUS_COLORS[detailAppt.status] || ""}`}>
                   {detailAppt.status.replace("_", " ")}
                 </Badge>
               </div>
 
-              {detailAppt.status !== "cancelled" && detailAppt.status !== "completed" && (
-                <div className="flex flex-wrap gap-2">
-                  {detailAppt.status === "scheduled" && (
-                    <Button size="sm" variant="outline" onClick={() => updateStatus(detailAppt.id, "confirmed")}>
-                      <CheckCircle className="mr-1 h-3 w-3" /> Confirm
-                    </Button>
-                  )}
-                  <Button size="sm" variant="outline" className="text-destructive" onClick={() => updateStatus(detailAppt.id, "cancelled")}>
-                    <XCircle className="mr-1 h-3 w-3" /> Cancel
+              <div className="flex flex-wrap gap-2">
+                {detailAppt.status === "scheduled" && (
+                  <Button size="sm" variant="outline" onClick={() => updateStatus(detailAppt.id, "confirmed")}>
+                    <CheckCircle className="mr-1 h-3 w-3" /> Confirm
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => updateStatus(detailAppt.id, "no_show")}>
-                    <AlertCircle className="mr-1 h-3 w-3" /> No Show
+                )}
+                {detailAppt.status !== "completed" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const appt = detailAppt;
+                      setDetailAppt(null);
+                      navigate(`/appointments?patient_id=${appt.patient_id}&doctor_id=${appt.doctor_id}&date=${format(new Date(), "yyyy-MM-dd")}`);
+                      setBookOpen(true);
+                    }}
+                  >
+                    <Calendar className="mr-1 h-3 w-3" /> Reschedule
                   </Button>
-                  {detailAppt.appointment_date === format(new Date(), "yyyy-MM-dd") && (
-                    <Button size="sm" onClick={() => convertToVisit(detailAppt)}>
-                      <ArrowRight className="mr-1 h-3 w-3" /> Convert to Visit
+                )}
+                {detailAppt.status !== "cancelled" && detailAppt.status !== "completed" && (
+                  <>
+                    <Button size="sm" variant="outline" className="text-destructive" onClick={() => updateStatus(detailAppt.id, "cancelled")}>
+                      <XCircle className="mr-1 h-3 w-3" /> Cancel
                     </Button>
-                  )}
-                </div>
-              )}
+                    <Button size="sm" variant="outline" onClick={() => updateStatus(detailAppt.id, "no_show")}>
+                      <AlertCircle className="mr-1 h-3 w-3" /> No Show
+                    </Button>
+                    {detailAppt.appointment_date === format(new Date(), "yyyy-MM-dd") && (
+                      <Button size="sm" onClick={() => convertToVisit(detailAppt)}>
+                        <ArrowRight className="mr-1 h-3 w-3" /> Convert to Visit
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
