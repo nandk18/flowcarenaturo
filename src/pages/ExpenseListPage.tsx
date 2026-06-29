@@ -186,6 +186,44 @@ export default function ExpenseListPage() {
           </div>
         </div>
 
+        {/* Petty Cash management panel */}
+        <div className="rounded-2xl border bg-card p-4 shadow-card">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Wallet className="h-6 w-6 text-primary" />
+              <div>
+                <div className="text-xs text-muted-foreground">Petty Cash Balance</div>
+                <div className={`font-display text-2xl font-bold ${pettyLimit > 0 && pettyBalance > pettyLimit ? "text-destructive" : "text-foreground"}`}>
+                  ₹{pettyBalance.toLocaleString("en-IN")}
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  Spent in range: <b>₹{byPayment.petty.toFixed(2)}</b>
+                  {pettyLimit > 0 && <> · Limit: ₹{pettyLimit.toLocaleString("en-IN")}</>}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-end gap-2">
+              <div>
+                <Label className="text-xs">Amount (₹)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={pettyAmount}
+                  onChange={(e) => setPettyAmount(e.target.value)}
+                  placeholder="0"
+                  className="w-32"
+                />
+              </div>
+              <Button size="sm" disabled={pettyBusy || !Number(pettyAmount)} onClick={() => adjustPetty(Number(pettyAmount))}>
+                <ArrowUpCircle className="mr-1 h-3.5 w-3.5" /> Top up
+              </Button>
+              <Button size="sm" variant="outline" disabled={pettyBusy || !Number(pettyAmount)} onClick={() => adjustPetty(-Number(pettyAmount))}>
+                <ArrowDownCircle className="mr-1 h-3.5 w-3.5" /> Withdraw
+              </Button>
+            </div>
+          </div>
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border bg-card p-4 shadow-card">
             <div className="text-xs text-muted-foreground">By Payment Type</div>
@@ -196,6 +234,7 @@ export default function ExpenseListPage() {
             </div>
           </div>
         </div>
+
 
         <div className="rounded-2xl border bg-card shadow-card overflow-hidden">
           <Table>
