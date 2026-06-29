@@ -344,27 +344,62 @@ export default function AppointmentsPage() {
           <div className="grid grid-cols-7 gap-2">
             {weekDays.map(day => {
               const dayStr = format(day, "yyyy-MM-dd");
-              const dayAppts = appointments.filter(a => a.appointment_date === dayStr);
+              const dayAppts = appointments.filter(a => a.appointment_date === dayStr && a.status !== "cancelled");
               return (
                 <div key={dayStr} className={`min-h-[120px] rounded-xl border p-2 ${isToday(day) ? "border-primary bg-primary/5" : "border-border"}`}>
                   <div className="text-xs font-medium text-muted-foreground mb-1">{format(day, "EEE")}</div>
                   <div className={`text-lg font-bold mb-2 ${isToday(day) ? "text-primary" : "text-foreground"}`}>{format(day, "d")}</div>
                   <div className="space-y-1">
-                    {dayAppts.map(appt => (
-                      <button
-                        key={appt.id}
-                        onClick={() => setDetailAppt(appt)}
-                        className={`w-full text-left rounded-md px-1.5 py-1 text-[10px] truncate border ${STATUS_COLORS[appt.status] || ""}`}
-                      >
-                        <span className="font-semibold">{appt.appointment_time.substring(0, 5)}</span>
-                        {" "}{appt.patient?.name}
-                      </button>
-                    ))}
+                    {dayAppts.map(appt => {
+                      const svc = appt.services ?? [];
+                      const svcLabel = svc.length === 0 ? "" : svc.length <= 2 ? svc.join(", ") : `${svc.slice(0, 2).join(", ")} +${svc.length - 2}`;
+                      return (
+                        <button
+                          key={appt.id}
+                          onClick={() => setDetailAppt(appt)}
+                          className={`w-full text-left rounded-md px-1.5 py-1 text-[10px] border ${STATUS_COLORS[appt.status] || ""}`}
+                          title={svcLabel ? `${appt.patient?.name} · ${svcLabel}` : appt.patient?.name}
+                        >
+                          <div className="truncate"><span className="font-semibold">{appt.appointment_time.substring(0, 5)}</span> {appt.patient?.name}</div>
+                          {svcLabel && <div className="truncate text-[9px] opacity-70">{svcLabel}</div>}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );
             })}
           </div>
+
+          {/* Cancelled appointments this week (clickable) */}
+          {(() => {
+            const weekStartStr = format(weekStart, "yyyy-MM-dd");
+            const weekEndStr = format(addDays(weekStart, 6), "yyyy-MM-dd");
+            const cancelled = appointments.filter(
+              (a) => a.status === "cancelled" && a.appointment_date >= weekStartStr && a.appointment_date <= weekEndStr,
+            );
+            if (cancelled.length === 0) return null;
+            return (
+              <div className="mt-4 rounded-xl border bg-muted/30 p-3">
+                <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                  <XCircle className="h-3.5 w-3.5" /> Cancelled this week ({cancelled.length})
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {cancelled.map((a) => (
+                    <button
+                      key={a.id}
+                      onClick={() => setDetailAppt(a)}
+                      className="rounded-full border bg-background px-3 py-1 text-xs hover:bg-muted"
+                      title="Click to view & reschedule"
+                    >
+                      <span className="font-medium">{a.patient?.name}</span>
+                      <span className="ml-1 text-muted-foreground">· {format(parseISO(a.appointment_date), "MMM d")} {a.appointment_time.substring(0, 5)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="list">
