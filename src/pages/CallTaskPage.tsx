@@ -507,7 +507,15 @@ export default function CallTaskPage() {
                 <span className="text-xs text-red-700">Last 7 days</span>
               </header>
               <ul className="divide-y">
-                {cancelledRows.map((r) => {
+                {cancelledRows
+                  .filter((r) => {
+                    const informed = isInformed(r.notes);
+                    const day = r.called_at.slice(0, 10);
+                    if (statusTab === "done") return informed && day === today;
+                    if (statusTab === "overdue") return !informed && day < today;
+                    return !informed && day === today;
+                  })
+                  .map((r) => {
                   const informed = isInformed(r.notes);
                   const reason = parseReason(r.notes);
                   return (
