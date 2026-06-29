@@ -34,9 +34,7 @@ type Props = {
 };
 
 const REASONS = [
-  { value: "Doctor unavailable", label: "Doctor unavailable" },
   { value: "Patient requested", label: "Patient requested" },
-  { value: "Clinic emergency", label: "Clinic emergency" },
   { value: "No show", label: "No show" },
   { value: "Other", label: "Other" },
 ];
