@@ -46,6 +46,32 @@ export default function ExpenseListPage() {
   const [to, setTo] = useUrlState("to", today0);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
+  const [pettyBalance, setPettyBalance] = useState<number>(0);
+  const [pettyLimit, setPettyLimit] = useState<number>(0);
+  const [pettyAmount, setPettyAmount] = useState<string>("");
+  const [pettyBusy, setPettyBusy] = useState(false);
+
+  const loadPetty = useCallback(async () => {
+    if (!clinicId) return;
+    const { data } = await supabase
+      .from("clinic_financial_settings")
+      .select("petty_cash_balance, petty_cash_limit")
+      .eq("clinic_id", clinicId)
+      .maybeSingle();
+    setPettyBalance(Number(data?.petty_cash_balance ?? 0));
+    setPettyLimit(Number(data?.petty_cash_limit ?? 0));
+  }, [clinicId]);
+
+  const adjustPetty = async (delta: number) => {
+    if (!clinicId || !delta) return;
+    setPettyBusy(true);
+    const { error } = await supabase.rpc("adjust_petty_cash", { p_clinic_id: clinicId, p_delta: delta });
+    setPettyBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(delta > 0 ? "Top-up recorded" : "Withdrawal recorded");
+    setPettyAmount("");
+    loadPetty();
+  };
 
   const computeRange = useCallback(() => {
     const today = new Date();
