@@ -111,7 +111,7 @@ export default function ExpenseListPage() {
     setRows(list);
   }, [clinicId, computeRange]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); loadPetty(); }, [load, loadPetty]);
   useEffect(() => { loadCategories(); }, [loadCategories]);
 
   const total = useMemo(() => rows.reduce((s, r) => s + (Number(r.amount) || 0), 0), [rows]);
