@@ -61,10 +61,13 @@ export default function TodoListPage() {
     if (!clinicId) return;
     const { data } = await supabase
       .from("todo_list")
-      .select("*")
+      .select("*, patients(name)")
       .eq("clinic_id", clinicId)
       .order("created_at", { ascending: false });
-    const list = (data ?? []) as Todo[];
+    const list = ((data ?? []) as any[]).map((r) => ({
+      ...r,
+      patient_name: Array.isArray(r.patients) ? r.patients[0]?.name : r.patients?.name ?? null,
+    })) as Todo[];
     const ids = Array.from(new Set([...list.map((r) => r.created_by), ...list.map((r) => r.done_by)].filter(Boolean))) as string[];
     if (ids.length) {
       const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
