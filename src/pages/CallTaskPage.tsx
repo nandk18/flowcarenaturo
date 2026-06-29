@@ -311,7 +311,35 @@ export default function CallTaskPage() {
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">Loading clinic...</div>
       ) : (
         <div className="space-y-5">
-          {tomorrowAppts.length > 0 && (
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+              <TabsTrigger value="appt">
+                <CalendarClock className="mr-1 h-3.5 w-3.5" />
+                Appointment Tomorrow
+                {tomorrowAppts.length > 0 && <span className="ml-1 rounded-full bg-blue-600 px-1.5 text-[10px] text-white">{tomorrowAppts.length}</span>}
+              </TabsTrigger>
+              <TabsTrigger value="care">
+                <HeartHandshake className="mr-1 h-3.5 w-3.5" />
+                Care Call
+                {careRows.length > 0 && <span className="ml-1 rounded-full bg-amber-600 px-1.5 text-[10px] text-white">{careRows.length}</span>}
+              </TabsTrigger>
+              <TabsTrigger value="cancel">
+                <XCircle className="mr-1 h-3.5 w-3.5" />
+                Cancelled Call
+                {cancelledRows.filter((r) => !isInformed(r.notes)).length > 0 && (
+                  <span className="ml-1 rounded-full bg-red-600 px-1.5 text-[10px] text-white">
+                    {cancelledRows.filter((r) => !isInformed(r.notes)).length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="lead">
+                <Phone className="mr-1 h-3.5 w-3.5" />
+                Lead Call
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {activeTab === "appt" && tomorrowAppts.length > 0 && (
             <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
               <header className="flex items-center justify-between border-b bg-blue-50 px-4 py-3">
                 <h2 className="font-display text-sm font-semibold text-blue-900">
