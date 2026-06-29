@@ -37,6 +37,7 @@ type Appointment = {
   created_at: string;
   patient?: { name: string; healthcare_id: string | null; phone: string | null };
   doctor?: { name: string };
+  services?: string[];
 };
 
 type Doctor = { id: string; name: string };
