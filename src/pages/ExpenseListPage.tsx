@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Wallet, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfWeek, startOfMonth } from "date-fns";
 import { Link } from "react-router-dom";
@@ -46,6 +46,32 @@ export default function ExpenseListPage() {
   const [to, setTo] = useUrlState("to", today0);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
+  const [pettyBalance, setPettyBalance] = useState<number>(0);
+  const [pettyLimit, setPettyLimit] = useState<number>(0);
+  const [pettyAmount, setPettyAmount] = useState<string>("");
+  const [pettyBusy, setPettyBusy] = useState(false);
+
+  const loadPetty = useCallback(async () => {
+    if (!clinicId) return;
+    const { data } = await supabase
+      .from("clinic_financial_settings")
+      .select("petty_cash_balance, petty_cash_limit")
+      .eq("clinic_id", clinicId)
+      .maybeSingle();
+    setPettyBalance(Number(data?.petty_cash_balance ?? 0));
+    setPettyLimit(Number(data?.petty_cash_limit ?? 0));
+  }, [clinicId]);
+
+  const adjustPetty = async (delta: number) => {
+    if (!clinicId || !delta) return;
+    setPettyBusy(true);
+    const { error } = await supabase.rpc("adjust_petty_cash", { p_clinic_id: clinicId, p_delta: delta });
+    setPettyBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(delta > 0 ? "Top-up recorded" : "Withdrawal recorded");
+    setPettyAmount("");
+    loadPetty();
+  };
 
   const computeRange = useCallback(() => {
     const today = new Date();
@@ -85,7 +111,7 @@ export default function ExpenseListPage() {
     setRows(list);
   }, [clinicId, computeRange]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); loadPetty(); }, [load, loadPetty]);
   useEffect(() => { loadCategories(); }, [loadCategories]);
 
   const total = useMemo(() => rows.reduce((s, r) => s + (Number(r.amount) || 0), 0), [rows]);
@@ -110,6 +136,7 @@ export default function ExpenseListPage() {
       await supabase.rpc("adjust_petty_cash", { p_clinic_id: clinicId, p_delta: Number(row.amount) || 0 });
     }
     load();
+    loadPetty();
   };
 
   const exportCsv = () => {
@@ -159,6 +186,44 @@ export default function ExpenseListPage() {
           </div>
         </div>
 
+        {/* Petty Cash management panel */}
+        <div className="rounded-2xl border bg-card p-4 shadow-card">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Wallet className="h-6 w-6 text-primary" />
+              <div>
+                <div className="text-xs text-muted-foreground">Petty Cash Balance</div>
+                <div className={`font-display text-2xl font-bold ${pettyLimit > 0 && pettyBalance > pettyLimit ? "text-destructive" : "text-foreground"}`}>
+                  ₹{pettyBalance.toLocaleString("en-IN")}
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  Spent in range: <b>₹{byPayment.petty.toFixed(2)}</b>
+                  {pettyLimit > 0 && <> · Limit: ₹{pettyLimit.toLocaleString("en-IN")}</>}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-end gap-2">
+              <div>
+                <Label className="text-xs">Amount (₹)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={pettyAmount}
+                  onChange={(e) => setPettyAmount(e.target.value)}
+                  placeholder="0"
+                  className="w-32"
+                />
+              </div>
+              <Button size="sm" disabled={pettyBusy || !Number(pettyAmount)} onClick={() => adjustPetty(Number(pettyAmount))}>
+                <ArrowUpCircle className="mr-1 h-3.5 w-3.5" /> Top up
+              </Button>
+              <Button size="sm" variant="outline" disabled={pettyBusy || !Number(pettyAmount)} onClick={() => adjustPetty(-Number(pettyAmount))}>
+                <ArrowDownCircle className="mr-1 h-3.5 w-3.5" /> Withdraw
+              </Button>
+            </div>
+          </div>
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border bg-card p-4 shadow-card">
             <div className="text-xs text-muted-foreground">By Payment Type</div>
@@ -169,6 +234,7 @@ export default function ExpenseListPage() {
             </div>
           </div>
         </div>
+
 
         <div className="rounded-2xl border bg-card shadow-card overflow-hidden">
           <Table>
@@ -239,7 +305,7 @@ export default function ExpenseListPage() {
         initial={editing}
         clinicId={clinicId ?? ""}
         categories={categories}
-        onSaved={() => { setOpen(false); load(); }}
+        onSaved={() => { setOpen(false); load(); loadPetty(); }}
       />
     </DashboardLayout>
   );

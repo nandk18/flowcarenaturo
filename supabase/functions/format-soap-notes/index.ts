@@ -16,28 +16,28 @@ serve(async (req) => {
       throw new Error("ANTHROPIC_API_KEY not configured");
     }
 
-    const { transcript, patient_context, template_name, template_sections } = await req.json();
+    const { transcript, patient_context, template_name, template_sections, mode } = await req.json();
 
-    const templateInstruction = template_name && template_sections
-      ? `Format the output according to the "${template_name}" template with these sections: ${template_sections.join(", ")}.`
-      : "Use standard SOAP format.";
+    const isFreeform = mode === "freeform";
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-opus-4-5",
-        max_tokens: 2000,
-        system: `You are an expert medical scribe for Indian outpatient clinics.
+    const systemPrompt = isFreeform
+      ? `You are an expert medical scribe for Indian outpatient clinics.
+Clean up the doctor's dictation (which may be in English or any Indian regional
+language: Hindi, Tamil, Telugu, Kannada, Malayalam, Marathi, Bengali, Gujarati,
+Punjabi). Output the cleaned version in clear, well-punctuated clinical English.
+Preserve the doctor's structure and bullets. Do NOT invent content. Do NOT add
+headings like Subjective/Objective/Assessment/Plan unless the doctor dictated them.
+
+Return ONLY a valid JSON object with no extra text, no markdown, no code blocks:
+{ "formatted_text": "the cleaned formatted notes here" }`
+      : `You are an expert medical scribe for Indian outpatient clinics.
 Convert the doctor's dictation into structured clinical documentation.
 The dictation may be in English or any Indian regional language (Hindi, Tamil,
 Telugu, Kannada, Malayalam, Marathi, Bengali, Gujarati, Punjabi).
 Always write the output in English regardless of input language.
-${templateInstruction}
+${template_name && template_sections
+  ? `Format the output according to the "${template_name}" template with these sections: ${template_sections.join(", ")}.`
+  : "Use standard SOAP format."}
 
 Return ONLY a valid JSON object with no extra text, no markdown, no code blocks:
 {
@@ -60,7 +60,19 @@ Return ONLY a valid JSON object with no extra text, no markdown, no code blocks:
   "investigations": ["CBC", "Blood Sugar Fasting"],
   "icd_suggestions": ["J06.9 - Acute upper respiratory infection"],
   "follow_up_days": 5
-}`,
+}`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": anthropicKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-opus-4-5",
+        max_tokens: 2000,
+        system: systemPrompt,
         messages: [
           {
             role: "user",
@@ -69,7 +81,7 @@ Return ONLY a valid JSON object with no extra text, no markdown, no code blocks:
 Doctor's dictation to convert:
 "${transcript}"
 
-Convert this into the structured SOAP JSON format.`,
+${isFreeform ? "Return the cleaned dictation as JSON: { \"formatted_text\": \"...\" }." : "Convert this into the structured SOAP JSON format."}`,
           },
         ],
       }),

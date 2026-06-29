@@ -31,8 +31,10 @@ type Todo = {
   done_at: string | null;
   done_by: string | null;
   created_by: string | null;
+  patient_id: string | null;
   doer_name?: string | null;
   creator_name?: string | null;
+  patient_name?: string | null;
 };
 
 const PRIORITY_STYLES: Record<Priority, string> = {
@@ -59,10 +61,13 @@ export default function TodoListPage() {
     if (!clinicId) return;
     const { data } = await supabase
       .from("todo_list")
-      .select("*")
+      .select("*, patients(name)")
       .eq("clinic_id", clinicId)
       .order("created_at", { ascending: false });
-    const list = (data ?? []) as Todo[];
+    const list = ((data ?? []) as any[]).map((r) => ({
+      ...r,
+      patient_name: Array.isArray(r.patients) ? r.patients[0]?.name : r.patients?.name ?? null,
+    })) as Todo[];
     const ids = Array.from(new Set([...list.map((r) => r.created_by), ...list.map((r) => r.done_by)].filter(Boolean))) as string[];
     if (ids.length) {
       const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
@@ -174,6 +179,15 @@ function Section({
                     </div>
                     {t.description && <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{t.description}</p>}
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                      {t.patient_id && t.patient_name && (
+                        <a
+                          href={`/patients/${t.patient_id}`}
+                          className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/20"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {t.patient_name}
+                        </a>
+                      )}
                       {t.due_date && (
                         <span className={cn(overdue && "text-red-600 font-medium", dueToday && "text-amber-600 font-medium")}>
                           Due {t.due_date}

@@ -32,10 +32,21 @@ export default function VoiceRecorder({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [manualMode, setManualMode] = useState(false);
+  const [freeformMode, setFreeformMode] = useState<boolean>(() => {
+    try { return localStorage.getItem("voice_freeform_mode") !== "0"; } catch { return true; }
+  });
   const [elapsed, setElapsed] = useState(0);
   const [audioLevels, setAudioLevels] = useState<number[]>(new Array(24).fill(0));
   const [processingStatus, setProcessingStatus] = useState<string>("");
   const { enqueue, waitForJob } = useJobQueue();
+
+  const toggleFreeform = () => {
+    setFreeformMode((m) => {
+      const next = !m;
+      try { localStorage.setItem("voice_freeform_mode", next ? "1" : "0"); } catch {}
+      return next;
+    });
+  };
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -145,7 +156,7 @@ export default function VoiceRecorder({
         toast.success("Transcription complete! Processing SOAP notes...");
         try {
           const { data: soapData, error: soapError } = await supabase.functions.invoke("format-soap-notes", {
-            body: { transcript: data.transcript },
+            body: { transcript: data.transcript, mode: freeformMode ? "freeform" : undefined },
           });
           if (soapError) { toast.error("Failed to generate SOAP notes."); setManualMode(true); return; }
           if (soapData?.error) { toast.error(soapData.error); setManualMode(true); return; }
@@ -210,7 +221,7 @@ export default function VoiceRecorder({
     setIsTranscribing(true);
     try {
       const { data, error } = await supabase.functions.invoke("format-soap-notes", {
-        body: { transcript: transcript.trim() },
+        body: { transcript: transcript.trim(), mode: freeformMode ? "freeform" : undefined },
       });
       if (error) { toast.error("Failed to generate SOAP notes."); return; }
       if (data?.error) { toast.error(data.error); return; }
@@ -290,9 +301,19 @@ export default function VoiceRecorder({
               {isRecording ? "Recording... Tap to stop" : "Tap to start recording"}
             </p>
             {!isRecording && (
-              <Button variant="link" size="sm" onClick={() => setManualMode(true)} className="text-muted-foreground">
-                Or type notes manually
-              </Button>
+              <div className="flex flex-col items-center gap-1">
+                <button
+                  type="button"
+                  onClick={toggleFreeform}
+                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${freeformMode ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
+                  title="Free-form: returns cleaned dictation. Template: structured SOAP."
+                >
+                  {freeformMode ? "Free-form mode" : "Template (SOAP) mode"}
+                </button>
+                <Button variant="link" size="sm" onClick={() => setManualMode(true)} className="text-muted-foreground">
+                  Or type notes manually
+                </Button>
+              </div>
             )}
           </div>
         ) : (
@@ -304,12 +325,19 @@ export default function VoiceRecorder({
               placeholder="Type or paste your clinical notes here..."
               className="resize-none rounded-lg"
             />
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => setManualMode(false)} className="rounded-lg">
                 <Mic className="mr-2 h-4 w-4" /> Use Microphone
               </Button>
+              <button
+                type="button"
+                onClick={toggleFreeform}
+                className={`rounded-full border px-3 py-1 text-xs transition-colors ${freeformMode ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
+              >
+                {freeformMode ? "Free-form" : "Template (SOAP)"}
+              </button>
               <Button onClick={processManualTranscript} disabled={isTranscribing || !transcript.trim()} className="flex-1 rounded-lg">
-                Generate SOAP Notes with AI
+                {freeformMode ? "Format Notes with AI" : "Generate SOAP Notes with AI"}
               </Button>
             </div>
           </div>

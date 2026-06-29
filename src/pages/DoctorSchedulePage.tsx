@@ -309,6 +309,23 @@ export default function DoctorSchedulePage() {
         .from("appointments")
         .update({ status: "cancelled", notes: cancelNote })
         .in("id", ids);
+
+      // Generate Cancel Call tasks so reception can inform each affected patient.
+      const nowIso = new Date().toISOString();
+      const callLogRows = apptsToCancel
+        .filter((a) => a.patient?.id)
+        .map((a) => ({
+          patient_id: a.patient!.id,
+          clinic_id: profile.clinic_id,
+          outcome: "no_answer",
+          notes: `Appointment cancelled: ${reason || `Doctor ${type}`}`,
+          source: "appointment_cancelled" as any,
+          called_at: nowIso,
+        }));
+      if (callLogRows.length > 0) {
+        await (supabase as any).from("call_logs").insert(callLogRows);
+      }
+
       setCancelledList(apptsToCancel);
       setCalledMap({});
     }

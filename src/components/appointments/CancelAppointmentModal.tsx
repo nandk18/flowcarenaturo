@@ -15,7 +15,7 @@ import { Copy, MessageCircle } from "lucide-react";
 import PatientLink from "@/components/PatientLink";
 import { buildMessage } from "@/lib/messageTemplates";
 import { openWhatsApp } from "@/lib/whatsapp";
-import { getProfileId } from "@/utils/getProfileId";
+
 import { useClinic } from "@/hooks/useClinic";
 
 type Props = {
@@ -34,9 +34,7 @@ type Props = {
 };
 
 const REASONS = [
-  { value: "Doctor unavailable", label: "Doctor unavailable" },
   { value: "Patient requested", label: "Patient requested" },
-  { value: "Clinic emergency", label: "Clinic emergency" },
   { value: "No show", label: "No show" },
   { value: "Other", label: "Other" },
 ];
@@ -84,23 +82,9 @@ export default function CancelAppointmentModal({ open, onClose, appointment, onC
         .eq("appointment_id", appointment.id)
         .eq("status", "unpaid");
 
-      // 3. Add to call_logs + bump patient call_due_date
-      const userId = await getProfileId();
-      await supabase.from("call_logs").insert({
-        patient_id: appointment.patient_id,
-        clinic_id: appointment.clinic_id,
-        outcome: "no_answer",
-        notes: `Appointment cancelled: ${combinedNote}`,
-        source: "appointment_cancelled" as any,
-        called_by: userId,
-        called_at: new Date().toISOString(),
-      } as any);
-
-      const today = format(new Date(), "yyyy-MM-dd");
-      await (supabase as any)
-        .from("patients")
-        .update({ call_due_date: today })
-        .eq("id", appointment.patient_id);
+      // NOTE: Cancellations from this modal (patient-requested / no-show / other)
+      // intentionally do NOT generate Cancel Call tasks. Cancel Calls are only
+      // generated when a doctor marks a leave from the Doctor Schedule page.
 
       setDone(true);
     } catch (e: any) {

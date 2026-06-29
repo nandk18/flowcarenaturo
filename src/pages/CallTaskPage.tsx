@@ -8,8 +8,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PatientLink from "@/components/PatientLink";
-import { MessageCircle, CheckCircle2, HeartHandshake, XCircle } from "lucide-react";
+import { MessageCircle, CheckCircle2, HeartHandshake, XCircle, CalendarClock, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, differenceInCalendarDays } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ import { formStorage } from "@/hooks/usePersistedForm";
 import { getProfileId } from "@/utils/getProfileId";
 import { buildMessage } from "@/lib/messageTemplates";
 import { openWhatsApp } from "@/lib/whatsapp";
+import { useUrlState } from "@/hooks/useUrlState";
 
 type TomorrowAppt = {
   id: string;
@@ -71,6 +73,10 @@ export default function CallTaskPage() {
   const [careNotes, setCareNotes] = useState<Record<string, string>>({});
   const [cancelledRows, setCancelledRows] = useState<CancelledRow[]>([]);
   const [cancelNotes, setCancelNotes] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useUrlState("tab", "appt") as [
+    "appt" | "care" | "cancel" | "lead",
+    (v: "appt" | "care" | "cancel" | "lead") => void,
+  ];
 
   const sendApptReminder = async (a: TomorrowAppt) => {
     if (!clinicId || !a.patient?.phone) return;
@@ -305,7 +311,35 @@ export default function CallTaskPage() {
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">Loading clinic...</div>
       ) : (
         <div className="space-y-5">
-          {tomorrowAppts.length > 0 && (
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+              <TabsTrigger value="appt">
+                <CalendarClock className="mr-1 h-3.5 w-3.5" />
+                Appointment Tomorrow
+                {tomorrowAppts.length > 0 && <span className="ml-1 rounded-full bg-blue-600 px-1.5 text-[10px] text-white">{tomorrowAppts.length}</span>}
+              </TabsTrigger>
+              <TabsTrigger value="care">
+                <HeartHandshake className="mr-1 h-3.5 w-3.5" />
+                Care Call
+                {careRows.length > 0 && <span className="ml-1 rounded-full bg-amber-600 px-1.5 text-[10px] text-white">{careRows.length}</span>}
+              </TabsTrigger>
+              <TabsTrigger value="cancel">
+                <XCircle className="mr-1 h-3.5 w-3.5" />
+                Cancelled Call
+                {cancelledRows.filter((r) => !isInformed(r.notes)).length > 0 && (
+                  <span className="ml-1 rounded-full bg-red-600 px-1.5 text-[10px] text-white">
+                    {cancelledRows.filter((r) => !isInformed(r.notes)).length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="lead">
+                <Phone className="mr-1 h-3.5 w-3.5" />
+                Lead Call
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {activeTab === "appt" && tomorrowAppts.length > 0 && (
             <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
               <header className="flex items-center justify-between border-b bg-blue-50 px-4 py-3">
                 <h2 className="font-display text-sm font-semibold text-blue-900">
@@ -365,7 +399,7 @@ export default function CallTaskPage() {
             </section>
           )}
 
-          {careRows.length > 0 && (
+          {activeTab === "care" && careRows.length > 0 && (
             <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
               <header className="flex items-center justify-between border-b bg-amber-50 px-4 py-3">
                 <h2 className="font-display text-sm font-semibold text-amber-900 flex items-center gap-2">
@@ -434,7 +468,7 @@ export default function CallTaskPage() {
             </section>
           )}
 
-          {cancelledRows.length > 0 && (
+          {activeTab === "cancel" && cancelledRows.length > 0 && (
             <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
               <header className="flex items-center justify-between border-b bg-red-50 px-4 py-3">
                 <h2 className="font-display text-sm font-semibold text-red-900 flex items-center gap-2">
@@ -508,11 +542,13 @@ export default function CallTaskPage() {
             </section>
           )}
 
-          <CallTask
-            clinicId={clinicId}
-            onDoneClick={() => setShowDone(true)}
-            doneTodayOverride={doneCalls.length}
-          />
+          {activeTab === "lead" && (
+            <CallTask
+              clinicId={clinicId}
+              onDoneClick={() => setShowDone(true)}
+              doneTodayOverride={doneCalls.length}
+            />
+          )}
         </div>
       )}
 
