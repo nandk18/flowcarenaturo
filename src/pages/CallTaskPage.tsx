@@ -468,7 +468,7 @@ export default function CallTaskPage() {
             </section>
           )}
 
-          {cancelledRows.length > 0 && (
+          {activeTab === "cancel" && cancelledRows.length > 0 && (
             <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
               <header className="flex items-center justify-between border-b bg-red-50 px-4 py-3">
                 <h2 className="font-display text-sm font-semibold text-red-900 flex items-center gap-2">
