@@ -314,13 +314,9 @@ export default function VoiceRecorder({
               <Button variant="outline" size="sm" onClick={() => setManualMode(false)} className="rounded-lg">
                 <Mic className="mr-2 h-4 w-4" /> Use Microphone
               </Button>
-              <button
-                type="button"
-                onClick={toggleFreeform}
-                className={`rounded-full border px-3 py-1 text-xs transition-colors ${freeformMode ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
-              >
-                {freeformMode ? "Free-form" : "Template (SOAP)"}
-              </button>
+              <span className="rounded-full border border-border bg-muted/40 px-3 py-1 text-[11px] text-muted-foreground">
+                {templateName || "SOAP Notes"}{freeformMode ? " · free-form" : ""}
+              </span>
               <Button onClick={processManualTranscript} disabled={isTranscribing || !transcript.trim()} className="flex-1 rounded-lg">
                 {freeformMode ? "Format Notes with AI" : "Generate SOAP Notes with AI"}
               </Button>
