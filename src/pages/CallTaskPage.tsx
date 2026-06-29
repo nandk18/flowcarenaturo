@@ -361,7 +361,14 @@ export default function CallTaskPage() {
                 <span className="text-xs text-blue-700">Confirm tomorrow's bookings</span>
               </header>
               <ul className="divide-y">
-                {tomorrowAppts.map((a) => {
+                {tomorrowAppts
+                  .filter((a) => {
+                    const called = !!calledMap[a.patient_id];
+                    if (statusTab === "done") return called;
+                    if (statusTab === "overdue") return false;
+                    return !called;
+                  })
+                  .map((a) => {
                   const called = calledMap[a.patient_id];
                   return (
                     <li key={a.id} className="grid gap-2 px-4 py-3 sm:grid-cols-[auto_1fr_auto] sm:items-start">
