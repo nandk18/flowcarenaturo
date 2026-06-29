@@ -8,8 +8,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PatientLink from "@/components/PatientLink";
-import { MessageCircle, CheckCircle2, HeartHandshake, XCircle } from "lucide-react";
+import { MessageCircle, CheckCircle2, HeartHandshake, XCircle, CalendarClock, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, differenceInCalendarDays } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ import { formStorage } from "@/hooks/usePersistedForm";
 import { getProfileId } from "@/utils/getProfileId";
 import { buildMessage } from "@/lib/messageTemplates";
 import { openWhatsApp } from "@/lib/whatsapp";
+import { useUrlState } from "@/hooks/useUrlState";
 
 type TomorrowAppt = {
   id: string;
