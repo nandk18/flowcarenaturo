@@ -427,7 +427,7 @@ function WeekView({
 }
 
 function DayView({
-  date, schedule, exception, appts, onPickSlot, onCancelAppt,
+  date, schedule, exception, appts, onPickSlot, onCancelAppt, onReschedule, onOpenAppt,
 }: {
   date: Date;
   schedule: DoctorSchedule | null;
@@ -435,6 +435,8 @@ function DayView({
   appts: Appt[];
   onPickSlot: (date: string, time: string) => void;
   onCancelAppt: (a: Appt) => void;
+  onReschedule: (a: Appt) => void;
+  onOpenAppt: (a: Appt) => void;
 }) {
   const dateStr = format(date, "yyyy-MM-dd");
   // Cancelled appointments free up the slot — exclude from generator + booked map
