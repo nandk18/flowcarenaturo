@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
-import { Users, UserPlus, CalendarDays, Phone, Sun, Moon, Receipt, CheckSquare, HeartHandshake } from "lucide-react";
+import { Users, UserPlus, CalendarDays, Phone, Sun, Moon, Receipt, CheckSquare } from "lucide-react";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
 import GlobalSearch from "./GlobalSearch";
 import NotificationBell from "./NotificationBell";
