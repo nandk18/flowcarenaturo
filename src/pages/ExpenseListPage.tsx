@@ -265,7 +265,7 @@ export default function ExpenseListPage() {
         initial={editing}
         clinicId={clinicId ?? ""}
         categories={categories}
-        onSaved={() => { setOpen(false); load(); }}
+        onSaved={() => { setOpen(false); load(); loadPetty(); }}
       />
     </DashboardLayout>
   );
