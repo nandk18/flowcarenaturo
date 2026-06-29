@@ -262,6 +262,14 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
   };
 
   const handleTranscriptProcessed = (soapData: any) => {
+    // Free-form mode: dump the cleaned dictation into the first available section
+    if (soapData?.formatted_text) {
+      const target = activeSections[0] ?? "subjective";
+      updateNoteField(target, soapData.formatted_text);
+      setTab("soap");
+      toast.success("Notes formatted from transcript!");
+      return;
+    }
     if (soapData.subjective) updateNoteField("subjective", soapData.subjective);
     if (soapData.objective) updateNoteField("objective", soapData.objective);
     if (soapData.assessment) updateNoteField("assessment", soapData.assessment);
