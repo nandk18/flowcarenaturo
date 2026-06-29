@@ -542,11 +542,13 @@ export default function CallTaskPage() {
             </section>
           )}
 
-          <CallTask
-            clinicId={clinicId}
-            onDoneClick={() => setShowDone(true)}
-            doneTodayOverride={doneCalls.length}
-          />
+          {activeTab === "lead" && (
+            <CallTask
+              clinicId={clinicId}
+              onDoneClick={() => setShowDone(true)}
+              doneTodayOverride={doneCalls.length}
+            />
+          )}
         </div>
       )}
 
