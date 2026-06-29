@@ -23,6 +23,7 @@ import { getProfileId } from "@/utils/getProfileId";
 import { createShortLink } from "@/utils/createShortLink";
 
 import PatientDocumentsCard from "@/components/patient/PatientDocumentsCard";
+import PatientTodoCard from "@/components/patient/PatientTodoCard";
 
 type Patient = {
   id: string; name: string; healthcare_id: string | null; gender: string | null;
