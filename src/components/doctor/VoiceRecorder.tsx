@@ -325,12 +325,19 @@ export default function VoiceRecorder({
               placeholder="Type or paste your clinical notes here..."
               className="resize-none rounded-lg"
             />
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => setManualMode(false)} className="rounded-lg">
                 <Mic className="mr-2 h-4 w-4" /> Use Microphone
               </Button>
+              <button
+                type="button"
+                onClick={toggleFreeform}
+                className={`rounded-full border px-3 py-1 text-xs transition-colors ${freeformMode ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
+              >
+                {freeformMode ? "Free-form" : "Template (SOAP)"}
+              </button>
               <Button onClick={processManualTranscript} disabled={isTranscribing || !transcript.trim()} className="flex-1 rounded-lg">
-                Generate SOAP Notes with AI
+                {freeformMode ? "Format Notes with AI" : "Generate SOAP Notes with AI"}
               </Button>
             </div>
           </div>
