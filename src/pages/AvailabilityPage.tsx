@@ -326,6 +326,37 @@ export default function AvailabilityPage() {
         initialPatientId={modalInit?.patientId}
         lockPatient={modalInit?.lockPatient}
       />
+
+      {/* Cancelled / appt detail dialog */}
+      {detailAppt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setDetailAppt(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-lg font-semibold">Appointment</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {detailAppt.patient?.name} · {detailAppt.appointment_date} {detailAppt.appointment_time?.slice(0, 5)}
+            </p>
+            {detailAppt.services && detailAppt.services.length > 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">Services: {detailAppt.services.join(", ")}</p>
+            )}
+            {detailAppt.reason && <p className="mt-1 text-xs text-muted-foreground">Reason: {detailAppt.reason}</p>}
+            <p className="mt-1 text-xs uppercase tracking-wide text-red-700">Status: {detailAppt.status}</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setDetailAppt(null)}>Close</Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  const a = detailAppt;
+                  setDetailAppt(null);
+                  setModalInit({ patientId: a.patient_id, lockPatient: false });
+                  setModalOpen(true);
+                }}
+              >
+                Reschedule
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </MainShell>
   );
 }
