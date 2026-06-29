@@ -313,9 +313,9 @@ export default function DoctorSchedulePage() {
       // Generate Cancel Call tasks so reception can inform each affected patient.
       const nowIso = new Date().toISOString();
       const callLogRows = apptsToCancel
-        .filter((a) => a.patient_id)
+        .filter((a) => a.patient?.id)
         .map((a) => ({
-          patient_id: a.patient_id,
+          patient_id: a.patient!.id,
           clinic_id: profile.clinic_id,
           outcome: "no_answer",
           notes: `Appointment cancelled: ${reason || `Doctor ${type}`}`,
