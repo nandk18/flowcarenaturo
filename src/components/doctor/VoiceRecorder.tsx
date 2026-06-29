@@ -32,21 +32,11 @@ export default function VoiceRecorder({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [manualMode, setManualMode] = useState(false);
-  const [freeformMode, setFreeformMode] = useState<boolean>(() => {
-    try { return localStorage.getItem("voice_freeform_mode") !== "0"; } catch { return true; }
-  });
+  const freeformMode = templateName === "Free-form";
   const [elapsed, setElapsed] = useState(0);
   const [audioLevels, setAudioLevels] = useState<number[]>(new Array(24).fill(0));
   const [processingStatus, setProcessingStatus] = useState<string>("");
   const { enqueue, waitForJob } = useJobQueue();
-
-  const toggleFreeform = () => {
-    setFreeformMode((m) => {
-      const next = !m;
-      try { localStorage.setItem("voice_freeform_mode", next ? "1" : "0"); } catch {}
-      return next;
-    });
-  };
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
