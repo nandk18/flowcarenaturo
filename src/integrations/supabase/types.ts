@@ -2048,6 +2048,7 @@ export type Database = {
           due_date: string | null
           id: string
           is_done: boolean | null
+          patient_id: string | null
           priority: string | null
           title: string
         }
@@ -2061,6 +2062,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           is_done?: boolean | null
+          patient_id?: string | null
           priority?: string | null
           title: string
         }
@@ -2074,6 +2076,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           is_done?: boolean | null
+          patient_id?: string | null
           priority?: string | null
           title?: string
         }
@@ -2083,6 +2086,13 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "todo_list_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]
