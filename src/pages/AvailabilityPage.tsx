@@ -477,23 +477,38 @@ function DayView({
             return (
               <div
                 key={s.time}
-                className="flex w-full items-center gap-3 rounded border border-primary/30 bg-primary/5 px-3 py-2 text-left text-sm"
+                className="flex w-full flex-wrap items-center gap-3 rounded border border-primary/30 bg-primary/5 px-3 py-2 text-left text-sm"
               >
                 <span className="w-16 font-mono text-xs text-primary">{s.time}</span>
-                <div className="flex flex-1 items-center gap-2">
+                <div className="flex flex-1 flex-wrap items-center gap-2">
                   <span className={cn("h-2 w-2 rounded-full", statusDot[a.status] ?? "bg-muted-foreground")} />
                   {a.patient && <PatientLink patientId={a.patient.id}>{a.patient.name}</PatientLink>}
+                  {a.services && a.services.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      · {a.services.slice(0, 2).join(", ")}{a.services.length > 2 ? ` +${a.services.length - 2}` : ""}
+                    </span>
+                  )}
                   {a.reason && <span className="text-xs text-muted-foreground">— {a.reason}</span>}
                   <span className="ml-auto text-[10px] uppercase text-muted-foreground">{a.status}</span>
                   {a.status !== "completed" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2 text-[10px] text-red-600 border-red-300 hover:bg-red-50"
-                      onClick={() => onCancelAppt(a)}
-                    >
-                      Cancel
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[10px]"
+                        onClick={() => onReschedule(a)}
+                      >
+                        Reschedule
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[10px] text-red-600 border-red-300 hover:bg-red-50"
+                        onClick={() => onCancelAppt(a)}
+                      >
+                        Cancel
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
