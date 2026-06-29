@@ -179,6 +179,15 @@ function Section({
                     </div>
                     {t.description && <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{t.description}</p>}
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                      {t.patient_id && t.patient_name && (
+                        <a
+                          href={`/patients/${t.patient_id}`}
+                          className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/20"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {t.patient_name}
+                        </a>
+                      )}
                       {t.due_date && (
                         <span className={cn(overdue && "text-red-600 font-medium", dueToday && "text-amber-600 font-medium")}>
                           Due {t.due_date}
