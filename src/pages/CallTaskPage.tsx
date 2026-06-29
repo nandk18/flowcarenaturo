@@ -399,7 +399,7 @@ export default function CallTaskPage() {
             </section>
           )}
 
-          {careRows.length > 0 && (
+          {activeTab === "care" && careRows.length > 0 && (
             <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
               <header className="flex items-center justify-between border-b bg-amber-50 px-4 py-3">
                 <h2 className="font-display text-sm font-semibold text-amber-900 flex items-center gap-2">
