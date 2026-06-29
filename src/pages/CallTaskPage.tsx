@@ -73,6 +73,10 @@ export default function CallTaskPage() {
   const [careNotes, setCareNotes] = useState<Record<string, string>>({});
   const [cancelledRows, setCancelledRows] = useState<CancelledRow[]>([]);
   const [cancelNotes, setCancelNotes] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useUrlState("tab", "appt") as [
+    "appt" | "care" | "cancel" | "lead",
+    (v: "appt" | "care" | "cancel" | "lead") => void,
+  ];
 
   const sendApptReminder = async (a: TomorrowAppt) => {
     if (!clinicId || !a.patient?.phone) return;
