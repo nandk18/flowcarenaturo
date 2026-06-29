@@ -31,8 +31,10 @@ type Todo = {
   done_at: string | null;
   done_by: string | null;
   created_by: string | null;
+  patient_id: string | null;
   doer_name?: string | null;
   creator_name?: string | null;
+  patient_name?: string | null;
 };
 
 const PRIORITY_STYLES: Record<Priority, string> = {
