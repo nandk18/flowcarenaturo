@@ -315,13 +315,41 @@ export default function CallTaskPage() {
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">Loading clinic...</div>
       ) : (
         <div className="space-y-5">
-          <Tabs value={statusTab} onValueChange={(v) => setStatusTab(v as any)}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="overdue">Overdue</TabsTrigger>
-              <TabsTrigger value="due">Due Today</TabsTrigger>
-              <TabsTrigger value="done">Done Today</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {(() => {
+            const overdueCount =
+              cancelledRows.filter((r) => !isInformed(r.notes)).length +
+              careRows.filter((r) => r.care_call_due_date && r.care_call_due_date < today).length;
+            const dueCount =
+              tomorrowAppts.filter((a) => !calledMap[a.patient_id]).length +
+              careRows.filter((r) => !r.care_call_due_date || r.care_call_due_date === today).length;
+            const doneCount = doneCalls.length;
+            const pills: { key: "overdue" | "due" | "done"; label: string; count: number; tone: string }[] = [
+              { key: "overdue", label: "Overdue", count: overdueCount, tone: "bg-red-100 text-red-700 border-red-200 data-[active=true]:bg-red-600 data-[active=true]:text-white data-[active=true]:border-red-600" },
+              { key: "due", label: "Due Today", count: dueCount, tone: "bg-amber-100 text-amber-700 border-amber-200 data-[active=true]:bg-amber-600 data-[active=true]:text-white data-[active=true]:border-amber-600" },
+              { key: "done", label: "Done Today", count: doneCount, tone: "bg-green-100 text-green-700 border-green-200 data-[active=true]:bg-green-600 data-[active=true]:text-white data-[active=true]:border-green-600" },
+            ];
+            return (
+              <div className="flex flex-wrap gap-2">
+                {pills.map((p) => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    data-active={statusTab === p.key}
+                    onClick={() => setStatusTab(p.key)}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                      p.tone,
+                    )}
+                  >
+                    {p.key === "overdue" && "🔴"}
+                    {p.key === "due" && "🟡"}
+                    {p.key === "done" && "✅"}
+                    {p.label}: {p.count}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
             <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
