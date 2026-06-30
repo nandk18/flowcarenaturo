@@ -96,7 +96,7 @@ export default function TodoListPage() {
 
   const toggle = async (t: Todo) => {
     const next = !t.is_done;
-    const userId = await getProfileId();
+    const userId = await getAuthUserId();
     await supabase.from("todo_list").update({
       is_done: next,
       done_at: next ? new Date().toISOString() : null,
@@ -227,7 +227,7 @@ function TodoModal({
   const save = async () => {
     if (!title.trim()) { toast.error("Title required"); return; }
     setBusy(true);
-    const userId = await getProfileId();
+    const userId = await getAuthUserId();
     const { error } = await supabase.from("todo_list").insert({
       clinic_id: clinicId,
       title: title.trim(),
