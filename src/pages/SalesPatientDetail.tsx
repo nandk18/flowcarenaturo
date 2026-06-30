@@ -800,6 +800,10 @@ export default function SalesPatientDetail() {
             </div>
 
             <div className="mt-6">
+              <PatientTodoCard patientId={patient.id} clinicId={patient.clinic_id} />
+            </div>
+
+            <div className="mt-6">
               <PatientDocumentsCard patientId={patient.id} clinicId={patient.clinic_id} />
             </div>
           </TabsContent>
