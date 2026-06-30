@@ -1622,14 +1622,24 @@ function AppointmentsTab({
                   <TableCell className="text-sm">{a.doctor_name ?? "—"}</TableCell>
                   <TableCell className="text-sm">{a.reason ?? "Consultation"}</TableCell>
                   <TableCell>
-                    <span
-                      className={cn(
-                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
-                        APPT_STATUS_STYLES[a.status ?? "scheduled"] ?? APPT_STATUS_STYLES.scheduled,
+                    <div className="flex flex-col gap-1">
+                      <span
+                        className={cn(
+                          "inline-flex w-fit items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
+                          APPT_STATUS_STYLES[a.status ?? "scheduled"] ?? APPT_STATUS_STYLES.scheduled,
+                        )}
+                      >
+                        {a.status ?? "scheduled"}
+                      </span>
+                      {a.rescheduled_from && (
+                        <Badge variant="outline" className="w-fit bg-amber-100 text-amber-700 border-amber-200 text-[10px]">
+                          Rescheduled
+                        </Badge>
                       )}
-                    >
-                      {a.status ?? "scheduled"}
-                    </span>
+                      {a.rescheduled_to && a.status === "cancelled" && (
+                        <span className="text-[10px] text-muted-foreground">→ moved</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">{renderAction(a)}</TableCell>
                 </TableRow>
