@@ -362,8 +362,7 @@ export default function AvailabilityPage() {
                 onClick={() => {
                   const a = detailAppt;
                   setDetailAppt(null);
-                  setModalInit({ patientId: a.patient_id, lockPatient: false });
-                  setModalOpen(true);
+                  setRescheduleAppt(a);
                 }}
               >
                 Reschedule
