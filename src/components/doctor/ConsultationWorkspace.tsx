@@ -623,6 +623,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
   }
 
   function renderSoap() {
+    const isFreeform = selectedTemplate?.template_type === "freeform";
     return (
       <Card className="rounded-2xl border-0 shadow-sm">
         <CardContent className="space-y-4 p-6">
@@ -640,11 +641,22 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
               <Loader2 className="w-5 h-5 animate-spin" />
               <span className="text-sm font-medium">Reformatting notes to {selectedTemplate?.name || "new template"}...</span>
             </div>
+          ) : isFreeform ? (
+            <div className="space-y-2">
+              <Label className="font-semibold">Clinical Notes</Label>
+              <Textarea
+                rows={14}
+                value={noteFields.formatted || ""}
+                onChange={e => updateNoteField("formatted", e.target.value)}
+                placeholder="Type or use voice to record consultation notes..."
+                className="min-h-[300px] rounded-lg"
+              />
+            </div>
           ) : (
             activeSections.map(section => {
-              const meta = SECTION_LABELS[section] || { 
-                label: section.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()), 
-                placeholder: `Enter ${section.replace(/_/g, " ")}...` 
+              const meta = SECTION_LABELS[section] || {
+                label: section.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+                placeholder: `Enter ${section.replace(/_/g, " ")}...`
               };
               return (
                 <div key={section} className="space-y-2">
