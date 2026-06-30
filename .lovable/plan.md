@@ -1,56 +1,108 @@
-## Fixes for prior pass
+# Six-Issue Fix Plan
 
-### 1. Move calendar enhancements to Availability page
+This is a large set of changes. I'll group them so each fix is self-contained, and reuse one shared search component where possible.
 
-The Reschedule button, "show services next to patient name", and clickable cancelled rows were added to `AppointmentsPage.tsx`. They should live on `AvailabilityPage.tsx` (the actual calendar view) instead.
+---
 
-- **`src/pages/AvailabilityPage.tsx`**
-  - Extend the appointments query to include `appointment_services(invoice_services(name))`, map into `services: string[]` on each `Appt`.
-  - In day/week/month cell renderers, show services after patient name: `Asha Rao · Consultation, Panchakarma` (first 2 + `+N`).
-  - Add a **Reschedule** button next to **Cancel** in the appointment popover/sheet; opens `BookAppointmentModal` pre-filled with patient + services and sets old row `status='rescheduled'` on submit.
-  - Wrap cancelled rows in the bottom list (if present) — or the cancelled badge in the cell — in a clickable button that opens the same popover (read-only + Reschedule).
-- **`src/pages/AppointmentsPage.tsx`** — revert the three additions (services line, Reschedule button, clickable cancelled rows) so the page goes back to its previous behaviour.
+## Fix 1 — Reschedule Appointment (proper flow)
 
-### 2. Call Tasks: top-level KPI tabs
+**DB migration** (additive, safe):
+- `appointments`: add `rescheduled_from uuid`, `rescheduled_to uuid` (nullable, self-FK).
 
-Restructure `src/pages/CallTaskPage.tsx`:
+**New component** `src/components/appointments/RescheduleAppointmentModal.tsx`:
+- Shows current patient / date / time / doctor (read-only).
+- Inputs: New Date, New Time (filtered to doctor's available slots via existing `scheduleSlots` helper), optional Reason.
+- On Confirm:
+  1. INSERT new appointment copying all fields except date/time, set `rescheduled_from = old.id`, `status='scheduled'`.
+  2. UPDATE old: `status='cancelled'`, `cancellation_reason='Rescheduled'`, `notes` appended with "Rescheduled to …", `rescheduled_to = new.id`.
+  3. **Skip auto-invoice** on the new row: the existing `auto_create_invoice_on_appointment` trigger fires on INSERT. To avoid a duplicate invoice, either (a) detect on the client and immediately delete the freshly-created duplicate invoice row, or (b) add a trigger guard `WHEN (NEW.rescheduled_from IS NULL)`. Going with (b) via migration — cleaner.
+- Toast confirmation, refresh caller.
 
-- **Primary tabs (top, apply across all types):** `Overdue` · `Due Today` · `Done Today`. Show counts. Drives a `statusFilter` state.
-- **Secondary tabs (below):** `Appointment Tomorrow` · `Care Call` · `Cancelled Call` · `Lead Call` (existing 4). Drives `typeFilter`.
-- Each section's list is filtered by the combination. URL state: `?status=overdue&type=care`.
-- "Due today" definitions per type:
-  - Appt Tomorrow → due = today (always).
-  - Care Call → `care_call_due_date = today`; overdue → `< today`.
-  - Cancelled Call → not yet informed and `called_at::date = today` (overdue: older than today).
-  - Lead Call → patients in `attempt1/2/3` with `call_due_date` today / before today; done today = `call_logs` rows with `outcome` set today.
+**Wire-up**:
+- `AvailabilityPage` Day-view booked-slot popover: replace existing reschedule button to open this modal (not `BookAppointmentModal`).
+- `PatientDetailPage` Appointments tab: add Reschedule button beside Cancel.
 
-### 3. Voice Scribe: Freeform as a template
+**History display** in patient Appointments tab:
+- If `rescheduled_from` set → amber "Rescheduled" badge + "Originally: <old date/time>" muted line.
 
-Currently Free-form is a separate toggle in `VoiceRecorder.tsx`. Change it to a real template.
+---
 
-- **DB (seed only, via insert tool — not a schema change):** add a system row in `note_templates` with `name='Free-form'`, `is_system=true`, `sections=[]` (or a single `formatted` section). Already-present `Free-form` rows are upserted by name+is_system.
-- **`src/components/doctor/TemplateSelector.tsx`** — no code change; the new template shows up automatically. Doctors can pick "Free-form" as default in Settings → Doctor profile (existing UI).
-- **`src/components/doctor/VoiceRecorder.tsx`** — remove the freeform localStorage toggle; instead detect `template.name === "Free-form"` and pass `mode: "freeform"` to the edge function based on that.
-- **`src/components/doctor/ConsultationWorkspace.tsx`** — when the active template is "Free-form", render the existing single-textarea formatted output in the SOAP section (same component as today, just driven by template, not toggle).
-- **`supabase/functions/format-soap-notes/index.ts`** — keep the `mode === "freeform"` branch; no change needed.
+## Fix 2 — Services search in Book Appointment
 
-### 4. Patient To-Dos: move under Patients tab area + link in sidebar Todo
+In `BookAppointmentModal.tsx`, replace the current pills selector with:
+- Search input (filters `invoice_services` by name, clinic+active).
+- Dropdown of matches showing name + ₹amount.
+- Selected items as removable chips with running total.
+- Empty state: "No services found. Configure in Settings → Billing → Invoice Services".
 
-`PatientTodoCard` is already on the patient detail page (line 411). Ensure it lives inside the Patients/* tab strip rather than a free-floating card, and confirm `TodoListPage` shows the patient chip with link.
+---
 
-- **`src/pages/PatientDetailPage.tsx`** — move `<PatientTodoCard …/>` into the patient tabs as a new tab "To-Do" (alongside Appointments / Notes / Invoices), so it's clearly under `/patients/:id`.
-- **`src/pages/TodoListPage.tsx`** — verify patient chip renders for tasks with `patient_id`, clicking navigates to `/patients/:id`. Add if missing.
-- No DB change — `todo_list.patient_id` already exists from prior migration.
+## Fix 3 — Services search in Invoice tab
 
-### Out of scope
-- Changes to BookAppointmentModal beyond pre-fill support (already done).
-- Reworking the Lead Call query — only wraps with the new status/type filters.
+Generalise existing `ServicePicker` to match `StoreItemPicker` UX (it mostly does already — just align styling, button placement, and ensure it adds line items identically). Place `[Add Service] [Add Store Item]` side-by-side in `InvoiceServicesSection` / invoice detail panel.
 
-### Verification
-1. `/availability` calendar cells show `Patient · Service1, Service2`.
-2. Click an appointment → popover shows Reschedule + Cancel; Reschedule opens prefilled Book modal; old row becomes `rescheduled`.
-3. Cancelled appointments in calendar are clickable.
-4. `/appointments` no longer shows those three additions.
-5. `/call-tasks` shows Overdue / Due Today / Done Today as primary tabs; type tabs below; counts match the filter combo.
-6. In consult, picking "Free-form" template makes voice transcription return free-form text into the SOAP section.
-7. `/patients/:id` has a To-Do tab; tasks added there appear in sidebar Todo with a clickable patient chip.
+---
+
+## Fix 4 — Call Task layout restructure
+
+Rewrite `src/pages/CallTaskPage.tsx`:
+- **Level 1**: three stat pills (Overdue / Due Today / Done Today), single-active, default Overdue.
+- **Level 2**: four sub-tabs (Appointment Tomorrow / Care Call / Cancelled Call / Lead Call), single-active, default Lead Call.
+- Unified row-card component with type badge, name link, phone + WhatsApp, type-specific info line, note input, Log Call dropdown with type-specific outcomes.
+- Done Today view groups today's `call_logs` by type.
+- Empty states per combination.
+- Remove Care Call entry from `MainShell` sidebar.
+
+---
+
+## Fix 5 — Patient-linked To-Do
+
+`todo_list` already has `patient_id`.
+- `PatientDetailPage` General tab: place existing `PatientTodoCard` in the right column as the last card (below Contact Notes). Upgrade Add → modal with title/description/priority/due date and locked patient chip.
+- `TodoListPage`: show "For: <Patient> →" teal hyperlink chip when `patient_id` set; add filter tabs [All / Patient Tasks / General Tasks]; in Add Task modal add optional patient search field.
+
+---
+
+## Fix 6 — Freeform template + voice scribe
+
+**DB migration**: add `is_default boolean default false` to `note_templates`; partial unique index per `clinic_id` where `is_default`. Ensure a "Free-form" system template row exists with `template_type='freeform'`.
+
+**Settings → Templates** (`TemplatesPage.tsx`):
+- Switch source from hardcoded list to `note_templates` rows.
+- Card shows name, type badge (SOAP/Freeform), description, Active toggle, "Set as Default" button (exclusive per clinic).
+
+**ConsultationWorkspace**:
+- Read default template on mount; if `template_type='freeform'` render a single tall "Clinical Notes" textarea bound to `freeform_notes`, hide SOAP sections entirely.
+- Template dropdown actually switches the UI based on selected template's `template_type` and persists `template_type` + `template_name` on `clinical_notes`.
+- Header shows "📝 Freeform Notes" or "📋 SOAP Notes".
+
+**VoiceRecorder / format-soap-notes**:
+- When freeform active, call existing `format-soap-notes` edge function with `mode:'freeform'` (already supported) and write result to `freeform_notes`.
+
+**Patient Clinical Notes tab**:
+- Render based on `template_type`: freeform → plain paragraphs; soap → existing S/O/A/P layout.
+
+---
+
+## Order of execution
+
+1. Run DB migration (appointments columns + reschedule trigger guard, `note_templates.is_default`, seed Free-form template if missing).
+2. Build shared pieces (`RescheduleAppointmentModal`, generalised service search behaviour).
+3. Wire UI changes per fix.
+4. Verify each of the 6 flows manually.
+
+## Technical notes
+
+- Trigger guard SQL:
+  ```sql
+  CREATE OR REPLACE FUNCTION ... -- wrap existing auto_create_invoice_on_appointment
+  -- early RETURN NEW when NEW.rescheduled_from IS NOT NULL;
+  ```
+- Single-default enforcement via partial unique index:
+  ```sql
+  CREATE UNIQUE INDEX note_templates_one_default_per_clinic
+  ON public.note_templates(clinic_id) WHERE is_default;
+  ```
+- No breaking changes to existing data; all new columns are nullable / default false.
+
+Estimated diff size: ~1.5–2k lines across ~12 files. Please approve and I'll implement straight through.

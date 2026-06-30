@@ -15,6 +15,7 @@ type Props = {
   clinicId?: string;
   doctorId?: string;
   templateName?: string;
+  templateType?: string;
   templateFields?: string[];
   patientContext?: string;
 };
@@ -25,6 +26,7 @@ export default function VoiceRecorder({
   clinicId,
   doctorId,
   templateName,
+  templateType,
   templateFields,
   patientContext,
 }: Props) {
@@ -32,7 +34,7 @@ export default function VoiceRecorder({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [manualMode, setManualMode] = useState(false);
-  const freeformMode = templateName === "Free-form";
+  const freeformMode = templateType === "freeform" || templateName === "Free-form";
   const [elapsed, setElapsed] = useState(0);
   const [audioLevels, setAudioLevels] = useState<number[]>(new Array(24).fill(0));
   const [processingStatus, setProcessingStatus] = useState<string>("");

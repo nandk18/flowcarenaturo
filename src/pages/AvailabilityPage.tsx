@@ -20,6 +20,7 @@ import { cn, formatDoctorName } from "@/lib/utils";
 import PatientLink from "@/components/PatientLink";
 import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
 import CancelAppointmentModal from "@/components/appointments/CancelAppointmentModal";
+import RescheduleAppointmentModal from "@/components/appointments/RescheduleAppointmentModal";
 import {
   DoctorSchedule, DoctorException, ExistingAppointment,
   generateSlots, getDaySummary, getDayOfWeek, DaySummary,
@@ -104,6 +105,7 @@ export default function AvailabilityPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInit, setModalInit] = useState<{ date?: string; time?: string; patientId?: string; lockPatient?: boolean } | null>(null);
   const [cancelAppt, setCancelAppt] = useState<Appt | null>(null);
+  const [rescheduleAppt, setRescheduleAppt] = useState<Appt | null>(null);
   const [detailAppt, setDetailAppt] = useState<Appt | null>(null);
 
   useEffect(() => {
@@ -286,13 +288,26 @@ export default function AvailabilityPage() {
           appts={apptsByDate.get(format(cursor, "yyyy-MM-dd")) ?? []}
           onPickSlot={(d, t) => openBook(d, t)}
           onCancelAppt={(a) => setCancelAppt(a)}
-          onReschedule={(a) => {
-            setModalInit({ patientId: a.patient_id, lockPatient: false });
-            setModalOpen(true);
-          }}
+          onReschedule={(a) => setRescheduleAppt(a)}
           onOpenAppt={(a) => setDetailAppt(a)}
         />
       )}
+
+      <RescheduleAppointmentModal
+        open={!!rescheduleAppt}
+        onClose={() => setRescheduleAppt(null)}
+        appointment={rescheduleAppt ? {
+          id: rescheduleAppt.id,
+          clinic_id: rescheduleAppt.clinic_id,
+          patient_id: rescheduleAppt.patient_id,
+          doctor_id: rescheduleAppt.doctor_id ?? null,
+          appointment_date: rescheduleAppt.appointment_date,
+          appointment_time: rescheduleAppt.appointment_time,
+          patient_name: rescheduleAppt.patient?.name ?? "Patient",
+          reason: rescheduleAppt.reason,
+        } : null}
+        onRescheduled={() => { setRescheduleAppt(null); fetchAppts(); }}
+      />
 
       <CancelAppointmentModal
         open={!!cancelAppt}
@@ -347,8 +362,7 @@ export default function AvailabilityPage() {
                 onClick={() => {
                   const a = detailAppt;
                   setDetailAppt(null);
-                  setModalInit({ patientId: a.patient_id, lockPatient: false });
-                  setModalOpen(true);
+                  setRescheduleAppt(a);
                 }}
               >
                 Reschedule

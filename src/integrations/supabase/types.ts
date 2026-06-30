@@ -1487,27 +1487,33 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          is_default: boolean
           is_system: boolean | null
           name: string
           sections: Json
+          template_type: string
         }
         Insert: {
           clinic_id?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
+          is_default?: boolean
           is_system?: boolean | null
           name: string
           sections?: Json
+          template_type?: string
         }
         Update: {
           clinic_id?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
+          is_default?: boolean
           is_system?: boolean | null
           name?: string
           sections?: Json
+          template_type?: string
         }
         Relationships: [
           {

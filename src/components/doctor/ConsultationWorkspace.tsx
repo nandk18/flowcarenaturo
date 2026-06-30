@@ -197,20 +197,37 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
   const handleTemplateChange = async (template: any) => {
     const previousValues = { ...noteFields };
     const hasContent = Object.values(previousValues).some(v => v && v.trim().length > 0);
-    const newSections: string[] = template?.sections && Array.isArray(template.sections) ? template.sections : DEFAULT_SECTIONS;
+    const isFreeform = template?.template_type === "freeform";
+    const newSections: string[] = isFreeform
+      ? ["formatted"]
+      : (template?.sections && Array.isArray(template.sections) && template.sections.length
+          ? template.sections
+          : DEFAULT_SECTIONS);
 
     setSelectedTemplate(template);
     setActiveSections(newSections);
 
     if (!hasContent) {
-      // No content yet, just switch fields to new template
       const newFields: Record<string, string> = {};
       newSections.forEach(s => { newFields[s] = ""; });
       setNoteFields(newFields);
       return;
     }
 
-    // Has content — use AI to reformat into new template
+    // For freeform, just merge existing content into one block
+    if (isFreeform) {
+      const merged = Object.entries(previousValues)
+        .filter(([_, v]) => v && v.trim())
+        .map(([k, v]) => {
+          const meta = SECTION_LABELS[k];
+          const label = meta ? meta.label : k.replace(/_/g, " ");
+          return `${label}:\n${v}`;
+        })
+        .join("\n\n");
+      setNoteFields({ formatted: merged });
+      return;
+    }
+
     setIsReformatting(true);
     try {
       const existingContent = Object.entries(previousValues)
@@ -417,6 +434,11 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
               </div>
               <div>
                 <h2 className="font-display text-xl font-bold text-foreground">{visit.patient?.name}</h2>
+                {selectedTemplate && (
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {selectedTemplate.template_type === "freeform" ? "📝 Freeform Notes" : "📋 SOAP Notes"} · {selectedTemplate.name}
+                  </p>
+                )}
                 <div className="flex items-center gap-2 flex-wrap">
                   {visit.patient?.healthcare_id && (
                     <span className="font-mono text-xs text-primary">{visit.patient.healthcare_id}</span>
@@ -493,7 +515,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
 
           {tab === "summary" && renderSummary()}
           {tab === "history" && visit.patient && <PatientHistory patientId={visit.patient.id} currentVisitId={visit.id} />}
-          {tab === "voice" && <VoiceRecorder visitId={visit.id} onTranscriptProcessed={handleTranscriptProcessed} clinicId={profile?.clinic_id} doctorId={doctor?.id} templateName={selectedTemplate?.name} templateFields={activeSections} />}
+          {tab === "voice" && <VoiceRecorder visitId={visit.id} onTranscriptProcessed={handleTranscriptProcessed} clinicId={profile?.clinic_id} doctorId={doctor?.id} templateName={selectedTemplate?.name} templateType={selectedTemplate?.template_type} templateFields={activeSections} />}
           {tab === "soap" && renderSoap()}
           {tab === "prescription" && renderPrescription()}
           {tab === "documents" && visit.patient && profile?.clinic_id && (
@@ -521,7 +543,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
             {visit.patient && <PatientHistory patientId={visit.patient.id} currentVisitId={visit.id} />}
           </TabsContent>
           <TabsContent value="voice">
-            <VoiceRecorder visitId={visit.id} onTranscriptProcessed={handleTranscriptProcessed} clinicId={profile?.clinic_id} doctorId={doctor?.id} templateName={selectedTemplate?.name} templateFields={activeSections} />
+            <VoiceRecorder visitId={visit.id} onTranscriptProcessed={handleTranscriptProcessed} clinicId={profile?.clinic_id} doctorId={doctor?.id} templateName={selectedTemplate?.name} templateType={selectedTemplate?.template_type} templateFields={activeSections} />
           </TabsContent>
           <TabsContent value="soap">{renderSoap()}</TabsContent>
           <TabsContent value="prescription">{renderPrescription()}</TabsContent>
@@ -606,6 +628,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
   }
 
   function renderSoap() {
+    const isFreeform = selectedTemplate?.template_type === "freeform";
     return (
       <Card className="rounded-2xl border-0 shadow-sm">
         <CardContent className="space-y-4 p-6">
@@ -623,11 +646,22 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
               <Loader2 className="w-5 h-5 animate-spin" />
               <span className="text-sm font-medium">Reformatting notes to {selectedTemplate?.name || "new template"}...</span>
             </div>
+          ) : isFreeform ? (
+            <div className="space-y-2">
+              <Label className="font-semibold">Clinical Notes</Label>
+              <Textarea
+                rows={14}
+                value={noteFields.formatted || ""}
+                onChange={e => updateNoteField("formatted", e.target.value)}
+                placeholder="Type or use voice to record consultation notes..."
+                className="min-h-[300px] rounded-lg"
+              />
+            </div>
           ) : (
             activeSections.map(section => {
-              const meta = SECTION_LABELS[section] || { 
-                label: section.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()), 
-                placeholder: `Enter ${section.replace(/_/g, " ")}...` 
+              const meta = SECTION_LABELS[section] || {
+                label: section.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+                placeholder: `Enter ${section.replace(/_/g, " ")}...`
               };
               return (
                 <div key={section} className="space-y-2">
