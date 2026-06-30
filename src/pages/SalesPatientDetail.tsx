@@ -40,6 +40,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { LeadForm } from "./Sales";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
+import PatientTodoCard from "@/components/patient/PatientTodoCard";
 import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { buildMessage } from "@/lib/messageTemplates";
