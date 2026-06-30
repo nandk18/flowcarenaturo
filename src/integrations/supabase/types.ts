@@ -64,6 +64,7 @@ export type Database = {
         Row: {
           appointment_date: string
           appointment_time: string
+          cancellation_reason: string | null
           care_call_done: boolean | null
           care_call_due_date: string | null
           care_call_required: boolean | null
@@ -84,6 +85,7 @@ export type Database = {
         Insert: {
           appointment_date: string
           appointment_time: string
+          cancellation_reason?: string | null
           care_call_done?: boolean | null
           care_call_due_date?: string | null
           care_call_required?: boolean | null
@@ -104,6 +106,7 @@ export type Database = {
         Update: {
           appointment_date?: string
           appointment_time?: string
+          cancellation_reason?: string | null
           care_call_done?: boolean | null
           care_call_due_date?: string | null
           care_call_required?: boolean | null
