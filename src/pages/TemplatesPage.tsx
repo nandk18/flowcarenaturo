@@ -1,75 +1,88 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2, Star } from "lucide-react";
 
-const SYSTEM_TEMPLATES = [
-  { name: "SOAP Notes", description: "Standard Subjective Objective Assessment Plan" },
-  { name: "SOAP Detailed", description: "Extended SOAP with HPI and ROS" },
-  { name: "Clinical Notes", description: "General clinical documentation" },
-  { name: "General Health Check-Up", description: "Routine annual health examination" },
-  { name: "General Inpatient Admission", description: "Hospital admission documentation" },
-  { name: "Follow-Up Visit", description: "Return patient review" },
-  { name: "Referral Letter", description: "Patient referral to specialist" },
-  { name: "Prescription Only", description: "Quick prescription without detailed notes" },
-  { name: "Oncology Consultation", description: "Cancer care consultation template" },
-];
+type Template = {
+  id: string;
+  name: string;
+  description: string | null;
+  template_type: string;
+  is_system: boolean | null;
+  is_default: boolean | null;
+  clinic_id: string | null;
+};
 
 export default function TemplatesPage() {
   const { profile } = useAuth();
-  const { doctor } = useClinic();
-  const [enabledTemplates, setEnabledTemplates] = useState<string[]>(["SOAP Notes"]);
+  const clinicId = profile?.clinic_id;
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("library");
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (doctor) {
-      fetchDoctorTemplates();
-    } else {
-      setLoading(false);
-    }
-  }, [doctor]);
-
-  const fetchDoctorTemplates = async () => {
-    if (!doctor) return;
-    const { data } = await supabase
-      .from("doctors")
-      .select("enabled_templates")
-      .eq("id", doctor.id)
-      .single();
-    if (data?.enabled_templates) {
-      setEnabledTemplates(data.enabled_templates as string[]);
-    }
+  const load = async () => {
+    if (!clinicId) { setLoading(false); return; }
+    setLoading(true);
+    // System templates (clinic_id null) + this clinic's templates
+    const { data } = await (supabase as any)
+      .from("note_templates")
+      .select("id, name, description, template_type, is_system, is_default, clinic_id")
+      .or(`clinic_id.eq.${clinicId},clinic_id.is.null`)
+      .order("is_system", { ascending: false })
+      .order("name");
+    setTemplates((data ?? []) as Template[]);
     setLoading(false);
   };
 
-  const toggleTemplate = async (templateName: string) => {
-    if (!doctor) return;
-    let updated: string[];
-    if (enabledTemplates.includes(templateName)) {
-      if (enabledTemplates.length <= 1) {
-        toast.error("You must have at least one template enabled");
-        return;
-      }
-      updated = enabledTemplates.filter(t => t !== templateName);
-    } else {
-      updated = [...enabledTemplates, templateName];
-    }
-    setEnabledTemplates(updated);
+  useEffect(() => { load(); }, [clinicId]);
 
-    const { error } = await supabase
-      .from("doctors")
-      .update({ enabled_templates: updated } as any)
-      .eq("id", doctor.id);
-    if (error) {
-      toast.error("Failed to update templates");
-      fetchDoctorTemplates();
+  const setDefault = async (t: Template) => {
+    if (!clinicId) return;
+    setBusyId(t.id);
+    try {
+      // Clear any current default for this clinic
+      await (supabase as any)
+        .from("note_templates")
+        .update({ is_default: false })
+        .eq("clinic_id", clinicId)
+        .eq("is_default", true);
+
+      // If template is a system template (clinic_id null), clone into this clinic with is_default
+      if (t.clinic_id === null) {
+        // Check if a clone already exists
+        const { data: existing } = await (supabase as any)
+          .from("note_templates")
+          .select("id")
+          .eq("clinic_id", clinicId)
+          .eq("name", t.name)
+          .maybeSingle();
+        if (existing?.id) {
+          await (supabase as any).from("note_templates").update({ is_default: true }).eq("id", existing.id);
+        } else {
+          await (supabase as any).from("note_templates").insert({
+            clinic_id: clinicId,
+            name: t.name,
+            description: t.description,
+            template_type: t.template_type,
+            sections: [],
+            is_system: false,
+            is_default: true,
+          });
+        }
+      } else {
+        await (supabase as any).from("note_templates").update({ is_default: true }).eq("id", t.id);
+      }
+      toast.success(`"${t.name}" is now the default template`);
+      load();
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to set default");
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -83,79 +96,90 @@ export default function TemplatesPage() {
     );
   }
 
-  const myTemplates = SYSTEM_TEMPLATES.filter(t => enabledTemplates.includes(t.name));
+  // Dedupe: if a clinic-specific template shares a name with a system one, prefer the clinic version
+  const byName = new Map<string, Template>();
+  for (const t of templates) {
+    const existing = byName.get(t.name);
+    if (!existing || (t.clinic_id !== null && existing.clinic_id === null)) {
+      byName.set(t.name, t);
+    }
+  }
+  const display = Array.from(byName.values());
+  const defaultName = display.find((t) => t.is_default)?.name;
 
   return (
     <DashboardLayout>
       <div className="mb-6">
         <h1 className="font-display text-2xl font-bold text-foreground">Templates</h1>
-        <p className="text-sm text-muted-foreground">Manage your clinical note templates</p>
+        <p className="text-sm text-muted-foreground">
+          Manage clinical note templates. The default one auto-loads when a consultation is opened.
+        </p>
+        {defaultName && (
+          <p className="mt-1 text-xs text-primary">
+            Current default: <strong>{defaultName}</strong>
+          </p>
+        )}
       </div>
 
-      <div className="max-w-2xl">
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="rounded-xl mb-4">
-            <TabsTrigger value="my" className="rounded-lg">My Templates</TabsTrigger>
-            <TabsTrigger value="library" className="rounded-lg">Library</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="my">
-            {myTemplates.length === 0 ? (
-              <Card className="rounded-2xl border-0 shadow-sm">
-                <CardContent className="p-8 text-center">
-                  <FileText className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
-                  <p className="text-muted-foreground">No templates enabled. Go to Library to enable templates.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-2">
-                {myTemplates.map(t => (
-                  <Card key={t.name} className="rounded-xl border-0 shadow-sm">
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                          <FileText className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm text-foreground">{t.name}</p>
-                          <p className="text-xs text-muted-foreground">{t.description}</p>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={true}
-                        onCheckedChange={() => toggleTemplate(t.name)}
-                      />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="library">
-            <div className="space-y-2">
-              {SYSTEM_TEMPLATES.map(t => (
-                <Card key={t.name} className="rounded-xl border-0 shadow-sm">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                        <FileText className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm text-foreground">{t.name}</p>
-                        <p className="text-xs text-muted-foreground">{t.description}</p>
-                      </div>
+      <div className="max-w-2xl space-y-2">
+        {display.map((t) => {
+          const isFreeform = t.template_type === "freeform";
+          return (
+            <Card key={t.id} className="rounded-xl border-0 shadow-sm">
+              <CardContent className="flex items-center justify-between gap-3 p-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-medium text-foreground">{t.name}</p>
+                      <Badge
+                        variant="outline"
+                        className={
+                          isFreeform
+                            ? "border-purple-300 bg-purple-50 text-purple-700 text-[10px]"
+                            : "border-blue-300 bg-blue-50 text-blue-700 text-[10px]"
+                        }
+                      >
+                        {isFreeform ? "Freeform" : "SOAP"}
+                      </Badge>
+                      {t.is_default && (
+                        <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px]">
+                          <Star className="mr-0.5 h-3 w-3" /> Default
+                        </Badge>
+                      )}
                     </div>
-                    <Switch
-                      checked={enabledTemplates.includes(t.name)}
-                      onCheckedChange={() => toggleTemplate(t.name)}
-                    />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+                    {t.description && (
+                      <p className="truncate text-xs text-muted-foreground">{t.description}</p>
+                    )}
+                  </div>
+                </div>
+                {t.is_default ? (
+                  <Button size="sm" variant="outline" disabled>
+                    Default
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setDefault(t)}
+                    disabled={busyId === t.id}
+                  >
+                    {busyId === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Set as Default"}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+        {display.length === 0 && (
+          <Card className="rounded-2xl border-0 shadow-sm">
+            <CardContent className="p-8 text-center text-sm text-muted-foreground">
+              No templates available.
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );
