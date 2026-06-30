@@ -105,6 +105,7 @@ export default function AvailabilityPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInit, setModalInit] = useState<{ date?: string; time?: string; patientId?: string; lockPatient?: boolean } | null>(null);
   const [cancelAppt, setCancelAppt] = useState<Appt | null>(null);
+  const [rescheduleAppt, setRescheduleAppt] = useState<Appt | null>(null);
   const [detailAppt, setDetailAppt] = useState<Appt | null>(null);
 
   useEffect(() => {
