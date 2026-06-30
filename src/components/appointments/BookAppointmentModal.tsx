@@ -478,3 +478,65 @@ export default function BookAppointmentModal({
     </>
   );
 }
+
+type ServiceOpt = { id: string; name: string; description?: string | null; amount: number; gst_percentage?: number };
+
+function ServicesSearchField({
+  services, selectedIds, onChange,
+}: { services: ServiceOpt[]; selectedIds: string[]; onChange: (ids: string[]) => void }) {
+  const [q, setQ] = useState("");
+  const selected = services.filter((s) => selectedIds.includes(s.id));
+  const matches = q.trim()
+    ? services.filter((s) => !selectedIds.includes(s.id) && s.name.toLowerCase().includes(q.trim().toLowerCase()))
+    : [];
+  const total = selected.reduce((sum, s) => sum + s.amount + (s.amount * (s.gst_percentage ?? 0)) / 100, 0);
+  return (
+    <div className="space-y-2">
+      <Label>Services (optional)</Label>
+      <div className="rounded-md border p-2">
+        <Input
+          placeholder="Search services..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        {q.trim() && (
+          <div className="mt-1 max-h-40 overflow-y-auto rounded border bg-background">
+            {matches.length === 0 ? (
+              <p className="px-3 py-2 text-xs text-muted-foreground">
+                No services found. Configure in Settings → Billing → Invoice Services
+              </p>
+            ) : matches.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => { onChange([...selectedIds, s.id]); setQ(""); }}
+                className="flex w-full items-center justify-between border-b px-3 py-2 text-left text-sm last:border-0 hover:bg-muted"
+              >
+                <span className="font-medium">{s.name}</span>
+                <span className="text-xs text-muted-foreground">₹{s.amount}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {selected.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {selected.map((s) => (
+              <span key={s.id} className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                <Check className="h-3 w-3" /> {s.name} ₹{s.amount}
+                <button
+                  type="button"
+                  onClick={() => onChange(selectedIds.filter((x) => x !== s.id))}
+                  className="ml-1 text-primary/60 hover:text-primary"
+                  aria-label="Remove"
+                >×</button>
+              </span>
+            ))}
+          </div>
+        )}
+        {selected.length > 0 && (
+          <p className="mt-1 text-xs font-medium text-foreground">Total: ₹{total.toLocaleString("en-IN")}</p>
+        )}
+      </div>
+    </div>
+  );
+}
