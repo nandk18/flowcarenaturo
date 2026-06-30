@@ -11,9 +11,9 @@ serve(async (req) => {
   }
 
   try {
-    const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!anthropicKey) {
-      throw new Error("ANTHROPIC_API_KEY not configured");
+    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!lovableKey) {
+      throw new Error("LOVABLE_API_KEY not configured");
     }
 
     const { existing_content, new_template_name, field_definitions } = await req.json();
@@ -40,36 +40,37 @@ CRITICAL RULES:
 6. Return ONLY valid JSON with exactly the fields requested — no markdown, no explanation, no code fences
 7. Preserve all medical terminology, abbreviations, and clinical language exactly as written`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
+        "Lovable-API-Key": lovableKey,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 2000,
-        system: systemPrompt,
-        messages: [{
-          role: "user",
-          content: `Existing clinical notes:\n${existing_content}\n\nReformat ALL of the above content into the "${new_template_name}" template. Preserve every specific detail, name, measurement, and finding. Do NOT summarize.\n\nReturn JSON with exactly these fields:\n{\n${fieldList}\n}`,
-        }],
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: `Existing clinical notes:\n${existing_content}\n\nReformat ALL of the above content into the "${new_template_name}" template. Preserve every specific detail, name, measurement, and finding. Do NOT summarize.\n\nReturn JSON with exactly these fields:\n{\n${fieldList}\n}`,
+          },
+        ],
+        response_format: { type: "json_object" },
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Claude API error:", response.status, errorText);
+      console.error("AI gateway error:", response.status, errorText);
 
       let errorMessage: string;
       let errorCode: string;
 
-      if (response.status === 401) {
-        errorMessage = "Anthropic API key is invalid.";
-        errorCode = "invalid_key";
-      } else if (response.status === 429) {
-        errorMessage = "Anthropic account has no credits. Please add billing at console.anthropic.com";
+      if (response.status === 429) {
+        errorMessage = "Rate limit exceeded. Please try again shortly.";
+        errorCode = "rate_limited";
+      } else if (response.status === 402) {
+        errorMessage = "AI credits exhausted. Add credits in Settings → Plans & credits.";
         errorCode = "no_credits";
       } else {
         errorMessage = `Reformat failed: ${errorText.slice(0, 200)}`;
@@ -82,8 +83,8 @@ CRITICAL RULES:
       );
     }
 
-    const claudeResponse = await response.json();
-    const content = claudeResponse.content[0].text;
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content ?? "{}";
     const cleaned = content.replace(/```json|```/g, "").trim();
     const reformatted = JSON.parse(cleaned);
 
