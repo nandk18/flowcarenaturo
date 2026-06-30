@@ -73,11 +73,11 @@ export default function CallTaskPage() {
   const [careNotes, setCareNotes] = useState<Record<string, string>>({});
   const [cancelledRows, setCancelledRows] = useState<CancelledRow[]>([]);
   const [cancelNotes, setCancelNotes] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useUrlState("tab", "appt") as [
+  const [activeTab, setActiveTab] = useUrlState("tab", "lead") as [
     "appt" | "care" | "cancel" | "lead",
     (v: "appt" | "care" | "cancel" | "lead") => void,
   ];
-  const [statusTab, setStatusTab] = useUrlState("status", "due") as [
+  const [statusTab, setStatusTab] = useUrlState("status", "overdue") as [
     "overdue" | "due" | "done",
     (v: "overdue" | "due" | "done") => void,
   ];
