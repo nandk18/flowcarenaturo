@@ -197,20 +197,37 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
   const handleTemplateChange = async (template: any) => {
     const previousValues = { ...noteFields };
     const hasContent = Object.values(previousValues).some(v => v && v.trim().length > 0);
-    const newSections: string[] = template?.sections && Array.isArray(template.sections) ? template.sections : DEFAULT_SECTIONS;
+    const isFreeform = template?.template_type === "freeform";
+    const newSections: string[] = isFreeform
+      ? ["formatted"]
+      : (template?.sections && Array.isArray(template.sections) && template.sections.length
+          ? template.sections
+          : DEFAULT_SECTIONS);
 
     setSelectedTemplate(template);
     setActiveSections(newSections);
 
     if (!hasContent) {
-      // No content yet, just switch fields to new template
       const newFields: Record<string, string> = {};
       newSections.forEach(s => { newFields[s] = ""; });
       setNoteFields(newFields);
       return;
     }
 
-    // Has content — use AI to reformat into new template
+    // For freeform, just merge existing content into one block
+    if (isFreeform) {
+      const merged = Object.entries(previousValues)
+        .filter(([_, v]) => v && v.trim())
+        .map(([k, v]) => {
+          const meta = SECTION_LABELS[k];
+          const label = meta ? meta.label : k.replace(/_/g, " ");
+          return `${label}:\n${v}`;
+        })
+        .join("\n\n");
+      setNoteFields({ formatted: merged });
+      return;
+    }
+
     setIsReformatting(true);
     try {
       const existingContent = Object.entries(previousValues)
