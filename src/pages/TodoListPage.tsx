@@ -55,6 +55,10 @@ export default function TodoListPage() {
     "all" | Priority,
     (v: "all" | Priority) => void,
   ];
+  const [scopeFilter, setScopeFilter] = useUrlState("scope", "all") as [
+    "all" | "patient" | "general",
+    (v: "all" | "patient" | "general") => void,
+  ];
   const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
@@ -86,8 +90,10 @@ export default function TodoListPage() {
     if (statusFilter === "pending" && r.is_done) return false;
     if (statusFilter === "done" && !r.is_done) return false;
     if (priorityFilter !== "all" && (r.priority ?? "medium") !== priorityFilter) return false;
+    if (scopeFilter === "patient" && !r.patient_id) return false;
+    if (scopeFilter === "general" && r.patient_id) return false;
     return true;
-  }), [rows, statusFilter, priorityFilter]);
+  }), [rows, statusFilter, priorityFilter, scopeFilter]);
 
   const today = new Date();
   const highPending = filtered.filter((r) => !r.is_done && (r.priority ?? "medium") === "high");
