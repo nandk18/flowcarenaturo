@@ -76,6 +76,9 @@ export type Database = {
           notes: string | null
           patient_id: string | null
           reason: string | null
+          reschedule_reason: string | null
+          rescheduled_from: string | null
+          rescheduled_to: string | null
           status: string | null
         }
         Insert: {
@@ -93,6 +96,9 @@ export type Database = {
           notes?: string | null
           patient_id?: string | null
           reason?: string | null
+          reschedule_reason?: string | null
+          rescheduled_from?: string | null
+          rescheduled_to?: string | null
           status?: string | null
         }
         Update: {
@@ -110,6 +116,9 @@ export type Database = {
           notes?: string | null
           patient_id?: string | null
           reason?: string | null
+          reschedule_reason?: string | null
+          rescheduled_from?: string | null
+          rescheduled_to?: string | null
           status?: string | null
         }
         Relationships: [
@@ -132,6 +141,20 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_rescheduled_from_fkey"
+            columns: ["rescheduled_from"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_rescheduled_to_fkey"
+            columns: ["rescheduled_to"]
+            isOneToOne: false
+            referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
         ]
@@ -503,10 +526,13 @@ export type Database = {
           audio_url: string | null
           created_at: string | null
           doctor_id: string
+          freeform_notes: string | null
           id: string
           language_detected: string | null
           raw_transcript: string | null
           soap_notes: Json | null
+          template_name: string | null
+          template_type: string | null
           updated_at: string | null
           visit_id: string
         }
@@ -514,10 +540,13 @@ export type Database = {
           audio_url?: string | null
           created_at?: string | null
           doctor_id: string
+          freeform_notes?: string | null
           id?: string
           language_detected?: string | null
           raw_transcript?: string | null
           soap_notes?: Json | null
+          template_name?: string | null
+          template_type?: string | null
           updated_at?: string | null
           visit_id: string
         }
@@ -525,10 +554,13 @@ export type Database = {
           audio_url?: string | null
           created_at?: string | null
           doctor_id?: string
+          freeform_notes?: string | null
           id?: string
           language_detected?: string | null
           raw_transcript?: string | null
           soap_notes?: Json | null
+          template_name?: string | null
+          template_type?: string | null
           updated_at?: string | null
           visit_id?: string
         }
