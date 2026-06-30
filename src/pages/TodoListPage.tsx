@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { useUrlState } from "@/hooks/useUrlState";
 import { usePersistedForm } from "@/hooks/usePersistedForm";
 import RestoreBanner from "@/components/RestoreBanner";
-import { getProfileId } from "@/utils/getProfileId";
+const getAuthUserId = async () => (await supabase.auth.getUser()).data.user?.id ?? null;
 
 type Priority = "high" | "medium" | "low";
 
