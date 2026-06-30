@@ -515,7 +515,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
 
           {tab === "summary" && renderSummary()}
           {tab === "history" && visit.patient && <PatientHistory patientId={visit.patient.id} currentVisitId={visit.id} />}
-          {tab === "voice" && <VoiceRecorder visitId={visit.id} onTranscriptProcessed={handleTranscriptProcessed} clinicId={profile?.clinic_id} doctorId={doctor?.id} templateName={selectedTemplate?.name} templateFields={activeSections} />}
+          {tab === "voice" && <VoiceRecorder visitId={visit.id} onTranscriptProcessed={handleTranscriptProcessed} clinicId={profile?.clinic_id} doctorId={doctor?.id} templateName={selectedTemplate?.name} templateType={selectedTemplate?.template_type} templateFields={activeSections} />}
           {tab === "soap" && renderSoap()}
           {tab === "prescription" && renderPrescription()}
           {tab === "documents" && visit.patient && profile?.clinic_id && (
@@ -543,7 +543,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
             {visit.patient && <PatientHistory patientId={visit.patient.id} currentVisitId={visit.id} />}
           </TabsContent>
           <TabsContent value="voice">
-            <VoiceRecorder visitId={visit.id} onTranscriptProcessed={handleTranscriptProcessed} clinicId={profile?.clinic_id} doctorId={doctor?.id} templateName={selectedTemplate?.name} templateFields={activeSections} />
+            <VoiceRecorder visitId={visit.id} onTranscriptProcessed={handleTranscriptProcessed} clinicId={profile?.clinic_id} doctorId={doctor?.id} templateName={selectedTemplate?.name} templateType={selectedTemplate?.template_type} templateFields={activeSections} />
           </TabsContent>
           <TabsContent value="soap">{renderSoap()}</TabsContent>
           <TabsContent value="prescription">{renderPrescription()}</TabsContent>
