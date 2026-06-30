@@ -134,6 +134,20 @@ export default function TodoListPage() {
                 <SelectItem value="low">Low</SelectItem>
               </SelectContent>
             </Select>
+            <div className="ml-1 flex gap-1 rounded-lg border bg-background p-1">
+              {(["all", "patient", "general"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setScopeFilter(s)}
+                  className={cn(
+                    "rounded-md px-3 py-1 text-xs font-medium capitalize transition",
+                    scopeFilter === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent",
+                  )}
+                >
+                  {s === "all" ? "All" : s === "patient" ? "Patient Tasks" : "General Tasks"}
+                </button>
+              ))}
+            </div>
           </div>
           <Button onClick={() => setOpen(true)}><Plus className="mr-1 h-3.5 w-3.5" /> Add Task</Button>
         </div>
