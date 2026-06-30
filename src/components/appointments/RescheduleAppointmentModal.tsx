@@ -92,17 +92,34 @@ export default function RescheduleAppointmentModal({ open, onClose, onReschedule
       return;
     }
     setBusy(true);
+    let oldCancelled = false;
+    let prevStatus: string | null = null;
     try {
       const newTimeFull = newTime.length === 5 ? `${newTime}:00` : newTime;
-      // 1. Fetch full old appointment to copy fields
+
+      // 1. Fetch full old appointment to copy fields & remember status for rollback
       const { data: old, error: e0 } = await supabase
         .from("appointments")
         .select("*")
         .eq("id", appointment.id)
         .single();
       if (e0 || !old) throw e0 ?? new Error("Old appointment not found");
+      prevStatus = (old as any).status ?? "scheduled";
 
-      // 2. Insert new appointment with rescheduled_from set (trigger will skip invoice)
+      // 2. CANCEL old appointment FIRST so it never lingers as "scheduled"
+      const oldNote = `Rescheduled to ${newDate} at ${newTime}${reason ? ` — ${reason}` : ""}`;
+      const { error: eCancel } = await (supabase as any)
+        .from("appointments")
+        .update({
+          status: "cancelled",
+          cancellation_reason: "Rescheduled",
+          notes: oldNote,
+        })
+        .eq("id", appointment.id);
+      if (eCancel) throw eCancel;
+      oldCancelled = true;
+
+      // 3. Insert new appointment with rescheduled_from set (trigger skips invoice)
       const insertPayload: any = {
         clinic_id: old.clinic_id,
         patient_id: old.patient_id,
@@ -111,7 +128,9 @@ export default function RescheduleAppointmentModal({ open, onClose, onReschedule
         appointment_time: newTimeFull,
         status: "scheduled",
         reason: old.reason,
-        notes: reason ? `Rescheduled from ${appointment.appointment_date} ${appointment.appointment_time?.slice(0,5) ?? ""} — ${reason}` : `Rescheduled from ${appointment.appointment_date} ${appointment.appointment_time?.slice(0,5) ?? ""}`,
+        notes: reason
+          ? `Rescheduled from ${appointment.appointment_date} ${appointment.appointment_time?.slice(0, 5) ?? ""} — ${reason}`
+          : `Rescheduled from ${appointment.appointment_date} ${appointment.appointment_time?.slice(0, 5) ?? ""}`,
         created_by: profile.user_id,
         rescheduled_from: appointment.id,
       };
@@ -122,7 +141,13 @@ export default function RescheduleAppointmentModal({ open, onClose, onReschedule
         .single();
       if (e1 || !newAppt) throw e1 ?? new Error("Failed to create new appointment");
 
-      // 3. Copy appointment_services from old → new (so calendar still shows them)
+      // 4. Link the pair on the old row
+      await (supabase as any)
+        .from("appointments")
+        .update({ rescheduled_to: newAppt.id })
+        .eq("id", appointment.id);
+
+      // 5. Copy appointment_services old → new
       const { data: oldServices } = await (supabase as any)
         .from("appointment_services")
         .select("service_id")
@@ -137,16 +162,7 @@ export default function RescheduleAppointmentModal({ open, onClose, onReschedule
         );
       }
 
-      // 4. Update old appointment: cancelled + rescheduled_to
-      const oldNote = `Rescheduled to ${newDate} at ${newTime}${reason ? ` — ${reason}` : ""}`;
-      await (supabase as any).from("appointments").update({
-        status: "cancelled",
-        cancellation_reason: "Rescheduled",
-        notes: oldNote,
-        rescheduled_to: newAppt.id,
-      }).eq("id", appointment.id);
-
-      // 5. Re-point any existing invoice from old to new appointment (keep same invoice)
+      // 6. Re-point any existing invoice from old to new appointment (keep same invoice)
       await (supabase as any)
         .from("invoices")
         .update({ appointment_id: newAppt.id, updated_at: new Date().toISOString() })
@@ -157,7 +173,14 @@ export default function RescheduleAppointmentModal({ open, onClose, onReschedule
       onRescheduled?.();
       onClose();
     } catch (e: any) {
-      toast.error(e.message ?? "Reschedule failed");
+      // Rollback the cancel if the new appointment failed to insert
+      if (oldCancelled && prevStatus && appointment) {
+        await (supabase as any)
+          .from("appointments")
+          .update({ status: prevStatus, cancellation_reason: null })
+          .eq("id", appointment.id);
+      }
+      toast.error(e?.message ?? "Reschedule failed");
     } finally {
       setBusy(false);
     }

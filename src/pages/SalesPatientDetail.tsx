@@ -40,6 +40,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { LeadForm } from "./Sales";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
+import PatientTodoCard from "@/components/patient/PatientTodoCard";
 import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { buildMessage } from "@/lib/messageTemplates";
@@ -103,6 +104,8 @@ type AppointmentRow = {
   notes: string | null;
   doctor_id: string | null;
   doctor_name?: string | null;
+  rescheduled_from: string | null;
+  rescheduled_to: string | null;
 };
 
 type VisitDetail = {
@@ -337,7 +340,7 @@ export default function SalesPatientDetail() {
     if (!patientId) return;
     const { data } = await supabase
       .from("appointments")
-      .select("id, appointment_date, appointment_time, status, reason, notes, doctor_id")
+      .select("id, appointment_date, appointment_time, status, reason, notes, doctor_id, rescheduled_from, rescheduled_to")
       .eq("patient_id", patientId)
       .order("appointment_date", { ascending: false });
     const rows = (data ?? []) as AppointmentRow[];
@@ -797,6 +800,10 @@ export default function SalesPatientDetail() {
                   </div>
                 </section>
               </div>
+            </div>
+
+            <div className="mt-6">
+              <PatientTodoCard patientId={patient.id} clinicId={patient.clinic_id} />
             </div>
 
             <div className="mt-6">
@@ -1615,14 +1622,24 @@ function AppointmentsTab({
                   <TableCell className="text-sm">{a.doctor_name ?? "—"}</TableCell>
                   <TableCell className="text-sm">{a.reason ?? "Consultation"}</TableCell>
                   <TableCell>
-                    <span
-                      className={cn(
-                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
-                        APPT_STATUS_STYLES[a.status ?? "scheduled"] ?? APPT_STATUS_STYLES.scheduled,
+                    <div className="flex flex-col gap-1">
+                      <span
+                        className={cn(
+                          "inline-flex w-fit items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
+                          APPT_STATUS_STYLES[a.status ?? "scheduled"] ?? APPT_STATUS_STYLES.scheduled,
+                        )}
+                      >
+                        {a.status ?? "scheduled"}
+                      </span>
+                      {a.rescheduled_from && (
+                        <Badge variant="outline" className="w-fit bg-amber-100 text-amber-700 border-amber-200 text-[10px]">
+                          Rescheduled
+                        </Badge>
                       )}
-                    >
-                      {a.status ?? "scheduled"}
-                    </span>
+                      {a.rescheduled_to && a.status === "cancelled" && (
+                        <span className="text-[10px] text-muted-foreground">→ moved</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">{renderAction(a)}</TableCell>
                 </TableRow>

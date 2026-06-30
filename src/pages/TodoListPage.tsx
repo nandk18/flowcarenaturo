@@ -55,6 +55,10 @@ export default function TodoListPage() {
     "all" | Priority,
     (v: "all" | Priority) => void,
   ];
+  const [scopeFilter, setScopeFilter] = useUrlState("scope", "all") as [
+    "all" | "patient" | "general",
+    (v: "all" | "patient" | "general") => void,
+  ];
   const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
@@ -86,8 +90,10 @@ export default function TodoListPage() {
     if (statusFilter === "pending" && r.is_done) return false;
     if (statusFilter === "done" && !r.is_done) return false;
     if (priorityFilter !== "all" && (r.priority ?? "medium") !== priorityFilter) return false;
+    if (scopeFilter === "patient" && !r.patient_id) return false;
+    if (scopeFilter === "general" && r.patient_id) return false;
     return true;
-  }), [rows, statusFilter, priorityFilter]);
+  }), [rows, statusFilter, priorityFilter, scopeFilter]);
 
   const today = new Date();
   const highPending = filtered.filter((r) => !r.is_done && (r.priority ?? "medium") === "high");
@@ -128,6 +134,20 @@ export default function TodoListPage() {
                 <SelectItem value="low">Low</SelectItem>
               </SelectContent>
             </Select>
+            <div className="ml-1 flex gap-1 rounded-lg border bg-background p-1">
+              {(["all", "patient", "general"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setScopeFilter(s)}
+                  className={cn(
+                    "rounded-md px-3 py-1 text-xs font-medium capitalize transition",
+                    scopeFilter === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent",
+                  )}
+                >
+                  {s === "all" ? "All" : s === "patient" ? "Patient Tasks" : "General Tasks"}
+                </button>
+              ))}
+            </div>
           </div>
           <Button onClick={() => setOpen(true)}><Plus className="mr-1 h-3.5 w-3.5" /> Add Task</Button>
         </div>

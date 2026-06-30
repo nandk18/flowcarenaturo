@@ -23,7 +23,7 @@ import { getProfileId } from "@/utils/getProfileId";
 import { createShortLink } from "@/utils/createShortLink";
 
 import PatientDocumentsCard from "@/components/patient/PatientDocumentsCard";
-import PatientTodoCard from "@/components/patient/PatientTodoCard";
+
 
 type Patient = {
   id: string; name: string; healthcare_id: string | null; gender: string | null;
@@ -405,12 +405,6 @@ export default function PatientDetailPage() {
         </div>
       )}
 
-      {/* Patient-linked tasks */}
-      {patientId && profile?.clinic_id && (
-        <div className="mt-6">
-          <PatientTodoCard patientId={patientId} clinicId={profile.clinic_id} />
-        </div>
-      )}
 
 
 
