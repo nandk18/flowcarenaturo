@@ -9,7 +9,9 @@ import { Plus, CheckSquare } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
-import { getProfileId } from "@/utils/getProfileId";
+import { supabase as sb } from "@/integrations/supabase/client";
+
+const getAuthUserId = async () => (await sb.auth.getUser()).data.user?.id ?? null;
 
 type Priority = "high" | "medium" | "low";
 
@@ -51,7 +53,7 @@ export default function PatientTodoCard({ patientId, clinicId }: { patientId: st
   const add = async () => {
     if (!title.trim()) { toast.error("Title required"); return; }
     setBusy(true);
-    const userId = await getProfileId();
+    const userId = await getAuthUserId();
     const { error } = await (supabase as any).from("todo_list").insert({
       clinic_id: clinicId,
       patient_id: patientId,
@@ -70,7 +72,7 @@ export default function PatientTodoCard({ patientId, clinicId }: { patientId: st
 
   const toggle = async (t: Todo) => {
     const next = !t.is_done;
-    const userId = await getProfileId();
+    const userId = await getAuthUserId();
     await (supabase as any).from("todo_list").update({
       is_done: next,
       done_at: next ? new Date().toISOString() : null,
