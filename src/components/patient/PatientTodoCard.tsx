@@ -9,7 +9,9 @@ import { Plus, CheckSquare } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
-import { getProfileId } from "@/utils/getProfileId";
+import { supabase as sb } from "@/integrations/supabase/client";
+
+const getAuthUserId = async () => (await sb.auth.getUser()).data.user?.id ?? null;
 
 type Priority = "high" | "medium" | "low";
 
