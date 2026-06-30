@@ -434,6 +434,11 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
               </div>
               <div>
                 <h2 className="font-display text-xl font-bold text-foreground">{visit.patient?.name}</h2>
+                {selectedTemplate && (
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {selectedTemplate.template_type === "freeform" ? "📝 Freeform Notes" : "📋 SOAP Notes"} · {selectedTemplate.name}
+                  </p>
+                )}
                 <div className="flex items-center gap-2 flex-wrap">
                   {visit.patient?.healthcare_id && (
                     <span className="font-mono text-xs text-primary">{visit.patient.healthcare_id}</span>
