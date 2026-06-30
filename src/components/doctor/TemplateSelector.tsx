@@ -8,6 +8,8 @@ type Template = {
   name: string;
   description: string | null;
   sections: string[];
+  template_type?: string;
+  is_default?: boolean;
 };
 
 type Props = {
@@ -25,29 +27,39 @@ export default function TemplateSelector({ clinicId, doctorId, doctorDefaultTemp
 
   useEffect(() => {
     const fetchTemplates = async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("note_templates")
-        .select("id, name, description, sections")
+        .select("id, name, description, sections, template_type, is_default, clinic_id, is_system")
         .or(`is_system.eq.true,clinic_id.eq.${clinicId}`)
         .order("name");
       if (data) {
-        const allTemplates = data.map((t: any) => ({
+        // Dedupe: prefer clinic-specific over system if same name
+        const byName = new Map<string, any>();
+        for (const t of data) {
+          const existing = byName.get(t.name);
+          if (!existing || (t.clinic_id !== null && existing.clinic_id === null)) {
+            byName.set(t.name, t);
+          }
+        }
+        const allTemplates = Array.from(byName.values()).map((t: any) => ({
           ...t,
           sections: Array.isArray(t.sections) ? t.sections : [],
-        }));
+          template_type: t.template_type || "soap",
+        })) as Template[];
+
+        // Always include the clinic's default + free-form, regardless of doctor enabledTemplateNames
         const enabled = enabledTemplateNames.length > 0
-          ? allTemplates.filter(t => enabledTemplateNames.includes(t.name))
-          : allTemplates.filter(t => t.name === "SOAP Notes");
-        
+          ? allTemplates.filter((t) => enabledTemplateNames.includes(t.name) || t.is_default || t.template_type === "freeform")
+          : allTemplates;
+
         setTemplates(enabled);
 
-        // Only auto-select on first mount, not on re-renders from tab switches
         if (!initialized) {
-          // Check localStorage first
           const savedId = localStorage.getItem(`template_${doctorId}`);
           const savedTemplate = savedId ? enabled.find(t => t.id === savedId) : null;
-
+          const clinicDefault = enabled.find((t) => t.is_default);
           const defaultTemplate = savedTemplate
+            || clinicDefault
             || (doctorDefaultTemplateId ? enabled.find(t => t.id === doctorDefaultTemplateId) : null);
           const initial = defaultTemplate || enabled[0] || null;
           if (initial) {
@@ -59,6 +71,7 @@ export default function TemplateSelector({ clinicId, doctorId, doctorDefaultTemp
       }
     };
     fetchTemplates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clinicId, enabledTemplateNames.join(",")]);
 
   const handleChange = (id: string) => {
@@ -72,13 +85,13 @@ export default function TemplateSelector({ clinicId, doctorId, doctorDefaultTemp
     <div className="flex items-center gap-3">
       <Label className="text-sm font-medium text-muted-foreground whitespace-nowrap">Template:</Label>
       <Select value={selectedId} onValueChange={handleChange}>
-        <SelectTrigger className="w-[220px] rounded-lg">
+        <SelectTrigger className="w-[240px] rounded-lg">
           <SelectValue placeholder="Select template" />
         </SelectTrigger>
         <SelectContent>
           {templates.map(t => (
             <SelectItem key={t.id} value={t.id}>
-              {t.name}
+              {t.name}{t.template_type === "freeform" ? " (Freeform)" : ""}
             </SelectItem>
           ))}
         </SelectContent>
