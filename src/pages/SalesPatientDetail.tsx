@@ -104,6 +104,8 @@ type AppointmentRow = {
   notes: string | null;
   doctor_id: string | null;
   doctor_name?: string | null;
+  rescheduled_from: string | null;
+  rescheduled_to: string | null;
 };
 
 type VisitDetail = {
