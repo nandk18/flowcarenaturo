@@ -1,108 +1,69 @@
-# Six-Issue Fix Plan
+# Plan — Relocate UI, Fix Reschedule, Finish Remaining
 
-This is a large set of changes. I'll group them so each fix is self-contained, and reuse one shared search component where possible.
+## 1. Reschedule does not cancel current appointment — FIX
 
----
+In `RescheduleAppointmentModal.tsx` the old appointment update fires but errors are swallowed, and the order (insert new → update old) means a failure on the update leaves the old row "scheduled". Rewrite the flow as:
 
-## Fix 1 — Reschedule Appointment (proper flow)
+1. **UPDATE old appointment FIRST** → `status='cancelled'`, `cancellation_reason='Rescheduled'`, append note, `rescheduled_to` left null for now. Destructure `{ error }` and throw on failure.
+2. **INSERT new appointment** with `rescheduled_from = old.id`. Capture id, throw on error.
+3. **UPDATE old again** to set `rescheduled_to = new.id` (link the pair).
+4. Copy `appointment_services`, re-point active invoice to new appointment id.
+5. On any failure after step 1, roll back the old row back to `scheduled` so the user isn't left in a half-cancelled state.
 
-**DB migration** (additive, safe):
-- `appointments`: add `rescheduled_from uuid`, `rescheduled_to uuid` (nullable, self-FK).
+Also: surface specific errors in the toast (`error.message`) and call `onRescheduled()` only on full success.
 
-**New component** `src/components/appointments/RescheduleAppointmentModal.tsx`:
-- Shows current patient / date / time / doctor (read-only).
-- Inputs: New Date, New Time (filtered to doctor's available slots via existing `scheduleSlots` helper), optional Reason.
-- On Confirm:
-  1. INSERT new appointment copying all fields except date/time, set `rescheduled_from = old.id`, `status='scheduled'`.
-  2. UPDATE old: `status='cancelled'`, `cancellation_reason='Rescheduled'`, `notes` appended with "Rescheduled to …", `rescheduled_to = new.id`.
-  3. **Skip auto-invoice** on the new row: the existing `auto_create_invoice_on_appointment` trigger fires on INSERT. To avoid a duplicate invoice, either (a) detect on the client and immediately delete the freshly-created duplicate invoice row, or (b) add a trigger guard `WHEN (NEW.rescheduled_from IS NULL)`. Going with (b) via migration — cleaner.
-- Toast confirmation, refresh caller.
+## 2. Move Patient To-Do card → `SalesPatientDetail.tsx`
 
-**Wire-up**:
-- `AvailabilityPage` Day-view booked-slot popover: replace existing reschedule button to open this modal (not `BookAppointmentModal`).
-- `PatientDetailPage` Appointments tab: add Reschedule button beside Cancel.
+- Remove `PatientTodoCard` import + render from `PatientDetailPage.tsx` (line 26 + 411).
+- Add `PatientTodoCard` into `SalesPatientDetail.tsx` General tab right column as the last card (matches existing card grid). Patient + clinic ids already available in that page.
 
-**History display** in patient Appointments tab:
-- If `rescheduled_from` set → amber "Rescheduled" badge + "Originally: <old date/time>" muted line.
+## 3. Invoice changes belong in `PatientInvoicesTab.tsx`
 
----
+- Service picker upgrade (search combobox + chips + running total) that was added to the global invoice flow gets mirrored inside `PatientInvoicesTab.tsx` "Add Service" entry point for the per-patient invoice detail panel.
+- Also add the rescheduled-history badge here: when an invoice row is linked to an appointment whose `rescheduled_from` is set, show an amber "Rescheduled" chip + tooltip "Originally <old date/time>".
 
-## Fix 2 — Services search in Book Appointment
+## 4. Remaining items from prior turn
 
-In `BookAppointmentModal.tsx`, replace the current pills selector with:
-- Search input (filters `invoice_services` by name, clinic+active).
-- Dropdown of matches showing name + ₹amount.
-- Selected items as removable chips with running total.
-- Empty state: "No services found. Configure in Settings → Billing → Invoice Services".
+A. **Reschedule history badge in Patient visits list** — render in `PatientInvoicesTab.tsx` and `SalesPatientDetail.tsx` appointments list: amber `Rescheduled` badge + muted "Originally: <date time>" when `rescheduled_from` set; "Rescheduled →" link when `rescheduled_to` set.
 
----
+B. **Per-call-type Log Call dropdowns** in `CallTaskPage.tsx`:
+   - Lead Call → Confirmed Visit / Interested-Follow Up / Not Interested / No Answer / Wrong Number
+   - Appointment Tomorrow → Confirmed / Rescheduled / Cancelled / No Answer
+   - Care Call → Doing Well / Needs Follow-up / No Answer
+   - Cancelled Call → Rebooked / Not Interested / No Answer
+   Each outcome writes the matching row to `call_logs` and updates patient/appointment status where relevant.
 
-## Fix 3 — Services search in Invoice tab
-
-Generalise existing `ServicePicker` to match `StoreItemPicker` UX (it mostly does already — just align styling, button placement, and ensure it adds line items identically). Place `[Add Service] [Add Store Item]` side-by-side in `InvoiceServicesSection` / invoice detail panel.
-
----
-
-## Fix 4 — Call Task layout restructure
-
-Rewrite `src/pages/CallTaskPage.tsx`:
-- **Level 1**: three stat pills (Overdue / Due Today / Done Today), single-active, default Overdue.
-- **Level 2**: four sub-tabs (Appointment Tomorrow / Care Call / Cancelled Call / Lead Call), single-active, default Lead Call.
-- Unified row-card component with type badge, name link, phone + WhatsApp, type-specific info line, note input, Log Call dropdown with type-specific outcomes.
-- Done Today view groups today's `call_logs` by type.
-- Empty states per combination.
-- Remove Care Call entry from `MainShell` sidebar.
-
----
-
-## Fix 5 — Patient-linked To-Do
-
-`todo_list` already has `patient_id`.
-- `PatientDetailPage` General tab: place existing `PatientTodoCard` in the right column as the last card (below Contact Notes). Upgrade Add → modal with title/description/priority/due date and locked patient chip.
-- `TodoListPage`: show "For: <Patient> →" teal hyperlink chip when `patient_id` set; add filter tabs [All / Patient Tasks / General Tasks]; in Add Task modal add optional patient search field.
-
----
-
-## Fix 6 — Freeform template + voice scribe
-
-**DB migration**: add `is_default boolean default false` to `note_templates`; partial unique index per `clinic_id` where `is_default`. Ensure a "Free-form" system template row exists with `template_type='freeform'`.
-
-**Settings → Templates** (`TemplatesPage.tsx`):
-- Switch source from hardcoded list to `note_templates` rows.
-- Card shows name, type badge (SOAP/Freeform), description, Active toggle, "Set as Default" button (exclusive per clinic).
-
-**ConsultationWorkspace**:
-- Read default template on mount; if `template_type='freeform'` render a single tall "Clinical Notes" textarea bound to `freeform_notes`, hide SOAP sections entirely.
-- Template dropdown actually switches the UI based on selected template's `template_type` and persists `template_type` + `template_name` on `clinical_notes`.
-- Header shows "📝 Freeform Notes" or "📋 SOAP Notes".
-
-**VoiceRecorder / format-soap-notes**:
-- When freeform active, call existing `format-soap-notes` edge function with `mode:'freeform'` (already supported) and write result to `freeform_notes`.
-
-**Patient Clinical Notes tab**:
-- Render based on `template_type`: freeform → plain paragraphs; soap → existing S/O/A/P layout.
-
----
-
-## Order of execution
-
-1. Run DB migration (appointments columns + reschedule trigger guard, `note_templates.is_default`, seed Free-form template if missing).
-2. Build shared pieces (`RescheduleAppointmentModal`, generalised service search behaviour).
-3. Wire UI changes per fix.
-4. Verify each of the 6 flows manually.
+C. **TodoListPage filter tabs** — add `[All / Patient Tasks / General Tasks]` tab strip, plus optional patient search field in the Add Task modal that sets `patient_id`. Patient-linked rows show the existing teal "For: <Patient> →" chip already wired.
 
 ## Technical notes
 
-- Trigger guard SQL:
-  ```sql
-  CREATE OR REPLACE FUNCTION ... -- wrap existing auto_create_invoice_on_appointment
-  -- early RETURN NEW when NEW.rescheduled_from IS NOT NULL;
-  ```
-- Single-default enforcement via partial unique index:
-  ```sql
-  CREATE UNIQUE INDEX note_templates_one_default_per_clinic
-  ON public.note_templates(clinic_id) WHERE is_default;
-  ```
-- No breaking changes to existing data; all new columns are nullable / default false.
+```ts
+// Reschedule, new order
+const { error: e1 } = await supabase.from("appointments")
+  .update({ status: "cancelled", cancellation_reason: "Rescheduled", notes: oldNote })
+  .eq("id", appointment.id);
+if (e1) throw e1;
 
-Estimated diff size: ~1.5–2k lines across ~12 files. Please approve and I'll implement straight through.
+const { data: newAppt, error: e2 } = await supabase.from("appointments")
+  .insert({ ...copy, rescheduled_from: appointment.id }).select("id").single();
+if (e2) {
+  // rollback
+  await supabase.from("appointments").update({ status: old.status, cancellation_reason: null }).eq("id", appointment.id);
+  throw e2;
+}
+
+await supabase.from("appointments").update({ rescheduled_to: newAppt.id }).eq("id", appointment.id);
+```
+
+No DB migration needed — all columns/triggers from the previous migration are already in place.
+
+## Files touched
+
+- `src/components/appointments/RescheduleAppointmentModal.tsx`
+- `src/pages/PatientDetailPage.tsx` (remove todo card)
+- `src/pages/SalesPatientDetail.tsx` (add todo card + reschedule badges)
+- `src/components/billing/PatientInvoicesTab.tsx` (service search + reschedule badge)
+- `src/pages/CallTaskPage.tsx` (per-type outcome dropdowns)
+- `src/pages/TodoListPage.tsx` (filter tabs + patient picker in add modal)
+
+Approve and I'll implement straight through.
