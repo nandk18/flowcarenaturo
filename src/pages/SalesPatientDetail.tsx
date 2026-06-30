@@ -340,7 +340,7 @@ export default function SalesPatientDetail() {
     if (!patientId) return;
     const { data } = await supabase
       .from("appointments")
-      .select("id, appointment_date, appointment_time, status, reason, notes, doctor_id")
+      .select("id, appointment_date, appointment_time, status, reason, notes, doctor_id, rescheduled_from, rescheduled_to")
       .eq("patient_id", patientId)
       .order("appointment_date", { ascending: false });
     const rows = (data ?? []) as AppointmentRow[];
