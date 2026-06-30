@@ -20,6 +20,7 @@ import { cn, formatDoctorName } from "@/lib/utils";
 import PatientLink from "@/components/PatientLink";
 import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
 import CancelAppointmentModal from "@/components/appointments/CancelAppointmentModal";
+import RescheduleAppointmentModal from "@/components/appointments/RescheduleAppointmentModal";
 import {
   DoctorSchedule, DoctorException, ExistingAppointment,
   generateSlots, getDaySummary, getDayOfWeek, DaySummary,
