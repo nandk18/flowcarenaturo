@@ -1256,6 +1256,12 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, 
     if (navigateAfter) navigate(navigateAfter);
   };
 
+  // Report counts up when they change
+  useEffect(() => {
+    onCountsChange?.({ overdue: overdue.length, due: dueToday.length });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overdue.length, dueToday.length]);
+
   if (loading) {
     return (
       <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
@@ -1271,12 +1277,6 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, 
       <span className="font-bold">{count}</span>
     </div>
   );
-
-  // Report counts up when they change
-  useEffect(() => {
-    onCountsChange?.({ overdue: overdue.length, due: dueToday.length });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overdue.length, dueToday.length]);
 
   return (
     <div className="space-y-5">
