@@ -300,20 +300,28 @@ export default function CallTaskPage() {
     openWhatsApp(r.patient.phone, msg);
   };
 
-  const markInformed = async (r: CancelledRow) => {
+  const markInformed = async (r: CancelledRow, outcome: string = "informed") => {
     if (!clinicId) return;
     const userId = await getProfileId();
     const extra = cancelNotes[r.id]?.trim();
-    const informedNote = `Informed about cancellation${extra ? `: ${extra}` : ""}`;
+    const informedNote = `Cancellation outcome (${outcome.replace(/_/g, " ")})${extra ? `: ${extra}` : ""}`;
     await supabase.from("contact_notes").insert({
       patient_id: r.patient_id,
       clinic_id: clinicId,
       note: informedNote,
       created_by: userId,
     });
+    await supabase.from("call_logs").insert({
+      patient_id: r.patient_id,
+      clinic_id: clinicId,
+      outcome,
+      notes: informedNote,
+      called_by: userId,
+      called_at: new Date().toISOString(),
+    });
     const newNotes = `[informed:${new Date().toISOString()}] ${(r.notes ?? "").replace(INFORMED_PREFIX_RE, "")}`;
     await (supabase as any).from("call_logs").update({ notes: newNotes }).eq("id", r.id);
-    toast.success("Marked informed");
+    toast.success(`Marked ${outcome.replace(/_/g, " ")}`);
     loadAll();
   };
 
