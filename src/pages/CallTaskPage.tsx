@@ -535,9 +535,16 @@ export default function CallTaskPage() {
                         />
                       </div>
                       <div className="sm:self-center">
-                        <Button size="sm" onClick={() => markCareCalled(r)}>
-                          <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Mark Called
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm">Log Call <ChevronDown className="ml-1 h-3.5 w-3.5" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => markCareCalled(r, "doing_well")}>Doing Well</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => markCareCalled(r, "needs_follow_up")}>Needs Follow-up</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => markCareCalled(r, "no_answer")}>No Answer</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </li>
                   );
