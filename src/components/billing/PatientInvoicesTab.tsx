@@ -48,6 +48,9 @@ type Invoice = {
   outstanding_amount: number | null;
   status: string | null;
   notes: string | null;
+  appointment_id?: string | null;
+  rescheduled_from_date?: string | null;
+  rescheduled_from_time?: string | null;
 };
 
 type Payment = {
