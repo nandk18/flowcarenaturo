@@ -1072,7 +1072,7 @@ function CallSection({
   );
 }
 
-export function CallTask({ clinicId, onDoneClick, doneTodayOverride }: { clinicId: string; onDoneClick?: () => void; doneTodayOverride?: number }) {
+export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, statusFilter, onCountsChange }: { clinicId: string; onDoneClick?: () => void; doneTodayOverride?: number; hidePills?: boolean; statusFilter?: "overdue" | "due" | "done"; onCountsChange?: (c: { overdue: number; due: number }) => void }) {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [rows, setRows] = useState<Patient[]>([]);
