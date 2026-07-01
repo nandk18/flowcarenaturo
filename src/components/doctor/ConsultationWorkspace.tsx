@@ -194,10 +194,13 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
 
   const vitals = visit.vitals || {};
 
+  const isFreeformTemplate = (t: any) =>
+    t?.template_type === "freeform" || (typeof t?.name === "string" && t.name.toLowerCase().includes("free"));
+
   const handleTemplateChange = async (template: any) => {
     const previousValues = { ...noteFields };
     const hasContent = Object.values(previousValues).some(v => v && v.trim().length > 0);
-    const isFreeform = template?.template_type === "freeform";
+    const isFreeform = isFreeformTemplate(template);
     const newSections: string[] = isFreeform
       ? ["formatted"]
       : (template?.sections && Array.isArray(template.sections) && template.sections.length
@@ -628,7 +631,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
   }
 
   function renderSoap() {
-    const isFreeform = selectedTemplate?.template_type === "freeform";
+    const isFreeform = isFreeformTemplate(selectedTemplate);
     return (
       <Card className="rounded-2xl border-0 shadow-sm">
         <CardContent className="space-y-4 p-6">
