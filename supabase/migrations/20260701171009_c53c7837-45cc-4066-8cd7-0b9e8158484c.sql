@@ -1,0 +1,2 @@
+ALTER TABLE public.call_logs DROP CONSTRAINT IF EXISTS call_logs_outcome_check;
+ALTER TABLE public.call_logs ADD CONSTRAINT call_logs_outcome_check CHECK (outcome = ANY (ARRAY['no_answer','follow_up','not_interested','booked','confirmed','rescheduled','cancelled','doing_well','needs_follow_up','rebooked','informed']));
