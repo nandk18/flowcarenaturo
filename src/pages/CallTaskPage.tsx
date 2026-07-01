@@ -205,7 +205,7 @@ export default function CallTaskPage() {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  const markCalled = async (a: TomorrowAppt) => {
+  const markCalled = async (a: TomorrowAppt, outcome: string = "follow_up") => {
     if (!clinicId) return;
     const userId = await getProfileId();
     const typed = noteMap[a.patient_id]?.trim();
@@ -215,19 +215,19 @@ export default function CallTaskPage() {
     const { error } = await supabase.from("call_logs").insert({
       patient_id: a.patient_id,
       clinic_id: clinicId,
-      outcome: "follow_up",
-      notes: note,
+      outcome,
+      notes: `[${outcome}] ${note}`,
       called_by: userId,
       called_at: new Date().toISOString(),
     });
     if (error) { toast.error(error.message); return; }
     await supabase.from("contact_notes").insert({
-      patient_id: a.patient_id, clinic_id: clinicId, note, created_by: userId,
+      patient_id: a.patient_id, clinic_id: clinicId, note: `Appt-tomorrow call (${outcome}): ${note}`, created_by: userId,
     });
     setCalledMap((m) => ({ ...m, [a.patient_id]: true }));
     setNoteMap((m) => { const n = { ...m }; delete n[a.patient_id]; return n; });
     formStorage.clear(`call_note_${a.patient_id}`);
-    toast.success("Call logged to contact notes");
+    toast.success(`Logged as ${outcome.replace(/_/g, " ")}`);
     loadAll();
   };
 
