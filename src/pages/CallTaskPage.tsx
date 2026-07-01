@@ -445,15 +445,23 @@ export default function CallTaskPage() {
                         className="min-h-[36px] text-sm sm:col-start-1 sm:col-span-2"
                       />
                       <div className="sm:row-start-1 sm:col-start-3 sm:row-span-2 sm:self-center">
-                        <Button
-                          size="sm"
-                          variant={called ? "outline" : "default"}
-                          disabled={called}
-                          onClick={() => markCalled(a)}
-                          className={cn(called && "text-green-700 border-green-300")}
-                        >
-                          {called ? <><CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Called</> : "Mark Called"}
-                        </Button>
+                        {called ? (
+                          <Badge variant="outline" className="text-green-700 border-green-300">
+                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Called
+                          </Badge>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm">Log Call <ChevronDown className="ml-1 h-3.5 w-3.5" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => markCalled(a, "confirmed")}>Confirmed</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => markCalled(a, "rescheduled")}>Rescheduled</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => markCalled(a, "cancelled")}>Cancelled</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => markCalled(a, "no_answer")}>No Answer</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     </li>
                   );
