@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2, Receipt, CreditCard, Package, MessageCircle, AlertTriangle, Printer, FileDown } from "lucide-react";
 import StoreItemPicker, { type StoreItemPick } from "./StoreItemPicker";
+import ServicePicker, { type ServicePick } from "./ServicePicker";
 import { useClinic } from "@/hooks/useClinic";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { downloadInvoicePdf, getInvoicePdfUrl } from "@/lib/invoicePdf";
@@ -276,6 +277,7 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
 function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker, onPickerHandled }: { invoice: Invoice; onChanged: () => void; patientId: string; clinicId: string; autoOpenPicker?: boolean; onPickerHandled?: () => void }) {
   const { clinic } = useClinic();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [serviceOpen, setServiceOpen] = useState(false);
   const [services, setServices] = useState<ServiceRow[]>([]);
   useEffect(() => {
     supabase
@@ -372,9 +374,7 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
       appointment_id: null,
     }]);
   };
-  const addServiceItem = (id: string) => {
-    const s = services.find((x) => x.id === id);
-    if (!s) return;
+  const addServicePick = (s: ServicePick) => {
     setItems((cur) => [...cur, {
       name: s.name,
       description: s.description ?? "",
@@ -544,18 +544,12 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
           </table>
         </div>
         <div className="mt-2 flex flex-wrap gap-2 items-center">
+          <Button variant="outline" size="sm" onClick={() => setServiceOpen(true)}>
+            <Receipt className="h-3.5 w-3.5 mr-1" /> Add Service
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
             <Package className="h-3.5 w-3.5 mr-1" /> Add Store Item
           </Button>
-          <Select value="" onValueChange={addServiceItem}>
-            <SelectTrigger className="h-9 w-56"><SelectValue placeholder="Add Service…" /></SelectTrigger>
-            <SelectContent>
-              {services.length === 0 && <div className="px-2 py-2 text-xs text-muted-foreground">No services configured</div>}
-              {services.map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.name} — ₹{Number(s.amount).toLocaleString("en-IN")}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Button variant="outline" size="sm" onClick={addEmptyRow}>
             <Plus className="h-3.5 w-3.5 mr-1" /> Add Empty Row
           </Button>
@@ -645,6 +639,12 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
         onClose={() => setPickerOpen(false)}
         clinicId={clinicId}
         onPick={addStoreItem}
+      />
+      <ServicePicker
+        open={serviceOpen}
+        onClose={() => setServiceOpen(false)}
+        clinicId={clinicId}
+        onPick={addServicePick}
       />
     </div>
   );

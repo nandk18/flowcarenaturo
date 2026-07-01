@@ -1072,7 +1072,7 @@ function CallSection({
   );
 }
 
-export function CallTask({ clinicId, onDoneClick, doneTodayOverride }: { clinicId: string; onDoneClick?: () => void; doneTodayOverride?: number }) {
+export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, statusFilter, onCountsChange }: { clinicId: string; onDoneClick?: () => void; doneTodayOverride?: number; hidePills?: boolean; statusFilter?: "overdue" | "due" | "done"; onCountsChange?: (c: { overdue: number; due: number }) => void }) {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [rows, setRows] = useState<Patient[]>([]);
@@ -1272,18 +1272,35 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride }: { clinicI
     </div>
   );
 
+  // Report counts up when they change
+  useEffect(() => {
+    onCountsChange?.({ overdue: overdue.length, due: dueToday.length });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overdue.length, dueToday.length]);
+
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap gap-2">
-        <Pill icon="🔴" label="Overdue" count={overdue.length} cls="bg-red-50 text-red-700 border-red-200" />
-        <Pill icon="🟡" label="Due Today" count={dueToday.length} cls="bg-yellow-50 text-yellow-800 border-yellow-200" />
-        <button type="button" onClick={onDoneClick} className={cn(!onDoneClick && "pointer-events-none")}>
-          <Pill icon="✅" label="Done Today" count={doneTodayOverride ?? doneToday} cls={cn("bg-green-50 text-green-700 border-green-200", onDoneClick && "cursor-pointer hover:bg-green-100")} />
-        </button>
-      </div>
+      {!hidePills && (
+        <div className="flex flex-wrap gap-2">
+          <Pill icon="🔴" label="Overdue" count={overdue.length} cls="bg-red-50 text-red-700 border-red-200" />
+          <Pill icon="🟡" label="Due Today" count={dueToday.length} cls="bg-yellow-50 text-yellow-800 border-yellow-200" />
+          <button type="button" onClick={onDoneClick} className={cn(!onDoneClick && "pointer-events-none")}>
+            <Pill icon="✅" label="Done Today" count={doneTodayOverride ?? doneToday} cls={cn("bg-green-50 text-green-700 border-green-200", onDoneClick && "cursor-pointer hover:bg-green-100")} />
+          </button>
+        </div>
+      )}
 
-      <CallSection title="Overdue" color="red" rows={overdue} onAction={handleAction} />
-      <CallSection title="Due Today" color="yellow" rows={dueToday} onAction={handleAction} />
+      {(!statusFilter || statusFilter === "overdue") && (
+        <CallSection title="Overdue" color="red" rows={overdue} onAction={handleAction} />
+      )}
+      {(!statusFilter || statusFilter === "due") && (
+        <CallSection title="Due Today" color="yellow" rows={dueToday} onAction={handleAction} />
+      )}
+      {statusFilter === "done" && (
+        <div className="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground">
+          Completed lead calls today appear in the "Completed Calls Today" side panel — open it from the Done Today pill.
+        </div>
+      )}
 
       <BookAppointmentModal
         open={!!bookFor}

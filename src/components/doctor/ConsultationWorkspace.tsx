@@ -194,10 +194,13 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
 
   const vitals = visit.vitals || {};
 
+  const isFreeformTemplate = (t: any) =>
+    t?.template_type === "freeform" || (typeof t?.name === "string" && t.name.toLowerCase().includes("free"));
+
   const handleTemplateChange = async (template: any) => {
     const previousValues = { ...noteFields };
     const hasContent = Object.values(previousValues).some(v => v && v.trim().length > 0);
-    const isFreeform = template?.template_type === "freeform";
+    const isFreeform = isFreeformTemplate(template);
     const newSections: string[] = isFreeform
       ? ["formatted"]
       : (template?.sections && Array.isArray(template.sections) && template.sections.length
@@ -496,6 +499,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
           <div className="grid grid-cols-3 gap-1.5 p-2 bg-muted/50 rounded-xl md:hidden">
             {tabs.map((t, i) => {
               const Icon = tabIcons[i];
+              const label = t === "soap" && isFreeformTemplate(selectedTemplate) ? "Notes" : tabLabels[i];
               return (
                 <button
                   key={t}
@@ -507,7 +511,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
                   }`}
                 >
                   <Icon className="w-4 h-4 mb-0.5" />
-                  {tabLabels[i]}
+                  {label}
                 </button>
               );
             })}
@@ -533,7 +537,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
             <TabsTrigger value="summary" className="rounded-lg">Summary</TabsTrigger>
             <TabsTrigger value="history" className="rounded-lg"><History className="mr-1.5 h-3.5 w-3.5" /> History</TabsTrigger>
             <TabsTrigger value="voice" className="rounded-lg"><Mic className="mr-1.5 h-3.5 w-3.5" /> Voice</TabsTrigger>
-            <TabsTrigger value="soap" className="rounded-lg"><FileText className="mr-1.5 h-3.5 w-3.5" /> SOAP</TabsTrigger>
+            <TabsTrigger value="soap" className="rounded-lg"><FileText className="mr-1.5 h-3.5 w-3.5" /> {isFreeformTemplate(selectedTemplate) ? "Notes" : "SOAP"}</TabsTrigger>
             <TabsTrigger value="prescription" className="rounded-lg"><Pill className="mr-1.5 h-3.5 w-3.5" /> Rx</TabsTrigger>
             <TabsTrigger value="documents" className="rounded-lg"><FolderOpen className="mr-1.5 h-3.5 w-3.5" /> Docs</TabsTrigger>
           </TabsList>
@@ -628,7 +632,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
   }
 
   function renderSoap() {
-    const isFreeform = selectedTemplate?.template_type === "freeform";
+    const isFreeform = isFreeformTemplate(selectedTemplate);
     return (
       <Card className="rounded-2xl border-0 shadow-sm">
         <CardContent className="space-y-4 p-6">

@@ -1,0 +1,1 @@
+UPDATE public.note_templates SET template_type = 'freeform' WHERE lower(name) LIKE '%free%';
