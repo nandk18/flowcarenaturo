@@ -217,11 +217,21 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
                 <p className="mt-1 text-xs text-muted-foreground">{fmtInvoiceDate(i.invoice_date)}</p>
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <p className="text-sm font-medium">{fmtINR(i.total_amount)}</p>
-                  {isMultiVisit(i.line_items) && (
-                    <span className="inline-flex rounded-full bg-blue-100 text-blue-700 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold uppercase">
-                      Multi-visit
-                    </span>
-                  )}
+                  <div className="flex gap-1">
+                    {i.rescheduled_from_date && (
+                      <span
+                        title={`Originally ${i.rescheduled_from_date}${i.rescheduled_from_time ? " at " + i.rescheduled_from_time.slice(0, 5) : ""}`}
+                        className="inline-flex rounded-full bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold uppercase"
+                      >
+                        Rescheduled
+                      </span>
+                    )}
+                    {isMultiVisit(i.line_items) && (
+                      <span className="inline-flex rounded-full bg-blue-100 text-blue-700 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold uppercase">
+                        Multi-visit
+                      </span>
+                    )}
+                  </div>
                 </div>
               </button>
             ))
