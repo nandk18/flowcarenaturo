@@ -243,6 +243,27 @@ function TodoModal({
   );
   const { title, description, priority, dueDate } = values;
   const [busy, setBusy] = useState(false);
+  const [patientQuery, setPatientQuery] = useState("");
+  const [patientResults, setPatientResults] = useState<{ id: string; name: string; phone: string | null }[]>([]);
+  const [selectedPatient, setSelectedPatient] = useState<{ id: string; name: string } | null>(null);
+
+  useEffect(() => {
+    if (!clinicId || !patientQuery.trim() || selectedPatient) { setPatientResults([]); return; }
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("patients")
+        .select("id, name, phone")
+        .eq("clinic_id", clinicId)
+        .ilike("name", `%${patientQuery.trim()}%`)
+        .limit(6);
+      setPatientResults((data ?? []) as any);
+    }, 200);
+    return () => clearTimeout(t);
+  }, [patientQuery, clinicId, selectedPatient]);
+
+  useEffect(() => {
+    if (!open) { setPatientQuery(""); setPatientResults([]); setSelectedPatient(null); }
+  }, [open]);
 
   const save = async () => {
     if (!title.trim()) { toast.error("Title required"); return; }
@@ -256,6 +277,7 @@ function TodoModal({
       due_date: dueDate || null,
       created_by: userId,
       is_done: false,
+      patient_id: selectedPatient?.id ?? null,
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
@@ -272,6 +294,39 @@ function TodoModal({
         <div className="grid gap-3">
           <div><Label>Title *</Label><Input value={title} onChange={(e) => updateField("title", e.target.value)} /></div>
           <div><Label>Description</Label><Textarea value={description} onChange={(e) => updateField("description", e.target.value)} rows={3} /></div>
+          <div>
+            <Label>Link to Patient (optional)</Label>
+            {selectedPatient ? (
+              <div className="flex items-center justify-between rounded-md border bg-accent/50 px-3 py-2">
+                <span className="text-sm font-medium">{selectedPatient.name}</span>
+                <Button variant="ghost" size="sm" onClick={() => { setSelectedPatient(null); setPatientQuery(""); }}>Clear</Button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Input
+                  placeholder="Search patient by name…"
+                  value={patientQuery}
+                  onChange={(e) => setPatientQuery(e.target.value)}
+                />
+                {patientResults.length > 0 && (
+                  <ul className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-56 overflow-y-auto">
+                    {patientResults.map((p) => (
+                      <li key={p.id}>
+                        <button
+                          type="button"
+                          onClick={() => { setSelectedPatient({ id: p.id, name: p.name }); setPatientResults([]); setPatientQuery(""); }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
+                        >
+                          <span className="font-medium">{p.name}</span>
+                          {p.phone && <span className="ml-2 text-xs text-muted-foreground">{p.phone}</span>}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Priority</Label>
               <Select value={priority} onValueChange={(v) => updateField("priority", v as Priority)}>
