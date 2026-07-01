@@ -623,9 +623,17 @@ export default function CallTaskPage() {
                             <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Informed
                           </Badge>
                         ) : (
-                          <Button size="sm" onClick={() => markInformed(r)}>
-                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Mark Informed
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm">Log Call <ChevronDown className="ml-1 h-3.5 w-3.5" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => markInformed(r, "rebooked")}>Rebooked</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => markInformed(r, "not_interested")}>Not Interested</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => markInformed(r, "no_answer")}>No Answer</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => markInformed(r, "informed")}>Informed</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
                       </div>
                     </li>
