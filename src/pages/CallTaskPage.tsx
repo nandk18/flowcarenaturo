@@ -82,6 +82,7 @@ export default function CallTaskPage() {
     "overdue" | "due" | "done",
     (v: "overdue" | "due" | "done") => void,
   ];
+  const [leadCounts, setLeadCounts] = useState<{ overdue: number; due: number }>({ overdue: 0, due: 0 });
 
   const sendApptReminder = async (a: TomorrowAppt) => {
     if (!clinicId || !a.patient?.phone) return;
@@ -333,11 +334,14 @@ export default function CallTaskPage() {
         <div className="space-y-5">
           {(() => {
             const overdueCount =
-              cancelledRows.filter((r) => !isInformed(r.notes)).length +
-              careRows.filter((r) => r.care_call_due_date && r.care_call_due_date < today).length;
+              cancelledRows.filter((r) => !isInformed(r.notes) && r.called_at.slice(0, 10) < today).length +
+              careRows.filter((r) => r.care_call_due_date && r.care_call_due_date < today).length +
+              leadCounts.overdue;
             const dueCount =
               tomorrowAppts.filter((a) => !calledMap[a.patient_id]).length +
-              careRows.filter((r) => !r.care_call_due_date || r.care_call_due_date === today).length;
+              careRows.filter((r) => !r.care_call_due_date || r.care_call_due_date === today).length +
+              cancelledRows.filter((r) => !isInformed(r.notes) && r.called_at.slice(0, 10) === today).length +
+              leadCounts.due;
             const doneCount = doneCalls.length;
             const pills: { key: "overdue" | "due" | "done"; label: string; count: number; tone: string }[] = [
               { key: "overdue", label: "Overdue", count: overdueCount, tone: "bg-red-100 text-red-700 border-red-200 data-[active=true]:bg-red-600 data-[active=true]:text-white data-[active=true]:border-red-600" },
@@ -648,6 +652,9 @@ export default function CallTaskPage() {
               clinicId={clinicId}
               onDoneClick={() => setShowDone(true)}
               doneTodayOverride={doneCalls.length}
+              hidePills
+              statusFilter={statusTab}
+              onCountsChange={(c) => setLeadCounts(c)}
             />
           )}
         </div>
