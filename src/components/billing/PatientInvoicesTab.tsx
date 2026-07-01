@@ -48,6 +48,9 @@ type Invoice = {
   outstanding_amount: number | null;
   status: string | null;
   notes: string | null;
+  appointment_id?: string | null;
+  rescheduled_from_date?: string | null;
+  rescheduled_from_time?: string | null;
 };
 
 type Payment = {
@@ -134,8 +137,34 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
       .eq("patient_id", patientId)
       .eq("clinic_id", clinicId)
       .order("created_at", { ascending: false });
-    setInvoices((data ?? []) as Invoice[]);
-    if (!selectedId && data && data.length) setSelectedId(data[0].id);
+    const list = (data ?? []) as Invoice[];
+    // Fetch rescheduled-from info for invoices linked to an appointment
+    const apptIds = Array.from(new Set(list.map((i) => i.appointment_id).filter(Boolean))) as string[];
+    if (apptIds.length) {
+      const { data: appts } = await (supabase as any)
+        .from("appointments")
+        .select("id, rescheduled_from")
+        .in("id", apptIds);
+      const fromIds = Array.from(new Set(((appts ?? []) as any[]).map((a) => a.rescheduled_from).filter(Boolean)));
+      let oldMap = new Map<string, { d: string; t: string | null }>();
+      if (fromIds.length) {
+        const { data: olds } = await (supabase as any)
+          .from("appointments")
+          .select("id, appointment_date, appointment_time")
+          .in("id", fromIds);
+        oldMap = new Map(((olds ?? []) as any[]).map((o) => [o.id, { d: o.appointment_date, t: o.appointment_time }]));
+      }
+      const apptToFrom = new Map(((appts ?? []) as any[]).map((a) => [a.id, a.rescheduled_from]));
+      list.forEach((inv) => {
+        if (!inv.appointment_id) return;
+        const fromId = apptToFrom.get(inv.appointment_id);
+        if (!fromId) return;
+        const old = oldMap.get(fromId);
+        if (old) { inv.rescheduled_from_date = old.d; inv.rescheduled_from_time = old.t; }
+      });
+    }
+    setInvoices(list);
+    if (!selectedId && list.length) setSelectedId(list[0].id);
   }, [patientId, clinicId, selectedId]);
 
   useEffect(() => {
@@ -188,11 +217,21 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
                 <p className="mt-1 text-xs text-muted-foreground">{fmtInvoiceDate(i.invoice_date)}</p>
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <p className="text-sm font-medium">{fmtINR(i.total_amount)}</p>
-                  {isMultiVisit(i.line_items) && (
-                    <span className="inline-flex rounded-full bg-blue-100 text-blue-700 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold uppercase">
-                      Multi-visit
-                    </span>
-                  )}
+                  <div className="flex gap-1">
+                    {i.rescheduled_from_date && (
+                      <span
+                        title={`Originally ${i.rescheduled_from_date}${i.rescheduled_from_time ? " at " + i.rescheduled_from_time.slice(0, 5) : ""}`}
+                        className="inline-flex rounded-full bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold uppercase"
+                      >
+                        Rescheduled
+                      </span>
+                    )}
+                    {isMultiVisit(i.line_items) && (
+                      <span className="inline-flex rounded-full bg-blue-100 text-blue-700 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold uppercase">
+                        Multi-visit
+                      </span>
+                    )}
+                  </div>
                 </div>
               </button>
             ))

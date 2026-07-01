@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PatientLink from "@/components/PatientLink";
-import { MessageCircle, CheckCircle2, HeartHandshake, XCircle, CalendarClock, Phone } from "lucide-react";
+import { MessageCircle, CheckCircle2, HeartHandshake, XCircle, CalendarClock, Phone, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { format, addDays, differenceInCalendarDays } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -204,7 +205,7 @@ export default function CallTaskPage() {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  const markCalled = async (a: TomorrowAppt) => {
+  const markCalled = async (a: TomorrowAppt, outcome: string = "follow_up") => {
     if (!clinicId) return;
     const userId = await getProfileId();
     const typed = noteMap[a.patient_id]?.trim();
@@ -214,19 +215,19 @@ export default function CallTaskPage() {
     const { error } = await supabase.from("call_logs").insert({
       patient_id: a.patient_id,
       clinic_id: clinicId,
-      outcome: "follow_up",
-      notes: note,
+      outcome,
+      notes: `[${outcome}] ${note}`,
       called_by: userId,
       called_at: new Date().toISOString(),
     });
     if (error) { toast.error(error.message); return; }
     await supabase.from("contact_notes").insert({
-      patient_id: a.patient_id, clinic_id: clinicId, note, created_by: userId,
+      patient_id: a.patient_id, clinic_id: clinicId, note: `Appt-tomorrow call (${outcome}): ${note}`, created_by: userId,
     });
     setCalledMap((m) => ({ ...m, [a.patient_id]: true }));
     setNoteMap((m) => { const n = { ...m }; delete n[a.patient_id]; return n; });
     formStorage.clear(`call_note_${a.patient_id}`);
-    toast.success("Call logged to contact notes");
+    toast.success(`Logged as ${outcome.replace(/_/g, " ")}`);
     loadAll();
   };
 
@@ -246,25 +247,32 @@ export default function CallTaskPage() {
     openWhatsApp(r.patient.phone, msg);
   };
 
-  const markCareCalled = async (r: CareCallRow) => {
+  const markCareCalled = async (r: CareCallRow, outcome: string = "doing_well") => {
     if (!clinicId) return;
     const userId = await getProfileId();
     const note = careNotes[r.id]?.trim();
-    if (note) {
-      await supabase.from("contact_notes").insert({
-        patient_id: r.patient_id,
-        clinic_id: clinicId,
-        note: `Care call: ${note}`,
-        created_by: userId,
-      });
-    }
+    const combined = `Care call (${outcome.replace(/_/g, " ")})${note ? `: ${note}` : ""}`;
+    await supabase.from("contact_notes").insert({
+      patient_id: r.patient_id,
+      clinic_id: clinicId,
+      note: combined,
+      created_by: userId,
+    });
+    await supabase.from("call_logs").insert({
+      patient_id: r.patient_id,
+      clinic_id: clinicId,
+      outcome,
+      notes: combined,
+      called_by: userId,
+      called_at: new Date().toISOString(),
+    });
     const { error } = await (supabase as any)
       .from("appointments")
       .update({ care_call_done: true })
       .eq("id", r.id);
     if (error) { toast.error(error.message); return; }
     formStorage.clear(`care_call_note_${r.id}`);
-    toast.success("Care call logged");
+    toast.success(`Care call logged (${outcome.replace(/_/g, " ")})`);
     loadAll();
   };
 
@@ -292,20 +300,28 @@ export default function CallTaskPage() {
     openWhatsApp(r.patient.phone, msg);
   };
 
-  const markInformed = async (r: CancelledRow) => {
+  const markInformed = async (r: CancelledRow, outcome: string = "informed") => {
     if (!clinicId) return;
     const userId = await getProfileId();
     const extra = cancelNotes[r.id]?.trim();
-    const informedNote = `Informed about cancellation${extra ? `: ${extra}` : ""}`;
+    const informedNote = `Cancellation outcome (${outcome.replace(/_/g, " ")})${extra ? `: ${extra}` : ""}`;
     await supabase.from("contact_notes").insert({
       patient_id: r.patient_id,
       clinic_id: clinicId,
       note: informedNote,
       created_by: userId,
     });
+    await supabase.from("call_logs").insert({
+      patient_id: r.patient_id,
+      clinic_id: clinicId,
+      outcome,
+      notes: informedNote,
+      called_by: userId,
+      called_at: new Date().toISOString(),
+    });
     const newNotes = `[informed:${new Date().toISOString()}] ${(r.notes ?? "").replace(INFORMED_PREFIX_RE, "")}`;
     await (supabase as any).from("call_logs").update({ notes: newNotes }).eq("id", r.id);
-    toast.success("Marked informed");
+    toast.success(`Marked ${outcome.replace(/_/g, " ")}`);
     loadAll();
   };
 
@@ -429,15 +445,23 @@ export default function CallTaskPage() {
                         className="min-h-[36px] text-sm sm:col-start-1 sm:col-span-2"
                       />
                       <div className="sm:row-start-1 sm:col-start-3 sm:row-span-2 sm:self-center">
-                        <Button
-                          size="sm"
-                          variant={called ? "outline" : "default"}
-                          disabled={called}
-                          onClick={() => markCalled(a)}
-                          className={cn(called && "text-green-700 border-green-300")}
-                        >
-                          {called ? <><CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Called</> : "Mark Called"}
-                        </Button>
+                        {called ? (
+                          <Badge variant="outline" className="text-green-700 border-green-300">
+                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Called
+                          </Badge>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm">Log Call <ChevronDown className="ml-1 h-3.5 w-3.5" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => markCalled(a, "confirmed")}>Confirmed</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => markCalled(a, "rescheduled")}>Rescheduled</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => markCalled(a, "cancelled")}>Cancelled</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => markCalled(a, "no_answer")}>No Answer</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     </li>
                   );
@@ -511,9 +535,16 @@ export default function CallTaskPage() {
                         />
                       </div>
                       <div className="sm:self-center">
-                        <Button size="sm" onClick={() => markCareCalled(r)}>
-                          <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Mark Called
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm">Log Call <ChevronDown className="ml-1 h-3.5 w-3.5" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => markCareCalled(r, "doing_well")}>Doing Well</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => markCareCalled(r, "needs_follow_up")}>Needs Follow-up</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => markCareCalled(r, "no_answer")}>No Answer</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </li>
                   );
@@ -592,9 +623,17 @@ export default function CallTaskPage() {
                             <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Informed
                           </Badge>
                         ) : (
-                          <Button size="sm" onClick={() => markInformed(r)}>
-                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Mark Informed
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm">Log Call <ChevronDown className="ml-1 h-3.5 w-3.5" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => markInformed(r, "rebooked")}>Rebooked</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => markInformed(r, "not_interested")}>Not Interested</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => markInformed(r, "no_answer")}>No Answer</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => markInformed(r, "informed")}>Informed</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
                       </div>
                     </li>
