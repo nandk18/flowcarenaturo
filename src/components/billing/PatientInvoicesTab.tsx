@@ -137,8 +137,34 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
       .eq("patient_id", patientId)
       .eq("clinic_id", clinicId)
       .order("created_at", { ascending: false });
-    setInvoices((data ?? []) as Invoice[]);
-    if (!selectedId && data && data.length) setSelectedId(data[0].id);
+    const list = (data ?? []) as Invoice[];
+    // Fetch rescheduled-from info for invoices linked to an appointment
+    const apptIds = Array.from(new Set(list.map((i) => i.appointment_id).filter(Boolean))) as string[];
+    if (apptIds.length) {
+      const { data: appts } = await (supabase as any)
+        .from("appointments")
+        .select("id, rescheduled_from")
+        .in("id", apptIds);
+      const fromIds = Array.from(new Set(((appts ?? []) as any[]).map((a) => a.rescheduled_from).filter(Boolean)));
+      let oldMap = new Map<string, { d: string; t: string | null }>();
+      if (fromIds.length) {
+        const { data: olds } = await (supabase as any)
+          .from("appointments")
+          .select("id, appointment_date, appointment_time")
+          .in("id", fromIds);
+        oldMap = new Map(((olds ?? []) as any[]).map((o) => [o.id, { d: o.appointment_date, t: o.appointment_time }]));
+      }
+      const apptToFrom = new Map(((appts ?? []) as any[]).map((a) => [a.id, a.rescheduled_from]));
+      list.forEach((inv) => {
+        if (!inv.appointment_id) return;
+        const fromId = apptToFrom.get(inv.appointment_id);
+        if (!fromId) return;
+        const old = oldMap.get(fromId);
+        if (old) { inv.rescheduled_from_date = old.d; inv.rescheduled_from_time = old.t; }
+      });
+    }
+    setInvoices(list);
+    if (!selectedId && list.length) setSelectedId(list[0].id);
   }, [patientId, clinicId, selectedId]);
 
   useEffect(() => {
