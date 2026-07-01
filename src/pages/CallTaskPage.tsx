@@ -247,25 +247,32 @@ export default function CallTaskPage() {
     openWhatsApp(r.patient.phone, msg);
   };
 
-  const markCareCalled = async (r: CareCallRow) => {
+  const markCareCalled = async (r: CareCallRow, outcome: string = "doing_well") => {
     if (!clinicId) return;
     const userId = await getProfileId();
     const note = careNotes[r.id]?.trim();
-    if (note) {
-      await supabase.from("contact_notes").insert({
-        patient_id: r.patient_id,
-        clinic_id: clinicId,
-        note: `Care call: ${note}`,
-        created_by: userId,
-      });
-    }
+    const combined = `Care call (${outcome.replace(/_/g, " ")})${note ? `: ${note}` : ""}`;
+    await supabase.from("contact_notes").insert({
+      patient_id: r.patient_id,
+      clinic_id: clinicId,
+      note: combined,
+      created_by: userId,
+    });
+    await supabase.from("call_logs").insert({
+      patient_id: r.patient_id,
+      clinic_id: clinicId,
+      outcome,
+      notes: combined,
+      called_by: userId,
+      called_at: new Date().toISOString(),
+    });
     const { error } = await (supabase as any)
       .from("appointments")
       .update({ care_call_done: true })
       .eq("id", r.id);
     if (error) { toast.error(error.message); return; }
     formStorage.clear(`care_call_note_${r.id}`);
-    toast.success("Care call logged");
+    toast.success(`Care call logged (${outcome.replace(/_/g, " ")})`);
     loadAll();
   };
 
