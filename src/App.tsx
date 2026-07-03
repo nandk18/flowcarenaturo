@@ -41,6 +41,10 @@ import ClosingChecklistSettingsPage from "./pages/ClosingChecklistSettingsPage";
 import ExpenseCategoriesSettingsPage from "./pages/ExpenseCategoriesSettingsPage";
 import MessageTemplatesSettingsPage from "./pages/MessageTemplatesSettingsPage";
 import PettyCashSettingsPage from "./pages/PettyCashSettingsPage";
+import TreatmentIndex from "./pages/TreatmentIndex";
+import TreatmentBoard from "./pages/TreatmentBoard";
+import TreatmentSchedule from "./pages/TreatmentSchedule";
+import TreatmentTherapists from "./pages/TreatmentTherapists";
 
 import SuperAdmin from "./pages/SuperAdmin";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -354,7 +358,11 @@ function AppRoutes() {
       <Route path="/consult/patients" element={<Navigate to="/patients" replace />} />
       <Route path="/consult/patients/:patientId" element={<LegacyPatientRedirect />} />
       <Route path="/consult/availability" element={<Navigate to="/availability" replace />} />
-      <Route path="/treatment" element={<Navigate to="/dashboard" replace />} />
+      {/* Treatment module (gated per-page by useTreatmentEnabled) */}
+      <Route path="/treatment" element={<TreatmentIndex />} />
+      <Route path="/treatment/board" element={<TreatmentBoard />} />
+      <Route path="/treatment/schedule" element={<TreatmentSchedule />} />
+      <Route path="/treatment/therapists" element={<TreatmentTherapists />} />
       <Route path="/dashboard/patients" element={<Navigate to="/patients" replace />} />
       <Route path="/dashboard/patients/:patientId" element={<LegacyPatientRedirect />} />
       <Route path="/dashboard/templates" element={<Navigate to="/settings/templates" replace />} />
