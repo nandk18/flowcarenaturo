@@ -45,6 +45,9 @@ import TreatmentIndex from "./pages/TreatmentIndex";
 import TreatmentBoard from "./pages/TreatmentBoard";
 import TreatmentSchedule from "./pages/TreatmentSchedule";
 import TreatmentTherapists from "./pages/TreatmentTherapists";
+import TherapistLogin from "./pages/TherapistLogin";
+import TherapistApp from "./pages/TherapistApp";
+import { TherapistAuthProvider } from "./hooks/useTherapistAuth";
 
 import SuperAdmin from "./pages/SuperAdmin";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -363,6 +366,8 @@ function AppRoutes() {
       <Route path="/treatment/board" element={<TreatmentBoard />} />
       <Route path="/treatment/schedule" element={<TreatmentSchedule />} />
       <Route path="/treatment/therapists" element={<TreatmentTherapists />} />
+      <Route path="/therapist-login" element={<TherapistLogin />} />
+      <Route path="/treatment/therapist" element={<TherapistApp />} />
       <Route path="/dashboard/patients" element={<Navigate to="/patients" replace />} />
       <Route path="/dashboard/patients/:patientId" element={<LegacyPatientRedirect />} />
       <Route path="/dashboard/templates" element={<Navigate to="/settings/templates" replace />} />
@@ -410,8 +415,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <AppRoutes />
-          <CookieConsent />
+          <TherapistAuthProvider>
+            <AppRoutes />
+            <CookieConsent />
+          </TherapistAuthProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
