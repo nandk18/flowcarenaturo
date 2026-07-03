@@ -2728,6 +2728,10 @@ export type Database = {
         Args: { p_pin: string; p_therapist_profile_id: string }
         Returns: boolean
       }
+      auto_assign_sessions: {
+        Args: { p_clinic_id: string; p_date: string }
+        Returns: number
+      }
       complete_clinic_onboarding: {
         Args: {
           p_clinic_address?: string
@@ -2821,6 +2825,7 @@ export type Database = {
           therapist_color: string
         }[]
       }
+      next_working_day: { Args: { p_from: string }; Returns: string }
       schedule_plan_sessions: {
         Args: { p_date: string; p_plan_id: string }
         Returns: number
