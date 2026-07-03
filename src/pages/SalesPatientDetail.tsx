@@ -40,6 +40,9 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { LeadForm } from "./Sales";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
+import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
+import PatientTreatmentTab from "@/components/patient/PatientTreatmentTab";
+import { HeartPulse } from "lucide-react";
 import PatientTodoCard from "@/components/patient/PatientTodoCard";
 import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 import { openWhatsApp } from "@/lib/whatsapp";
@@ -262,6 +265,7 @@ export default function SalesPatientDetail() {
   const [statusSaving, setStatusSaving] = useState(false);
   const [sendingLink, setSendingLink] = useState(false);
   const [activeTab, setActiveTab] = useUrlState("tab", "general");
+  const { enabled: treatmentEnabled } = useTreatmentEnabled();
 
   const handleSendFormLink = async () => {
     if (!patient) return;
@@ -541,7 +545,7 @@ export default function SalesPatientDetail() {
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+          <TabsList className={`grid w-full max-w-2xl ${treatmentEnabled ? "grid-cols-5" : "grid-cols-4"}`}>
             <TabsTrigger value="general">
               <User className="mr-1.5 h-3.5 w-3.5" /> General
             </TabsTrigger>
@@ -554,6 +558,11 @@ export default function SalesPatientDetail() {
             <TabsTrigger value="appointments">
               <Calendar className="mr-1.5 h-3.5 w-3.5" /> Appointments
             </TabsTrigger>
+            {treatmentEnabled && (
+              <TabsTrigger value="treatment">
+                <HeartPulse className="mr-1.5 h-3.5 w-3.5" /> Treatment
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* ===== GENERAL ===== */}
@@ -839,6 +848,12 @@ export default function SalesPatientDetail() {
               onChanged={loadAppointments}
             />
           </TabsContent>
+
+          {treatmentEnabled && (
+            <TabsContent value="treatment" className="mt-6">
+              <PatientTreatmentTab patientId={patient.id} clinicId={patient.clinic_id} />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 

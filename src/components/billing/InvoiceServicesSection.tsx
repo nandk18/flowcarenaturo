@@ -21,6 +21,11 @@ type ServiceRow = {
   gst_percentage: number | null;
   is_default: boolean | null;
   is_active: boolean | null;
+  service_type: string | null;
+  max_per_day: number | null;
+  requires_therapist: boolean | null;
+  room_required: string | null;
+  duration_minutes: number | null;
 };
 
 export default function InvoiceServicesSection() {
@@ -130,6 +135,11 @@ function ServiceModal({
   const [gstPct, setGstPct] = useState(0);
   const [isDefault, setIsDefault] = useState(false);
   const [isActive, setIsActive] = useState(true);
+  const [serviceType, setServiceType] = useState<"consultation" | "treatment" | "other">("consultation");
+  const [maxPerDay, setMaxPerDay] = useState<number | "">("");
+  const [requiresTherapist, setRequiresTherapist] = useState(false);
+  const [roomRequired, setRoomRequired] = useState("");
+  const [durationMin, setDurationMin] = useState<number | "">("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -140,6 +150,11 @@ function ServiceModal({
     setGstPct(Number(service?.gst_percentage ?? 0));
     setIsDefault(!!service?.is_default);
     setIsActive(service ? !!service.is_active : true);
+    setServiceType(((service?.service_type as any) ?? "consultation"));
+    setMaxPerDay(service?.max_per_day ?? "");
+    setRequiresTherapist(!!service?.requires_therapist);
+    setRoomRequired(service?.room_required ?? "");
+    setDurationMin(service?.duration_minutes ?? "");
   }, [open, service]);
 
   const submit = async () => {
@@ -151,7 +166,7 @@ function ServiceModal({
       await supabase.from("invoice_services").update({ is_default: false }).eq("clinic_id", clinicId);
     }
 
-    const payload = {
+    const payload: any = {
       clinic_id: clinicId,
       name: name.trim(),
       description: description || null,
@@ -159,6 +174,11 @@ function ServiceModal({
       gst_percentage: gstPct,
       is_default: isDefault,
       is_active: isActive,
+      service_type: serviceType,
+      max_per_day: maxPerDay === "" ? null : Number(maxPerDay),
+      requires_therapist: requiresTherapist,
+      room_required: roomRequired.trim() || null,
+      duration_minutes: durationMin === "" ? null : Number(durationMin),
     };
 
     const { error } = service
@@ -182,6 +202,31 @@ function ServiceModal({
             <div><Label>Amount (₹) *</Label><Input type="number" min={0} value={amount} onChange={(e) => setAmount(Number(e.target.value))} /></div>
             <div><Label>GST %</Label><Input type="number" min={0} max={100} value={gstPct} onChange={(e) => setGstPct(Number(e.target.value))} /></div>
           </div>
+          <div>
+            <Label>Service Type</Label>
+            <select
+              value={serviceType}
+              onChange={(e) => setServiceType(e.target.value as any)}
+              className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="consultation">Consultation</option>
+              <option value="treatment">Treatment / Therapy</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          {serviceType === "treatment" && (
+            <div className="space-y-3 rounded-lg border border-purple-500/30 bg-purple-500/5 p-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs">Max per day</Label><Input type="number" min={0} value={maxPerDay} onChange={(e) => setMaxPerDay(e.target.value === "" ? "" : Number(e.target.value))} placeholder="unlimited" /></div>
+                <div><Label className="text-xs">Duration (min)</Label><Input type="number" min={0} value={durationMin} onChange={(e) => setDurationMin(e.target.value === "" ? "" : Number(e.target.value))} /></div>
+              </div>
+              <div><Label className="text-xs">Room required</Label><Input value={roomRequired} onChange={(e) => setRoomRequired(e.target.value)} placeholder="e.g. Therapy Room 1" /></div>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Requires therapist</Label>
+                <Switch checked={requiresTherapist} onCheckedChange={setRequiresTherapist} />
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <Label className="text-sm">Set as Default</Label>

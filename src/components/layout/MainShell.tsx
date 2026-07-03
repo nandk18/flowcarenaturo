@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
-import { Users, UserPlus, CalendarDays, Phone, Sun, Moon, Receipt, CheckSquare } from "lucide-react";
+import { Users, UserPlus, CalendarDays, Phone, Sun, Moon, Receipt, CheckSquare, HeartPulse, LayoutGrid, CalendarPlus, UsersRound } from "lucide-react";
+import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
 import GlobalSearch from "./GlobalSearch";
 import NotificationBell from "./NotificationBell";
@@ -16,6 +17,7 @@ export default function MainShell({
 }) {
   const { profile } = useAuth();
   const clinicId = profile?.clinic_id;
+  const { enabled: treatmentEnabled } = useTreatmentEnabled();
   const [careCallCount, setCareCallCount] = useState(0);
 
   useEffect(() => {
@@ -79,6 +81,14 @@ export default function MainShell({
         { to: "/tasks/todo-list", icon: CheckSquare, label: "To Do List" },
       ],
     },
+    ...(treatmentEnabled ? [{
+      label: "Treatment",
+      items: [
+        { to: "/treatment/board", icon: LayoutGrid, label: "Board" },
+        { to: "/treatment/schedule", icon: CalendarPlus, label: "Schedule Therapy" },
+        { to: "/treatment/therapists", icon: UsersRound, label: "Therapists" },
+      ],
+    }] : []),
   ];
 
   return (

@@ -5,6 +5,7 @@ import TopBar from "@/components/layout/TopBar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { TrendingUp, Stethoscope, HeartPulse, LucideIcon } from "lucide-react";
+import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
 
 type SectionKey = "sales" | "consult" | "treatment";
 
@@ -90,7 +91,16 @@ function getGreeting() {
 export default function Home() {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const { enabled: treatmentEnabled } = useTreatmentEnabled();
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
+
+  const sections = SECTIONS
+    .filter((s) => s.key !== "treatment" || treatmentEnabled)
+    .map((s) =>
+      s.key === "treatment" && treatmentEnabled
+        ? { ...s, badge: "Active", badgeVariant: "default" as const }
+        : s,
+    );
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -107,7 +117,7 @@ export default function Home() {
         </div>
 
         <div className="grid w-full grid-cols-1 gap-5 md:grid-cols-3">
-          {SECTIONS.map((s) => {
+          {sections.map((s) => {
             const Icon = s.icon;
             return (
               <button
