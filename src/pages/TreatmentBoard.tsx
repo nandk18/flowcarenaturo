@@ -328,6 +328,36 @@ export default function TreatmentBoard() {
           </div>
         )}
       </div>
+
+      <Dialog open={remindersOpen} onOpenChange={setRemindersOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Reminders for {format(addDays(new Date(), 1), "EEE, MMM d")}</DialogTitle>
+          </DialogHeader>
+          {loadingReminders ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" /></div>
+          ) : reminderList.length === 0 ? (
+            <div className="py-8 text-center text-sm text-muted-foreground">No sessions scheduled for tomorrow.</div>
+          ) : (
+            <ul className="max-h-[60vh] space-y-2 overflow-y-auto">
+              {reminderList.map((r) => (
+                <li key={r.patient_id} className="flex items-center justify-between gap-2 rounded-lg border bg-background p-2">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{r.patient_name}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {Array.from(new Set(r.services)).join(", ")}
+                      {!r.phone && " · no phone"}
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" disabled={!r.phone} onClick={() => sendReminder(r)}>
+                    <MessageCircle className="mr-1 h-3 w-3" /> Send
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
