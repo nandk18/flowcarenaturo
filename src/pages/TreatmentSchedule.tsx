@@ -103,7 +103,7 @@ export default function TreatmentSchedule() {
         start_date: startDate,
         status: "active",
         total_plan_value: total,
-        created_by: profile?.user_id,
+        created_by: profile?.id,
       })
       .select("id")
       .single();
