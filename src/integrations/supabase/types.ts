@@ -604,6 +604,7 @@ export type Database = {
           prescription_template: string | null
           regional_language: string | null
           show_logo_on_invoice: boolean
+          treatment_enabled: boolean | null
           website: string | null
         }
         Insert: {
@@ -625,6 +626,7 @@ export type Database = {
           prescription_template?: string | null
           regional_language?: string | null
           show_logo_on_invoice?: boolean
+          treatment_enabled?: boolean | null
           website?: string | null
         }
         Update: {
@@ -646,6 +648,7 @@ export type Database = {
           prescription_template?: string | null
           regional_language?: string | null
           show_logo_on_invoice?: boolean
+          treatment_enabled?: boolean | null
           website?: string | null
         }
         Relationships: []
@@ -1042,11 +1045,16 @@ export type Database = {
           clinic_id: string | null
           created_at: string | null
           description: string | null
+          duration_minutes: number | null
           gst_percentage: number | null
           id: string
           is_active: boolean | null
           is_default: boolean | null
+          max_per_day: number | null
           name: string
+          requires_therapist: boolean | null
+          room_required: string | null
+          service_type: string | null
           updated_at: string | null
         }
         Insert: {
@@ -1054,11 +1062,16 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string | null
           description?: string | null
+          duration_minutes?: number | null
           gst_percentage?: number | null
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          max_per_day?: number | null
           name: string
+          requires_therapist?: boolean | null
+          room_required?: string | null
+          service_type?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -1066,11 +1079,16 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string | null
           description?: string | null
+          duration_minutes?: number | null
           gst_percentage?: number | null
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          max_per_day?: number | null
           name?: string
+          requires_therapist?: boolean | null
+          room_required?: string | null
+          service_type?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1701,6 +1719,64 @@ export type Database = {
           },
         ]
       }
+      patient_idle_log: {
+        Row: {
+          clinic_id: string | null
+          id: string
+          idle_ended_at: string | null
+          idle_minutes: number | null
+          idle_started_at: string | null
+          notified: boolean | null
+          notified_at: string | null
+          patient_id: string | null
+          treatment_plan_id: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          id?: string
+          idle_ended_at?: string | null
+          idle_minutes?: number | null
+          idle_started_at?: string | null
+          notified?: boolean | null
+          notified_at?: string | null
+          patient_id?: string | null
+          treatment_plan_id?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          id?: string
+          idle_ended_at?: string | null
+          idle_minutes?: number | null
+          idle_started_at?: string | null
+          notified?: boolean | null
+          notified_at?: string | null
+          patient_id?: string | null
+          treatment_plan_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_idle_log_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_idle_log_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_idle_log_treatment_plan_id_fkey"
+            columns: ["treatment_plan_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           address: string | null
@@ -1942,9 +2018,15 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           id: string
+          is_therapist: boolean | null
           lab_id: string | null
           password_set: boolean
+          pin_hash: string | null
           role: Database["public"]["Enums"]["app_role"]
+          room: string | null
+          specialization: string | null
+          therapist_color: string | null
+          therapist_email: string | null
           user_id: string
         }
         Insert: {
@@ -1952,9 +2034,15 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           id?: string
+          is_therapist?: boolean | null
           lab_id?: string | null
           password_set?: boolean
+          pin_hash?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          room?: string | null
+          specialization?: string | null
+          therapist_color?: string | null
+          therapist_email?: string | null
           user_id: string
         }
         Update: {
@@ -1962,9 +2050,15 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           id?: string
+          is_therapist?: boolean | null
           lab_id?: string | null
           password_set?: boolean
+          pin_hash?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          room?: string | null
+          specialization?: string | null
+          therapist_color?: string | null
+          therapist_email?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1980,6 +2074,54 @@ export type Database = {
             columns: ["lab_id"]
             isOneToOne: false
             referencedRelation: "labs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth_key: string
+          clinic_id: string | null
+          created_at: string | null
+          endpoint: string
+          id: string
+          p256dh_key: string
+          profile_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          auth_key: string
+          clinic_id?: string | null
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          p256dh_key: string
+          profile_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          auth_key?: string
+          clinic_id?: string | null
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          p256dh_key?: string
+          profile_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2078,6 +2220,180 @@ export type Database = {
           },
         ]
       }
+      therapist_sessions: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          expires_at: string
+          id: string
+          profile_id: string | null
+          token_hash: string
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          profile_id?: string | null
+          token_hash: string
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          profile_id?: string | null
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "therapist_sessions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "therapist_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      therapy_sessions: {
+        Row: {
+          amount: number | null
+          appointment_id: string | null
+          clinic_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          elapsed_seconds: number | null
+          id: string
+          invoice_id: string | null
+          patient_id: string | null
+          room: string | null
+          service_id: string | null
+          service_name: string
+          session_date: string | null
+          session_notes: string | null
+          session_number: number | null
+          setup_photo_url: string | null
+          started_at: string | null
+          status: string | null
+          therapist_id: string | null
+          treatment_plan_id: string | null
+          treatment_plan_item_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number | null
+          appointment_id?: string | null
+          clinic_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          elapsed_seconds?: number | null
+          id?: string
+          invoice_id?: string | null
+          patient_id?: string | null
+          room?: string | null
+          service_id?: string | null
+          service_name: string
+          session_date?: string | null
+          session_notes?: string | null
+          session_number?: number | null
+          setup_photo_url?: string | null
+          started_at?: string | null
+          status?: string | null
+          therapist_id?: string | null
+          treatment_plan_id?: string | null
+          treatment_plan_item_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number | null
+          appointment_id?: string | null
+          clinic_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          elapsed_seconds?: number | null
+          id?: string
+          invoice_id?: string | null
+          patient_id?: string | null
+          room?: string | null
+          service_id?: string | null
+          service_name?: string
+          session_date?: string | null
+          session_notes?: string | null
+          session_number?: number | null
+          setup_photo_url?: string | null
+          started_at?: string | null
+          status?: string | null
+          therapist_id?: string | null
+          treatment_plan_id?: string | null
+          treatment_plan_item_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "therapy_sessions_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "therapy_sessions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "therapy_sessions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "therapy_sessions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "therapy_sessions_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "therapy_sessions_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "therapy_sessions_treatment_plan_id_fkey"
+            columns: ["treatment_plan_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "therapy_sessions_treatment_plan_item_id_fkey"
+            columns: ["treatment_plan_item_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plan_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       todo_list: {
         Row: {
           clinic_id: string | null
@@ -2134,6 +2450,163 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_plan_items: {
+        Row: {
+          amount_per_session: number | null
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          service_id: string | null
+          service_name: string
+          sessions_completed: number | null
+          sessions_per_visit: number
+          sessions_scheduled: number | null
+          status: string | null
+          total_sessions: number
+          treatment_plan_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_per_session?: number | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          service_id?: string | null
+          service_name: string
+          sessions_completed?: number | null
+          sessions_per_visit?: number
+          sessions_scheduled?: number | null
+          status?: string | null
+          total_sessions?: number
+          treatment_plan_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_per_session?: number | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          service_id?: string | null
+          service_name?: string
+          sessions_completed?: number | null
+          sessions_per_visit?: number
+          sessions_scheduled?: number | null
+          status?: string | null
+          total_sessions?: number
+          treatment_plan_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_plan_items_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plan_items_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plan_items_treatment_plan_id_fkey"
+            columns: ["treatment_plan_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_plans: {
+        Row: {
+          appointment_id: string | null
+          clinic_id: string | null
+          created_at: string | null
+          created_by: string | null
+          end_date: string | null
+          id: string
+          notes: string | null
+          patient_id: string | null
+          plan_name: string | null
+          start_date: string | null
+          status: string | null
+          total_plan_value: number | null
+          updated_at: string | null
+          visit_id: string | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          plan_name?: string | null
+          start_date?: string | null
+          status?: string | null
+          total_plan_value?: number | null
+          updated_at?: string | null
+          visit_id?: string | null
+        }
+        Update: {
+          appointment_id?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          plan_name?: string | null
+          start_date?: string | null
+          status?: string | null
+          total_plan_value?: number | null
+          updated_at?: string | null
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_plans_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plans_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plans_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plans_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plans_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
             referencedColumns: ["id"]
           },
         ]
@@ -2253,6 +2726,10 @@ export type Database = {
         Args: { p_token: string; p_updates: Json }
         Returns: boolean
       }
+      complete_therapy_session: {
+        Args: { p_notes?: string; p_session_id: string }
+        Returns: Json
+      }
       ensure_current_user_profile: {
         Args: never
         Returns: {
@@ -2260,9 +2737,15 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           id: string
+          is_therapist: boolean | null
           lab_id: string | null
           password_set: boolean
+          pin_hash: string | null
           role: Database["public"]["Enums"]["app_role"]
+          room: string | null
+          specialization: string | null
+          therapist_color: string | null
+          therapist_email: string | null
           user_id: string
         }
         SetofOptions: {
@@ -2272,7 +2755,41 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_all_capacities: {
+        Args: { p_clinic_id: string; p_date: string }
+        Returns: {
+          available: number
+          booked_count: number
+          is_full: boolean
+          max_per_day: number
+          pct_full: number
+          service_id: string
+          service_name: string
+        }[]
+      }
+      get_clinic_id_safe: { Args: never; Returns: string }
+      get_idle_patients: {
+        Args: { p_clinic_id: string }
+        Returns: {
+          idle_minutes: number
+          patient_id: string
+          patient_name: string
+          treatment_plan_id: string
+        }[]
+      }
+      get_service_capacity: {
+        Args: { p_clinic_id: string; p_date: string; p_service_id: string }
+        Returns: {
+          available: number
+          booked_count: number
+          is_full: boolean
+          max_per_day: number
+          service_id: string
+          service_name: string
+        }[]
+      }
       get_user_clinic_id: { Args: { _user_id: string }; Returns: string }
+      get_user_clinic_id_fast: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
