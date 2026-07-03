@@ -4,12 +4,16 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, CheckCircle2, Loader2, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Play, CheckCircle2, Loader2, AlertTriangle, UserCheck, Send, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useClinic } from "@/hooks/useClinic";
 import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { toast } from "sonner";
+import { openWhatsApp } from "@/lib/whatsapp";
+import { buildMessage } from "@/lib/messageTemplates";
 
 type Session = {
   id: string;
