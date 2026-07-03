@@ -366,6 +366,8 @@ function AppRoutes() {
       <Route path="/treatment/board" element={<TreatmentBoard />} />
       <Route path="/treatment/schedule" element={<TreatmentSchedule />} />
       <Route path="/treatment/therapists" element={<TreatmentTherapists />} />
+      <Route path="/therapist-login" element={<TherapistLogin />} />
+      <Route path="/treatment/therapist" element={<TherapistApp />} />
       <Route path="/dashboard/patients" element={<Navigate to="/patients" replace />} />
       <Route path="/dashboard/patients/:patientId" element={<LegacyPatientRedirect />} />
       <Route path="/dashboard/templates" element={<Navigate to="/settings/templates" replace />} />
