@@ -1,6 +1,20 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const VAPID_PUBLIC = "BJXKA4WuBOR6y8oc4mMbf1AkbShs4a4ka2aPHtQqZ4LNJoOEsWzKvvKpGCJADHZoVIrY9Cw6MzY7Iw27eG-hDNI";
+let cachedVapid: string | null = null;
+
+async function getVapidPublicKey(): Promise<string | null> {
+  if (cachedVapid) return cachedVapid;
+  try {
+    const { data, error } = await supabase.functions.invoke("get-vapid-public-key");
+    if (error) return null;
+    const key = (data as any)?.key;
+    if (typeof key === "string" && key.length > 40) {
+      cachedVapid = key;
+      return key;
+    }
+  } catch {}
+  return null;
+}
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -12,18 +26,22 @@ function urlBase64ToUint8Array(base64String: string) {
 export async function ensureTherapistPushSubscription(profileId: string, clinicId: string) {
   if (typeof window === "undefined") return;
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  if (!("Notification" in window)) return;
   if (Notification.permission === "denied") return;
   if (Notification.permission === "default") {
     const p = await Notification.requestPermission();
     if (p !== "granted") return;
   }
 
+  const vapid = await getVapidPublicKey();
+  if (!vapid) return;
+
   const reg = await navigator.serviceWorker.ready;
   let sub = await reg.pushManager.getSubscription();
   if (!sub) {
     sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC),
+      applicationServerKey: urlBase64ToUint8Array(vapid),
     });
   }
   const json = sub.toJSON() as any;
