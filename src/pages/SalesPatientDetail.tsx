@@ -848,6 +848,12 @@ export default function SalesPatientDetail() {
               onChanged={loadAppointments}
             />
           </TabsContent>
+
+          {treatmentEnabled && (
+            <TabsContent value="treatment" className="mt-6">
+              <PatientTreatmentTab patientId={patient.id} clinicId={patient.clinic_id} />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 
