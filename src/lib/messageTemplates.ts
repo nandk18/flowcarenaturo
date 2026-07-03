@@ -103,6 +103,8 @@ const DEFAULT_BODIES: Record<MessageTemplateType, string> = {
     "Hi {patient_name}, this is {clinic_name}. We hope you are feeling well after your recent visit. We are checking in to see how you are doing. Please feel free to reach out if you need anything or would like to schedule a follow-up appointment.",
   appointment_cancelled_notice:
     "Hi {patient_name}, we regret to inform you that your appointment at {clinic_name} on {appointment_date} at {appointment_time} has been cancelled due to {reason}. Please contact us to reschedule at your earliest convenience.",
+  therapy_session_reminder:
+    "Hi {patient_name}, this is a reminder for your therapy session ({service_name}) tomorrow at {clinic_name}. Please arrive 10 minutes early. Reply to confirm or reschedule.",
 };
 
 export function renderTemplate(body: string, vars: Record<string, string | number | null | undefined>): string {
