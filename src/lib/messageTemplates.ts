@@ -8,7 +8,8 @@ export type MessageTemplateType =
   | "appointment_confirmation"
   | "invoice_payment"
   | "care_call"
-  | "appointment_cancelled_notice";
+  | "appointment_cancelled_notice"
+  | "therapy_session_reminder";
 
 export type MessageTemplate = {
   id: string;
