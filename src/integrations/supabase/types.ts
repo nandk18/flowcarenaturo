@@ -2714,6 +2714,16 @@ export type Database = {
         Args: { p_clinic_id: string; p_delta: number }
         Returns: number
       }
+      admin_create_therapist: {
+        Args: {
+          p_color?: string
+          p_email?: string
+          p_full_name: string
+          p_pin?: string
+          p_room?: string
+        }
+        Returns: string
+      }
       admin_set_therapist_pin: {
         Args: { p_pin: string; p_therapist_profile_id: string }
         Returns: boolean

@@ -162,27 +162,18 @@ function TherapistModal({ open, onClose, clinicId, therapist, onSaved }: {
         .eq("id", therapist.id);
       if (error) { setSaving(false); return toast.error(error.message); }
     } else {
-      // Create a therapist-only profile (no auth user).
-      const { data, error } = await supabase
-        .from("profiles")
-        .insert({
-          clinic_id: clinicId,
-          user_id: crypto.randomUUID(),
-          full_name: name.trim(),
-          therapist_email: email.trim() || null,
-          room: room.trim() || null,
-          therapist_color: color,
-          is_therapist: true,
-          role: "admin",
-          password_set: true,
-        } as any)
-        .select("id")
-        .single();
+      const { data, error } = await supabase.rpc("admin_create_therapist", {
+        p_full_name: name.trim(),
+        p_email: email.trim() || null,
+        p_room: room.trim() || null,
+        p_color: color,
+        p_pin: pin,
+      });
       if (error || !data) { setSaving(false); return toast.error(error?.message ?? "Failed"); }
-      profileId = data.id;
+      profileId = data as string;
     }
 
-    if (pin && profileId) {
+    if (therapist && pin && profileId) {
       const { error: pinErr } = await supabase.rpc("admin_set_therapist_pin", {
         p_therapist_profile_id: profileId,
         p_pin: pin,
