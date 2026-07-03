@@ -10,7 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Mic, FileText, Pill, CheckCircle, AlertTriangle, Activity, History, User, FolderOpen, Upload, Loader2 } from "lucide-react";
+import { Mic, FileText, Pill, CheckCircle, AlertTriangle, Activity, History, User, FolderOpen, Upload, Loader2, HeartPulse } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
 import VoiceRecorder from "@/components/doctor/VoiceRecorder";
 import PatientHistory from "@/components/doctor/PatientHistory";
 import PrescriptionShareModal from "@/components/doctor/PrescriptionShareModal";
@@ -559,9 +561,10 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
         </Tabs>
       )}
 
-      {/* Desktop: Complete button */}
+      {/* Desktop: Complete + Treatment plan */}
       {!isMobile && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <TreatmentPlanButton patientId={visit.patient?.id} />
           <Button size="lg" className="rounded-xl font-medium" onClick={handleCompleteConsultation} disabled={saving}>
             <CheckCircle className="mr-2 h-4 w-4" />
             {saving ? "Saving..." : "Complete Consultation"}
