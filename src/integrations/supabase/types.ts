@@ -2714,6 +2714,10 @@ export type Database = {
         Args: { p_clinic_id: string; p_delta: number }
         Returns: number
       }
+      admin_set_therapist_pin: {
+        Args: { p_pin: string; p_therapist_profile_id: string }
+        Returns: boolean
+      }
       complete_clinic_onboarding: {
         Args: {
           p_clinic_address?: string
@@ -2816,6 +2820,10 @@ export type Database = {
       validate_patient_form_token: {
         Args: { p_token: string }
         Returns: string
+      }
+      verify_therapist_pin: {
+        Args: { p_pin: string; p_therapist_profile_id: string }
+        Returns: boolean
       }
     }
     Enums: {
