@@ -801,3 +801,20 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
     );
   }
 }
+
+function TreatmentPlanButton({ patientId }: { patientId?: string }) {
+  const { enabled } = useTreatmentEnabled();
+  const navigate = useNavigate();
+  if (!enabled || !patientId) return null;
+  return (
+    <Button
+      variant="outline"
+      size="lg"
+      className="rounded-xl font-medium"
+      onClick={() => navigate(`/treatment/schedule?patient_id=${patientId}`)}
+    >
+      <HeartPulse className="mr-2 h-4 w-4" />
+      Start Treatment Plan
+    </Button>
+  );
+}
