@@ -2812,6 +2812,15 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      list_clinic_therapists: {
+        Args: { p_clinic_id: string }
+        Returns: {
+          full_name: string
+          id: string
+          room: string
+          therapist_color: string
+        }[]
+      }
       schedule_plan_sessions: {
         Args: { p_date: string; p_plan_id: string }
         Returns: number
