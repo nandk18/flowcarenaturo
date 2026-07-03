@@ -189,8 +189,20 @@ export default function TreatmentBoard() {
           <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : grouped.length === 0 ? (
           <Card className="shadow-card">
-            <CardContent className="py-16 text-center text-muted-foreground">
-              No therapy sessions scheduled for today.
+            <CardContent className="py-16 text-center text-muted-foreground space-y-3">
+              <div>No therapy sessions scheduled for today.</div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  const n = await backfillToday();
+                  await load();
+                  if (n > 0) toast.success(`Scheduled ${n} session(s) for today`);
+                  else toast.info("No active plans to schedule today");
+                }}
+              >
+                Schedule today's sessions
+              </Button>
             </CardContent>
           </Card>
         ) : (
