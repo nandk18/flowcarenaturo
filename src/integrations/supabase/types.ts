@@ -2812,6 +2812,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      schedule_plan_sessions: {
+        Args: { p_date: string; p_plan_id: string }
+        Returns: number
+      }
       seed_default_checklist_items: {
         Args: { p_clinic_id: string }
         Returns: undefined

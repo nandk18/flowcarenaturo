@@ -74,7 +74,32 @@ export default function TreatmentBoard() {
     setLoading(false);
   }, [clinicId, today]);
 
-  useEffect(() => { load(); }, [load]);
+  const backfillToday = useCallback(async () => {
+    if (!clinicId) return 0;
+    const { data: plans } = await supabase
+      .from("treatment_plans")
+      .select("id")
+      .eq("clinic_id", clinicId)
+      .eq("status", "active")
+      .lte("start_date", today);
+    if (!plans || plans.length === 0) return 0;
+    let total = 0;
+    for (const p of plans as any[]) {
+      const { data } = await (supabase as any).rpc("schedule_plan_sessions", {
+        p_plan_id: p.id,
+        p_date: today,
+      });
+      total += Number(data ?? 0);
+    }
+    return total;
+  }, [clinicId, today]);
+
+  useEffect(() => {
+    (async () => {
+      await backfillToday();
+      await load();
+    })();
+  }, [backfillToday, load]);
 
   useEffect(() => {
     if (!clinicId) return;
@@ -164,8 +189,20 @@ export default function TreatmentBoard() {
           <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : grouped.length === 0 ? (
           <Card className="shadow-card">
-            <CardContent className="py-16 text-center text-muted-foreground">
-              No therapy sessions scheduled for today.
+            <CardContent className="py-16 text-center text-muted-foreground space-y-3">
+              <div>No therapy sessions scheduled for today.</div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  const n = await backfillToday();
+                  await load();
+                  if (n > 0) toast.success(`Scheduled ${n} session(s) for today`);
+                  else toast.info("No active plans to schedule today");
+                }}
+              >
+                Schedule today's sessions
+              </Button>
             </CardContent>
           </Card>
         ) : (
