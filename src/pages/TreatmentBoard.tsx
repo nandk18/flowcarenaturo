@@ -207,6 +207,18 @@ export default function TreatmentBoard() {
   return (
     <DashboardLayout title="Treatment Board">
       <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+        {/* Action toolbar */}
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={autoAssign} disabled={assigning}>
+            {assigning ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <UserCheck className="mr-1 h-3 w-3" />}
+            Auto-assign
+          </Button>
+          <Button size="sm" variant="outline" onClick={openReminders}>
+            <Send className="mr-1 h-3 w-3" />
+            Tomorrow's reminders
+          </Button>
+        </div>
+
         {/* Idle banner */}
         {idle.length > 0 && (
           <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
