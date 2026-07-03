@@ -123,9 +123,15 @@ export default function TreatmentSchedule() {
       status: "active",
     }));
     const { error: itemsErr } = await supabase.from("treatment_plan_items").insert(rows);
+    if (itemsErr) { setSaving(false); return toast.error(itemsErr.message); }
+
+    const { data: created, error: schedErr } = await (supabase as any).rpc("schedule_plan_sessions", {
+      p_plan_id: plan.id,
+      p_date: startDate,
+    });
     setSaving(false);
-    if (itemsErr) return toast.error(itemsErr.message);
-    toast.success("Treatment plan created");
+    if (schedErr) return toast.error(`Plan saved but scheduling failed: ${schedErr.message}`);
+    toast.success(`Treatment plan created — ${created ?? 0} session(s) scheduled for ${startDate}`);
     setItems([]);
     setPlanName("");
   };
