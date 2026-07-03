@@ -49,14 +49,22 @@ type Idle = {
 
 export default function TreatmentBoard() {
   const { profile } = useAuth();
+  const { clinic } = useClinic();
   const clinicId = profile?.clinic_id;
   const { enabled, loading: flagLoading } = useTreatmentEnabled();
   const today = format(new Date(), "yyyy-MM-dd");
+  const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
   const [sessions, setSessions] = useState<Session[]>([]);
   const [capacities, setCapacities] = useState<Capacity[]>([]);
   const [idle, setIdle] = useState<Idle[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [assigning, setAssigning] = useState(false);
+  const [remindersOpen, setRemindersOpen] = useState(false);
+  const [reminderList, setReminderList] = useState<
+    Array<{ patient_id: string; patient_name: string; phone: string | null; services: string[] }>
+  >([]);
+  const [loadingReminders, setLoadingReminders] = useState(false);
 
   const load = useCallback(async () => {
     if (!clinicId) return;
