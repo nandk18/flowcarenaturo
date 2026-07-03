@@ -415,8 +415,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <AppRoutes />
-          <CookieConsent />
+          <TherapistAuthProvider>
+            <AppRoutes />
+            <CookieConsent />
+          </TherapistAuthProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
