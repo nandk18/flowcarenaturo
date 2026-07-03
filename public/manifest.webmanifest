@@ -1,0 +1,15 @@
+{
+  "name": "FlowCare Therapist",
+  "short_name": "Therapist",
+  "description": "Therapist session app for FlowCare",
+  "start_url": "/therapist-login",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f766e",
+  "icons": [
+    { "src": "/therapist-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/therapist-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

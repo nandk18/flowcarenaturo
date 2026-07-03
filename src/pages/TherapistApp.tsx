@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Play, CheckCircle2, LogOut, Camera, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ensureTherapistPushSubscription, removeTherapistPushSubscription } from "@/lib/therapistPush";
 
 type Session = {
   id: string;
@@ -53,6 +54,11 @@ export default function TherapistApp() {
   }, [clinicId, therapist, today]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!clinicId || !therapist?.id) return;
+    void ensureTherapistPushSubscription(therapist.id, clinicId);
+  }, [clinicId, therapist?.id]);
 
   useEffect(() => {
     if (!clinicId) return;
@@ -133,7 +139,7 @@ export default function TherapistApp() {
             <div className="text-[10px] text-muted-foreground">{therapist.room ?? "No room"} · {today}</div>
           </div>
         </div>
-        <Button size="sm" variant="ghost" onClick={() => { signOut(); navigate("/therapist-login", { replace: true }); }}>
+        <Button size="sm" variant="ghost" onClick={async () => { await removeTherapistPushSubscription(); signOut(); navigate("/therapist-login", { replace: true }); }}>
           <LogOut className="h-4 w-4" />
         </Button>
       </header>
