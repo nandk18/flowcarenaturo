@@ -148,8 +148,57 @@ export default function TreatmentBoard() {
     setBusyId(s.id);
     const { data, error } = await supabase.rpc("complete_therapy_session", { p_session_id: s.id, p_notes: null });
     setBusyId(null);
-    if (error) toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
+    const next = (data as any)?.next_scheduled ?? 0;
+    if (next > 0) toast.success(`Completed ${s.service_name} · next session scheduled`);
     else toast.success(`Completed ${s.service_name}`);
+  };
+
+  const autoAssign = async () => {
+    if (!clinicId) return;
+    setAssigning(true);
+    const { data, error } = await (supabase as any).rpc("auto_assign_sessions", {
+      p_clinic_id: clinicId,
+      p_date: today,
+    });
+    setAssigning(false);
+    if (error) { toast.error(error.message); return; }
+    const n = Number(data ?? 0);
+    if (n > 0) { toast.success(`Assigned ${n} session(s)`); await load(); }
+    else toast.info("Nothing to assign — everything already has a therapist");
+  };
+
+  const openReminders = async () => {
+    if (!clinicId) return;
+    setRemindersOpen(true);
+    setLoadingReminders(true);
+    const { data } = await supabase
+      .from("therapy_sessions")
+      .select("patient_id, service_name, patients(first_name, last_name, name, phone)")
+      .eq("clinic_id", clinicId)
+      .eq("session_date", tomorrow)
+      .neq("status", "cancelled");
+    const byPatient = new Map<string, { patient_id: string; patient_name: string; phone: string | null; services: string[] }>();
+    for (const row of (data ?? []) as any[]) {
+      const p = row.patients;
+      const name = p?.name || `${p?.first_name ?? ""} ${p?.last_name ?? ""}`.trim() || "Patient";
+      const entry = byPatient.get(row.patient_id) ?? { patient_id: row.patient_id, patient_name: name, phone: p?.phone ?? null, services: [] };
+      entry.services.push(row.service_name);
+      byPatient.set(row.patient_id, entry);
+    }
+    setReminderList(Array.from(byPatient.values()));
+    setLoadingReminders(false);
+  };
+
+  const sendReminder = async (r: { patient_id: string; patient_name: string; phone: string | null; services: string[] }) => {
+    if (!clinicId) return;
+    if (!r.phone) { toast.error("No phone on file"); return; }
+    const message = await buildMessage(clinicId, "therapy_session_reminder", {
+      patient_name: r.patient_name,
+      clinic_name: clinic?.name ?? "our clinic",
+      service_name: Array.from(new Set(r.services)).join(", "),
+    });
+    openWhatsApp(r.phone, message);
   };
 
   if (flagLoading) return <DashboardLayout title="Treatment Board"><div className="p-6"><Loader2 className="h-5 w-5 animate-spin" /></div></DashboardLayout>;
