@@ -10,6 +10,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
+import OAuthConsent from "./pages/OAuthConsent";
 import AcceptInvite from "./pages/AcceptInvite";
 import PrescriptionViewer from "./pages/PrescriptionViewer";
 import ForgotPassword from "./pages/ForgotPassword";
