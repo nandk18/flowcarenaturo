@@ -903,15 +903,20 @@ function StatBox({ label, value, valueClassName }: { label: string; value: strin
 
 function ClinicalNotesTab({
   patientName,
+  patientId,
+  treatmentEnabled,
   notes,
   editable = false,
   onReload,
 }: {
   patientName: string;
+  patientId?: string;
+  treatmentEnabled?: boolean;
   notes: VisitDetail[];
   editable?: boolean;
   onReload?: () => void;
 }) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const urlVisitId = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("visit") : null;
   const [selectedId, setSelectedId] = useState<string | null>(urlVisitId ?? notes[0]?.id ?? null);
