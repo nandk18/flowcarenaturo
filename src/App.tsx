@@ -189,6 +189,7 @@ function AppRoutes() {
     path === "/terms" ||
     path === "/dpa" ||
     path === "/security" ||
+    path === "/.lovable/oauth/consent" ||
     path.startsWith("/invoice/") ||
     path.startsWith("/s/") ||
     path.startsWith("/patient-form/")
@@ -202,6 +203,7 @@ function AppRoutes() {
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/dpa" element={<DataProcessingAgreement />} />
         <Route path="/security" element={<SecurityPage />} />
+        <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
         <Route path="/invoice/:invoiceId" element={<PublicInvoiceViewer />} />
         <Route path="/s/:code" element={<ShortLinkRedirect />} />
         <Route path="/patient-form/:token" element={<PatientFormPublic />} />
