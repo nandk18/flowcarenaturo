@@ -122,6 +122,14 @@ export default function TreatmentBoard() {
 
   const startSession = async (s: Session, therapistId: string | null) => {
     setBusyId(s.id);
+    const other = sessions.find(
+      (x) => x.patient_id === s.patient_id && x.id !== s.id && x.status === "in_progress",
+    );
+    if (other) {
+      setBusyId(null);
+      toast.error(`Patient already has an ongoing session (${other.service_name}). Complete it first.`);
+      return;
+    }
     const t = therapists.find((x) => x.id === therapistId);
     const { error } = await supabase
       .from("therapy_sessions")
