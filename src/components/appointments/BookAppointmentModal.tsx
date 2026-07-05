@@ -241,6 +241,34 @@ export default function BookAppointmentModal({
       toast.error("Patient, doctor, date and time are required");
       return;
     }
+    // Consultation slot conflict: only one consultation per doctor/date/time
+    if (bookingKind === "consultation") {
+      const normTime = time.length === 5 ? `${time}:00` : time;
+      const clash = dayAppts.find(
+        (a) => a.appointment_time?.startsWith(time) && apptKinds[a.id] !== "treatment" && a.status !== "cancelled",
+      );
+      if (clash) {
+        toast.error("Another consultation is already booked at this time. Multiple treatments are allowed, but only one consultation per slot.");
+        return;
+      }
+      // Re-check server-side to avoid race
+      const { data: existing } = await supabase
+        .from("appointments")
+        .select("id, appointment_services(invoice_services(service_type))")
+        .eq("doctor_id", doctorId)
+        .eq("appointment_date", date)
+        .eq("appointment_time", normTime)
+        .neq("status", "cancelled");
+      const serverClash = (existing ?? []).some((a: any) => {
+        const svcs = a.appointment_services ?? [];
+        if (svcs.length === 0) return true;
+        return svcs.some((r: any) => (r.invoice_services?.service_type ?? "consultation") !== "treatment");
+      });
+      if (serverClash) {
+        toast.error("Another consultation was just booked at this time. Pick a different slot.");
+        return;
+      }
+    }
     setBusy(true);
     try {
       const { data, error } = await supabase.from("appointments").insert({
@@ -264,19 +292,30 @@ export default function BookAppointmentModal({
             service_id: sid,
           })),
         );
+      }
 
-        // Override the auto-created invoice's line_items with ALL selected services
-        const chosen = services.filter((s) => selectedServiceIds.includes(s.id));
-        if (chosen.length > 0) {
-          // Wait briefly for trigger to create the invoice
-          await new Promise((r) => setTimeout(r, 150));
-          const { data: inv } = await supabase
-            .from("invoices")
-            .select("id, paid_amount")
-            .eq("appointment_id", data.id)
-            .maybeSingle();
-          if (inv?.id) {
-            const lineItems = chosen.map((s) => {
+      // Invoice handling: treatments are billed on completion, not booking.
+      // - Treatment-only booking: delete the auto-created invoice.
+      // - Mixed/consultation: override invoice line_items with only non-treatment services.
+      if (data?.id) {
+        await new Promise((r) => setTimeout(r, 150));
+        const { data: inv } = await supabase
+          .from("invoices")
+          .select("id, paid_amount")
+          .eq("appointment_id", data.id)
+          .maybeSingle();
+
+        if (inv?.id) {
+          const chosenAll = services.filter((s) => selectedServiceIds.includes(s.id));
+          const billable = chosenAll.filter((s) => (s.service_type ?? "consultation") !== "treatment");
+
+          if (bookingKind === "treatment" || (chosenAll.length > 0 && billable.length === 0)) {
+            // All-treatment: remove auto invoice entirely
+            if (Number(inv.paid_amount ?? 0) === 0) {
+              await supabase.from("invoices").delete().eq("id", inv.id);
+            }
+          } else if (billable.length > 0) {
+            const lineItems = billable.map((s) => {
               const gstPct = s.gst_percentage ?? 0;
               const lineTotal = s.amount + (s.amount * gstPct) / 100;
               return {
@@ -290,8 +329,8 @@ export default function BookAppointmentModal({
                 appointment_id: data.id,
               };
             });
-            const subtotal = chosen.reduce((sum, s) => sum + s.amount, 0);
-            const gstAmount = chosen.reduce(
+            const subtotal = billable.reduce((sum, s) => sum + s.amount, 0);
+            const gstAmount = billable.reduce(
               (sum, s) => sum + (s.amount * (s.gst_percentage ?? 0)) / 100, 0,
             );
             const total = subtotal + gstAmount;
@@ -307,6 +346,7 @@ export default function BookAppointmentModal({
               updated_at: new Date().toISOString(),
             } as any).eq("id", inv.id);
           }
+          // else: no services selected → keep the default consultation invoice as-is
         }
       }
       await supabase.from("patients").update({ lead_status: "current" }).eq("id", patientId);
