@@ -984,9 +984,21 @@ function ClinicalNotesTab({
   return (
     <div className="grid gap-4 lg:grid-cols-10">
       <aside className="lg:col-span-3 rounded-2xl border bg-card p-4 shadow-card">
-        <div className="flex items-center gap-2 mb-3">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <h3 className="font-display text-sm font-semibold">Visits</h3>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <h3 className="font-display text-sm font-semibold">Visits</h3>
+          </div>
+          {treatmentEnabled && patientId && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 px-2 text-xs"
+              onClick={() => navigate(`/treatment/schedule?patient_id=${patientId}`)}
+            >
+              <Plus className="mr-1 h-3 w-3" /> New Plan
+            </Button>
+          )}
         </div>
         <Input
           value={search}
