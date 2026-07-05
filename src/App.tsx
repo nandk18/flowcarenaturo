@@ -157,6 +157,12 @@ function AppRoutes() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, authSession) => {
       if (event === "SIGNED_IN" && authSession?.user) {
         if (path === "/reset-password" || path === "/accept-invite") return;
+        // Honor a same-origin `?next=` redirect (e.g. from OAuth consent)
+        const nextParam = new URLSearchParams(window.location.search).get("next");
+        if (nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")) {
+          navigate(nextParam, { replace: true });
+          return;
+        }
         setTimeout(() => {
           redirectForSession(authSession.user.id).catch(() => navigate("/login?error=auth_failed", { replace: true }));
         }, 0);
