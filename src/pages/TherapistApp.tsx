@@ -95,6 +95,14 @@ export default function TherapistApp() {
 
   const doStart = async (s: Session) => {
     if (!therapist) return;
+    // Guard: block starting a second concurrent session for the same patient
+    const other = sessions.find(
+      (x) => x.patient_id === s.patient_id && x.id !== s.id && x.status === "in_progress",
+    );
+    if (other) {
+      toast.error(`Patient already has an ongoing session (${other.service_name}). Complete it first.`);
+      return;
+    }
     setBusyId(s.id);
     const { error } = await supabase
       .from("therapy_sessions")
