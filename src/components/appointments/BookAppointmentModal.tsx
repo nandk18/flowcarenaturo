@@ -67,6 +67,8 @@ export default function BookAppointmentModal({
   const [schedules, setSchedules] = useState<DoctorSchedule[]>([]);
   const [exceptions, setExceptions] = useState<DoctorException[]>([]);
   const [dayAppts, setDayAppts] = useState<ExistingAppointment[]>([]);
+  // Map of appointment_id -> kind ('consultation' | 'treatment'). Default (no linked services) => 'consultation'.
+  const [apptKinds, setApptKinds] = useState<Record<string, "consultation" | "treatment">>({});
 
   const [bookedAppt, setBookedAppt] = useState<{ id: string; patientName: string; time: string; patientId: string; doctorId: string } | null>(null);
 
