@@ -29,6 +29,11 @@ export default function AuthCallback() {
         }
 
         setMessage("Signed in! Redirecting...");
+        const nextParam = new URLSearchParams(window.location.search).get("next");
+        if (nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")) {
+          if (!cancelled) navigate(nextParam, { replace: true });
+          return;
+        }
         const nextRoute = await ensureProfileAndGetPostAuthRoute(session.user.id);
         if (!cancelled) navigate(nextRoute, { replace: true });
       } catch (err: any) {
