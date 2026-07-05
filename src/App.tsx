@@ -10,6 +10,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
+import OAuthConsent from "./pages/OAuthConsent";
 import AcceptInvite from "./pages/AcceptInvite";
 import PrescriptionViewer from "./pages/PrescriptionViewer";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -95,6 +96,7 @@ const isPublicRoute = (path: string) =>
   path === "/terms" ||
   path === "/dpa" ||
   path === "/security" ||
+  path === "/.lovable/oauth/consent" ||
   path.startsWith("/invoice/") ||
   path.startsWith("/rx/") ||
   path.startsWith("/s/") ||
@@ -155,6 +157,12 @@ function AppRoutes() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, authSession) => {
       if (event === "SIGNED_IN" && authSession?.user) {
         if (path === "/reset-password" || path === "/accept-invite") return;
+        // Honor a same-origin `?next=` redirect (e.g. from OAuth consent)
+        const nextParam = new URLSearchParams(window.location.search).get("next");
+        if (nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")) {
+          navigate(nextParam, { replace: true });
+          return;
+        }
         setTimeout(() => {
           redirectForSession(authSession.user.id).catch(() => navigate("/login?error=auth_failed", { replace: true }));
         }, 0);
@@ -188,6 +196,7 @@ function AppRoutes() {
     path === "/terms" ||
     path === "/dpa" ||
     path === "/security" ||
+    path === "/.lovable/oauth/consent" ||
     path.startsWith("/invoice/") ||
     path.startsWith("/s/") ||
     path.startsWith("/patient-form/")
@@ -201,6 +210,7 @@ function AppRoutes() {
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/dpa" element={<DataProcessingAgreement />} />
         <Route path="/security" element={<SecurityPage />} />
+        <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
         <Route path="/invoice/:invoiceId" element={<PublicInvoiceViewer />} />
         <Route path="/s/:code" element={<ShortLinkRedirect />} />
         <Route path="/patient-form/:token" element={<PatientFormPublic />} />

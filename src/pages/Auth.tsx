@@ -87,12 +87,17 @@ export default function Auth() {
       return;
     }
     setLoading(true);
+    const nextParam = searchParams.get("next");
+    const cbUrl = new URL(`${window.location.origin}/auth/callback`);
+    if (nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")) {
+      cbUrl.searchParams.set("next", nextParam);
+    }
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: cbUrl.toString(),
       },
     });
     if (error) toast.error(error.message);
