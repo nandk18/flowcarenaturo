@@ -825,6 +825,8 @@ export default function SalesPatientDetail() {
           <TabsContent value="clinical" className="mt-6">
             <ClinicalNotesTab
               patientName={patient.name}
+              patientId={patient.id}
+              treatmentEnabled={treatmentEnabled}
               notes={clinicalNotes}
               editable={fromConsult}
               onReload={loadClinicalNotes}
