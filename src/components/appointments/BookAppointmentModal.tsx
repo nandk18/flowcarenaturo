@@ -199,26 +199,39 @@ export default function BookAppointmentModal({
     })();
   }, [open, doctorId, date]);
 
+  // Kind of the booking currently being made
+  const bookingKind: "consultation" | "treatment" = useMemo(() => {
+    if (selectedServiceIds.length === 0) return "consultation";
+    const chosen = services.filter((s) => selectedServiceIds.includes(s.id));
+    const anyConsult = chosen.some((s) => (s.service_type ?? "consultation") !== "treatment");
+    return anyConsult ? "consultation" : "treatment";
+  }, [selectedServiceIds, services]);
+
+  // Appointments that block a slot: only consultations block. Treatments never block.
+  const blockingAppts = useMemo(() => {
+    if (bookingKind === "treatment") return [] as ExistingAppointment[];
+    return dayAppts.filter((a) => apptKinds[a.id] !== "treatment");
+  }, [dayAppts, apptKinds, bookingKind]);
+
   const slots = useMemo(() => {
     if (!doctorId || !date) return [];
     const dow = new Date(date + "T00:00:00").getDay();
     const schedule = schedules.find((s) => s.day_of_week === dow) ?? null;
     const exception = exceptions[0] ?? null;
     if (!schedule) {
-      // Fallback: every 30 min 9-18
       const out: { time: string; available: boolean }[] = [];
       for (let h = 9; h < 18; h++) {
         for (const m of [0, 30]) {
           const t = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-          const taken = dayAppts.some((a) => a.appointment_time?.startsWith(t));
+          const taken = blockingAppts.some((a) => a.appointment_time?.startsWith(t));
           out.push({ time: t, available: !taken });
         }
       }
       return out;
     }
-    return generateSlots({ schedule, exception, appointments: dayAppts, date })
+    return generateSlots({ schedule, exception, appointments: blockingAppts, date })
       .slots.map((s) => ({ time: s.time, available: s.available }));
-  }, [doctorId, date, schedules, exceptions, dayAppts]);
+  }, [doctorId, date, schedules, exceptions, blockingAppts]);
 
   const selectedPatient = patients.find((p) => p.id === patientId);
 
