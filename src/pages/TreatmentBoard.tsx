@@ -122,6 +122,14 @@ export default function TreatmentBoard() {
 
   const startSession = async (s: Session, therapistId: string | null) => {
     setBusyId(s.id);
+    const other = sessions.find(
+      (x) => x.patient_id === s.patient_id && x.id !== s.id && x.status === "in_progress",
+    );
+    if (other) {
+      setBusyId(null);
+      toast.error(`Patient already has an ongoing session (${other.service_name}). Complete it first.`);
+      return;
+    }
     const t = therapists.find((x) => x.id === therapistId);
     const { error } = await supabase
       .from("therapy_sessions")
@@ -368,29 +376,32 @@ function SessionRow({
               {sessLabel && `${sessLabel} · `}{s.profiles?.full_name ?? "Unassigned"}{s.room ? ` · ${s.room}` : ""}
             </div>
           </div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button size="sm" disabled={busy}><Play className="h-3 w-3 mr-1" />Start</Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-56 p-2">
-              <div className="text-xs text-muted-foreground mb-1 px-2">Assign to:</div>
-              <div className="grid gap-1">
-                {therapists.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => onStart(t.id)}
-                    className="flex items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
-                  >
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: t.therapist_color ?? "hsl(var(--primary))" }} />
-                    {t.full_name}
+          <div className="flex flex-col gap-1">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="sm" disabled={busy}><Play className="h-3 w-3 mr-1" />Start</Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2">
+                <div className="text-xs text-muted-foreground mb-1 px-2">Assign to:</div>
+                <div className="grid gap-1">
+                  {therapists.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => onStart(t.id)}
+                      className="flex items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
+                    >
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: t.therapist_color ?? "hsl(var(--primary))" }} />
+                      {t.full_name}
+                    </button>
+                  ))}
+                  <button onClick={() => onStart(null)} className="mt-1 rounded px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-muted">
+                    Start unassigned
                   </button>
-                ))}
-                <button onClick={() => onStart(null)} className="mt-1 rounded px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-muted">
-                  Start unassigned
-                </button>
-              </div>
-            </PopoverContent>
-          </Popover>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Button size="sm" variant="ghost" disabled={busy} onClick={onCancel} title="Cancel"><X className="h-3 w-3" /></Button>
+          </div>
         </div>
       </li>
     );

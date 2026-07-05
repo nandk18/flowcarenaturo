@@ -67,10 +67,12 @@ export default function BookAppointmentModal({
   const [schedules, setSchedules] = useState<DoctorSchedule[]>([]);
   const [exceptions, setExceptions] = useState<DoctorException[]>([]);
   const [dayAppts, setDayAppts] = useState<ExistingAppointment[]>([]);
+  // Map of appointment_id -> kind ('consultation' | 'treatment'). Default (no linked services) => 'consultation'.
+  const [apptKinds, setApptKinds] = useState<Record<string, "consultation" | "treatment">>({});
 
   const [bookedAppt, setBookedAppt] = useState<{ id: string; patientName: string; time: string; patientId: string; doctorId: string } | null>(null);
 
-  type ServiceOption = { id: string; name: string; description?: string | null; amount: number; gst_percentage?: number };
+  type ServiceOption = { id: string; name: string; description?: string | null; amount: number; gst_percentage?: number; service_type?: string | null };
   const [services, setServices] = useState<ServiceOption[]>([]);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
 
@@ -125,7 +127,7 @@ export default function BookAppointmentModal({
     if (!open || !profile?.clinic_id) return;
     supabase
       .from("invoice_services")
-      .select("id, name, description, amount, gst_percentage, is_default")
+      .select("id, name, description, amount, gst_percentage, is_default, service_type")
       .eq("clinic_id", profile.clinic_id)
       .eq("is_active", true)
       .order("is_default", { ascending: false })
@@ -135,6 +137,7 @@ export default function BookAppointmentModal({
         setServices(list.map((s) => ({
           id: s.id, name: s.name, description: s.description,
           amount: Number(s.amount), gst_percentage: Number(s.gst_percentage ?? 0),
+          service_type: s.service_type ?? null,
         })));
         setSelectedServiceIds((prev) => {
           if (prev.length) return prev;
@@ -169,23 +172,46 @@ export default function BookAppointmentModal({
 
   // Load schedule + appts for picked doctor + date
   useEffect(() => {
-    if (!open || !doctorId || !date) { setSchedules([]); setExceptions([]); setDayAppts([]); return; }
+    if (!open || !doctorId || !date) { setSchedules([]); setExceptions([]); setDayAppts([]); setApptKinds({}); return; }
     (async () => {
       const [sched, exc, ap] = await Promise.all([
         (supabase as any).from("doctor_schedules").select("*").eq("doctor_id", doctorId),
         (supabase as any).from("doctor_exceptions").select("*").eq("doctor_id", doctorId).eq("exception_date", date),
         supabase.from("appointments")
-          .select("id, appointment_time, status, patients(id, name)")
+          .select("id, appointment_time, status, patients(id, name), appointment_services(service_id, invoice_services(service_type))")
           .eq("doctor_id", doctorId).eq("appointment_date", date),
       ]);
       setSchedules(sched.data ?? []);
       setExceptions(exc.data ?? []);
-      setDayAppts((ap.data ?? []).map((a: any) => ({
+      const rows = (ap.data ?? []) as any[];
+      setDayAppts(rows.map((a: any) => ({
         id: a.id, appointment_time: a.appointment_time, status: a.status,
         patient: Array.isArray(a.patients) ? a.patients[0] : a.patients,
       })));
+      const kinds: Record<string, "consultation" | "treatment"> = {};
+      for (const a of rows) {
+        const svcs = (a.appointment_services ?? []) as any[];
+        if (svcs.length === 0) { kinds[a.id] = "consultation"; continue; }
+        const anyConsult = svcs.some((r) => (r.invoice_services?.service_type ?? "consultation") !== "treatment");
+        kinds[a.id] = anyConsult ? "consultation" : "treatment";
+      }
+      setApptKinds(kinds);
     })();
   }, [open, doctorId, date]);
+
+  // Kind of the booking currently being made
+  const bookingKind: "consultation" | "treatment" = useMemo(() => {
+    if (selectedServiceIds.length === 0) return "consultation";
+    const chosen = services.filter((s) => selectedServiceIds.includes(s.id));
+    const anyConsult = chosen.some((s) => (s.service_type ?? "consultation") !== "treatment");
+    return anyConsult ? "consultation" : "treatment";
+  }, [selectedServiceIds, services]);
+
+  // Appointments that block a slot: only consultations block. Treatments never block.
+  const blockingAppts = useMemo(() => {
+    if (bookingKind === "treatment") return [] as ExistingAppointment[];
+    return dayAppts.filter((a) => apptKinds[a.id] !== "treatment");
+  }, [dayAppts, apptKinds, bookingKind]);
 
   const slots = useMemo(() => {
     if (!doctorId || !date) return [];
@@ -193,20 +219,19 @@ export default function BookAppointmentModal({
     const schedule = schedules.find((s) => s.day_of_week === dow) ?? null;
     const exception = exceptions[0] ?? null;
     if (!schedule) {
-      // Fallback: every 30 min 9-18
       const out: { time: string; available: boolean }[] = [];
       for (let h = 9; h < 18; h++) {
         for (const m of [0, 30]) {
           const t = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-          const taken = dayAppts.some((a) => a.appointment_time?.startsWith(t));
+          const taken = blockingAppts.some((a) => a.appointment_time?.startsWith(t));
           out.push({ time: t, available: !taken });
         }
       }
       return out;
     }
-    return generateSlots({ schedule, exception, appointments: dayAppts, date })
+    return generateSlots({ schedule, exception, appointments: blockingAppts, date })
       .slots.map((s) => ({ time: s.time, available: s.available }));
-  }, [doctorId, date, schedules, exceptions, dayAppts]);
+  }, [doctorId, date, schedules, exceptions, blockingAppts]);
 
   const selectedPatient = patients.find((p) => p.id === patientId);
 
@@ -215,6 +240,34 @@ export default function BookAppointmentModal({
     if (!patientId || !doctorId || !date || !time) {
       toast.error("Patient, doctor, date and time are required");
       return;
+    }
+    // Consultation slot conflict: only one consultation per doctor/date/time
+    if (bookingKind === "consultation") {
+      const normTime = time.length === 5 ? `${time}:00` : time;
+      const clash = dayAppts.find(
+        (a) => a.appointment_time?.startsWith(time) && apptKinds[a.id] !== "treatment" && a.status !== "cancelled",
+      );
+      if (clash) {
+        toast.error("Another consultation is already booked at this time. Multiple treatments are allowed, but only one consultation per slot.");
+        return;
+      }
+      // Re-check server-side to avoid race
+      const { data: existing } = await supabase
+        .from("appointments")
+        .select("id, appointment_services(invoice_services(service_type))")
+        .eq("doctor_id", doctorId)
+        .eq("appointment_date", date)
+        .eq("appointment_time", normTime)
+        .neq("status", "cancelled");
+      const serverClash = (existing ?? []).some((a: any) => {
+        const svcs = a.appointment_services ?? [];
+        if (svcs.length === 0) return true;
+        return svcs.some((r: any) => (r.invoice_services?.service_type ?? "consultation") !== "treatment");
+      });
+      if (serverClash) {
+        toast.error("Another consultation was just booked at this time. Pick a different slot.");
+        return;
+      }
     }
     setBusy(true);
     try {
@@ -239,19 +292,30 @@ export default function BookAppointmentModal({
             service_id: sid,
           })),
         );
+      }
 
-        // Override the auto-created invoice's line_items with ALL selected services
-        const chosen = services.filter((s) => selectedServiceIds.includes(s.id));
-        if (chosen.length > 0) {
-          // Wait briefly for trigger to create the invoice
-          await new Promise((r) => setTimeout(r, 150));
-          const { data: inv } = await supabase
-            .from("invoices")
-            .select("id, paid_amount")
-            .eq("appointment_id", data.id)
-            .maybeSingle();
-          if (inv?.id) {
-            const lineItems = chosen.map((s) => {
+      // Invoice handling: treatments are billed on completion, not booking.
+      // - Treatment-only booking: delete the auto-created invoice.
+      // - Mixed/consultation: override invoice line_items with only non-treatment services.
+      if (data?.id) {
+        await new Promise((r) => setTimeout(r, 150));
+        const { data: inv } = await supabase
+          .from("invoices")
+          .select("id, paid_amount")
+          .eq("appointment_id", data.id)
+          .maybeSingle();
+
+        if (inv?.id) {
+          const chosenAll = services.filter((s) => selectedServiceIds.includes(s.id));
+          const billable = chosenAll.filter((s) => (s.service_type ?? "consultation") !== "treatment");
+
+          if (bookingKind === "treatment" || (chosenAll.length > 0 && billable.length === 0)) {
+            // All-treatment: remove auto invoice entirely
+            if (Number(inv.paid_amount ?? 0) === 0) {
+              await supabase.from("invoices").delete().eq("id", inv.id);
+            }
+          } else if (billable.length > 0) {
+            const lineItems = billable.map((s) => {
               const gstPct = s.gst_percentage ?? 0;
               const lineTotal = s.amount + (s.amount * gstPct) / 100;
               return {
@@ -265,8 +329,8 @@ export default function BookAppointmentModal({
                 appointment_id: data.id,
               };
             });
-            const subtotal = chosen.reduce((sum, s) => sum + s.amount, 0);
-            const gstAmount = chosen.reduce(
+            const subtotal = billable.reduce((sum, s) => sum + s.amount, 0);
+            const gstAmount = billable.reduce(
               (sum, s) => sum + (s.amount * (s.gst_percentage ?? 0)) / 100, 0,
             );
             const total = subtotal + gstAmount;
@@ -282,6 +346,7 @@ export default function BookAppointmentModal({
               updated_at: new Date().toISOString(),
             } as any).eq("id", inv.id);
           }
+          // else: no services selected → keep the default consultation invoice as-is
         }
       }
       await supabase.from("patients").update({ lead_status: "current" }).eq("id", patientId);
