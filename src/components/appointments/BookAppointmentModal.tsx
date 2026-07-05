@@ -172,21 +172,30 @@ export default function BookAppointmentModal({
 
   // Load schedule + appts for picked doctor + date
   useEffect(() => {
-    if (!open || !doctorId || !date) { setSchedules([]); setExceptions([]); setDayAppts([]); return; }
+    if (!open || !doctorId || !date) { setSchedules([]); setExceptions([]); setDayAppts([]); setApptKinds({}); return; }
     (async () => {
       const [sched, exc, ap] = await Promise.all([
         (supabase as any).from("doctor_schedules").select("*").eq("doctor_id", doctorId),
         (supabase as any).from("doctor_exceptions").select("*").eq("doctor_id", doctorId).eq("exception_date", date),
         supabase.from("appointments")
-          .select("id, appointment_time, status, patients(id, name)")
+          .select("id, appointment_time, status, patients(id, name), appointment_services(service_id, invoice_services(service_type))")
           .eq("doctor_id", doctorId).eq("appointment_date", date),
       ]);
       setSchedules(sched.data ?? []);
       setExceptions(exc.data ?? []);
-      setDayAppts((ap.data ?? []).map((a: any) => ({
+      const rows = (ap.data ?? []) as any[];
+      setDayAppts(rows.map((a: any) => ({
         id: a.id, appointment_time: a.appointment_time, status: a.status,
         patient: Array.isArray(a.patients) ? a.patients[0] : a.patients,
       })));
+      const kinds: Record<string, "consultation" | "treatment"> = {};
+      for (const a of rows) {
+        const svcs = (a.appointment_services ?? []) as any[];
+        if (svcs.length === 0) { kinds[a.id] = "consultation"; continue; }
+        const anyConsult = svcs.some((r) => (r.invoice_services?.service_type ?? "consultation") !== "treatment");
+        kinds[a.id] = anyConsult ? "consultation" : "treatment";
+      }
+      setApptKinds(kinds);
     })();
   }, [open, doctorId, date]);
 
