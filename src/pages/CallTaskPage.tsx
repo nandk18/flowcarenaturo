@@ -83,6 +83,7 @@ export default function CallTaskPage() {
     (v: "overdue" | "due" | "done") => void,
   ];
   const [leadCounts, setLeadCounts] = useState<{ overdue: number; due: number }>({ overdue: 0, due: 0 });
+  const [leadTotal, setLeadTotal] = useState(0);
 
   const sendApptReminder = async (a: TomorrowAppt) => {
     if (!clinicId || !a.patient?.phone) return;
