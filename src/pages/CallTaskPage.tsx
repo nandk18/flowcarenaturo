@@ -110,7 +110,7 @@ export default function CallTaskPage() {
 
   const loadAll = useCallback(async () => {
     if (!clinicId) return;
-    const [apptsRes, callsRes, careRes, cancelRes] = await Promise.all([
+    const [apptsRes, callsRes, careRes, cancelRes, leadRes] = await Promise.all([
       supabase
         .from("appointments")
         .select("id, appointment_time, patient_id, patients(id, name, phone), doctors(name)")
@@ -139,7 +139,14 @@ export default function CallTaskPage() {
         .eq("source", "appointment_cancelled")
         .gte("called_at", sevenAgoIso)
         .order("called_at", { ascending: false }),
+      supabase
+        .from("patients")
+        .select("id, call_due_date", { count: "exact", head: true })
+        .eq("clinic_id", clinicId)
+        .in("lead_status", ["attempt1", "attempt2", "attempt3"])
+        .lte("call_due_date", today),
     ]);
+    setLeadTotal(leadRes.count ?? 0);
 
     const appts = (apptsRes.data ?? []).map((x: any) => ({
       ...x,
