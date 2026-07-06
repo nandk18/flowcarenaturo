@@ -653,6 +653,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
 
   function renderSoap() {
     const isFreeform = isFreeformTemplate(selectedTemplate);
+    const templateLoaded = !!selectedTemplate;
     return (
       <Card className="rounded-2xl border-0 shadow-sm">
         <CardContent className="space-y-4 p-6">
@@ -669,6 +670,11 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
             <div className="flex items-center justify-center gap-2 py-8 text-primary">
               <Loader2 className="w-5 h-5 animate-spin" />
               <span className="text-sm font-medium">Reformatting notes to {selectedTemplate?.name || "new template"}...</span>
+            </div>
+          ) : !templateLoaded ? (
+            <div className="space-y-3 py-4">
+              <div className="h-4 w-32 rounded bg-muted animate-pulse" />
+              <div className="h-[300px] rounded-lg bg-muted/50 animate-pulse" />
             </div>
           ) : isFreeform ? (
             <div className="space-y-2">
