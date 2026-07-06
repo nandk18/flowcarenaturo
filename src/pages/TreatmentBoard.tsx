@@ -165,7 +165,11 @@ export default function TreatmentBoard() {
       .eq("id", s.id);
     setBusyId(null);
     if (error) toast.error(error.message);
-    else toast.success(`Started ${s.service_name}`);
+    else {
+      // Optimistically remove patient from idle alert
+      setIdle((prev) => prev.filter((p) => p.patient_id !== s.patient_id));
+      toast.success(`Started ${s.service_name}`);
+    }
   };
 
   const completeSession = async (s: Session) => {
