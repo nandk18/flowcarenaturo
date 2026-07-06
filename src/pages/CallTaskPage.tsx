@@ -403,6 +403,7 @@ export default function CallTaskPage() {
               <TabsTrigger value="lead">
                 <Phone className="mr-1 h-3.5 w-3.5" />
                 Lead Call
+                {leadTotal > 0 && <span className="ml-1 rounded-full bg-purple-600 px-1.5 text-[10px] text-white">{leadTotal}</span>}
               </TabsTrigger>
             </TabsList>
           </Tabs>
