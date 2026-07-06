@@ -83,6 +83,7 @@ export default function CallTaskPage() {
     (v: "overdue" | "due" | "done") => void,
   ];
   const [leadCounts, setLeadCounts] = useState<{ overdue: number; due: number }>({ overdue: 0, due: 0 });
+  const [leadTotal, setLeadTotal] = useState(0);
 
   const sendApptReminder = async (a: TomorrowAppt) => {
     if (!clinicId || !a.patient?.phone) return;
@@ -110,7 +111,7 @@ export default function CallTaskPage() {
 
   const loadAll = useCallback(async () => {
     if (!clinicId) return;
-    const [apptsRes, callsRes, careRes, cancelRes] = await Promise.all([
+    const [apptsRes, callsRes, careRes, cancelRes, leadRes] = await Promise.all([
       supabase
         .from("appointments")
         .select("id, appointment_time, patient_id, patients(id, name, phone), doctors(name)")
@@ -139,7 +140,14 @@ export default function CallTaskPage() {
         .eq("source", "appointment_cancelled")
         .gte("called_at", sevenAgoIso)
         .order("called_at", { ascending: false }),
+      supabase
+        .from("patients")
+        .select("id, call_due_date", { count: "exact", head: true })
+        .eq("clinic_id", clinicId)
+        .in("lead_status", ["attempt1", "attempt2", "attempt3"])
+        .lte("call_due_date", today),
     ]);
+    setLeadTotal(leadRes.count ?? 0);
 
     const appts = (apptsRes.data ?? []).map((x: any) => ({
       ...x,
@@ -395,6 +403,7 @@ export default function CallTaskPage() {
               <TabsTrigger value="lead">
                 <Phone className="mr-1 h-3.5 w-3.5" />
                 Lead Call
+                {leadTotal > 0 && <span className="ml-1 rounded-full bg-purple-600 px-1.5 text-[10px] text-white">{leadTotal}</span>}
               </TabsTrigger>
             </TabsList>
           </Tabs>

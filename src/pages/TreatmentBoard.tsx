@@ -73,9 +73,18 @@ export default function TreatmentBoard() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [capOpen, setCapOpen] = useState(true);
 
+  const [futureSessions, setFutureSessions] = useState<{ id: string; session_date: string; service_name: string; patient_id: string }[]>([]);
+  const [showFuture, setShowFuture] = useState(false);
+
+  const refreshIdle = useCallback(async () => {
+    if (!clinicId) return;
+    const { data } = await supabase.rpc("get_idle_patients", { p_clinic_id: clinicId });
+    setIdle((data as any) ?? []);
+  }, [clinicId]);
+
   const load = useCallback(async () => {
     if (!clinicId) return;
-    const [s, c, i] = await Promise.all([
+    const [s, c, i, f] = await Promise.all([
       supabase
         .from("therapy_sessions")
         .select(
@@ -87,14 +96,28 @@ export default function TreatmentBoard() {
         .order("service_name"),
       supabase.rpc("get_all_capacities", { p_clinic_id: clinicId, p_date: today }),
       supabase.rpc("get_idle_patients", { p_clinic_id: clinicId }),
+      supabase
+        .from("therapy_sessions")
+        .select("id, session_date, service_name, patient_id")
+        .eq("clinic_id", clinicId)
+        .gt("session_date", today)
+        .eq("status", "not_started"),
     ]);
     setSessions((s.data as any) ?? []);
     setCapacities((c.data as any) ?? []);
     setIdle((i.data as any) ?? []);
+    setFutureSessions((f.data as any) ?? []);
     setLoading(false);
   }, [clinicId, today]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Refresh idle every 60s
+  useEffect(() => {
+    if (!clinicId) return;
+    const t = setInterval(() => { refreshIdle(); }, 60_000);
+    return () => clearInterval(t);
+  }, [clinicId, refreshIdle]);
 
   useEffect(() => {
     if (!clinicId) return;
@@ -142,7 +165,11 @@ export default function TreatmentBoard() {
       .eq("id", s.id);
     setBusyId(null);
     if (error) toast.error(error.message);
-    else toast.success(`Started ${s.service_name}`);
+    else {
+      // Optimistically remove patient from idle alert
+      setIdle((prev) => prev.filter((p) => p.patient_id !== s.patient_id));
+      toast.success(`Started ${s.service_name}`);
+    }
   };
 
   const completeSession = async (s: Session) => {
@@ -244,6 +271,57 @@ export default function TreatmentBoard() {
             <ul className="mt-2 space-y-1 text-xs text-amber-800">
               {idle.map((i) => <li key={i.patient_id}>• {i.patient_name} — idle {i.idle_minutes} min</li>)}
             </ul>
+          </div>
+        )}
+
+        {/* Future sessions cleanup banner */}
+        {futureSessions.length > 0 && (
+          <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-yellow-800">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="font-medium text-sm">
+                  ⚠️ {futureSessions.length} session{futureSessions.length > 1 ? "s" : ""} scheduled for future dates. These were created in error.
+                </span>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => setShowFuture((v) => !v)}>
+                {showFuture ? "Hide" : "Review & Clean Up"}
+              </Button>
+            </div>
+            {showFuture && (
+              <div className="rounded-lg border bg-background p-2 space-y-2">
+                <ul className="max-h-48 overflow-y-auto text-xs divide-y">
+                  {futureSessions.map((f) => (
+                    <li key={f.id} className="py-1 flex justify-between gap-2">
+                      <span className="truncate">{f.service_name}</span>
+                      <span className="text-muted-foreground font-mono">{f.session_date}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={async () => {
+                    if (!clinicId) return;
+                    if (!confirm(`Delete ${futureSessions.length} future session(s)?`)) return;
+                    const { error } = await supabase
+                      .from("therapy_sessions")
+                      .delete()
+                      .eq("clinic_id", clinicId)
+                      .gt("session_date", today)
+                      .eq("status", "not_started");
+                    if (error) toast.error(error.message);
+                    else {
+                      toast.success("Future sessions removed");
+                      setShowFuture(false);
+                      load();
+                    }
+                  }}
+                >
+                  Delete All Future Sessions
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
