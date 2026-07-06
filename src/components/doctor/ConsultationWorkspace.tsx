@@ -200,8 +200,12 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
     t?.template_type === "freeform" || (typeof t?.name === "string" && t.name.toLowerCase().includes("free"));
 
   const handleTemplateChange = async (template: any) => {
+    // No-op if the same template is re-selected (prevents remount side-effects
+    // like re-merging freeform content and re-adding label prefixes on tab switches).
+    if (template?.id && template.id === selectedTemplate?.id) {
+      return;
+    }
     const previousValues = { ...noteFields };
-    const hasContent = Object.values(previousValues).some(v => v && v.trim().length > 0);
     const isFreeform = isFreeformTemplate(template);
     const newSections: string[] = isFreeform
       ? ["formatted"]
@@ -209,19 +213,31 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
           ? template.sections
           : DEFAULT_SECTIONS);
 
+    // Only consider SOAP-style previous values for merging (skip the freeform
+    // "formatted" bucket so we never prepend "Clinical Notes:" onto already-freeform text).
+    const soapPrev = Object.fromEntries(
+      Object.entries(previousValues).filter(([k]) => k !== "formatted")
+    );
+    const hasSoapContent = Object.values(soapPrev).some(v => v && v.trim().length > 0);
+
     setSelectedTemplate(template);
     setActiveSections(newSections);
 
-    if (!hasContent) {
-      const newFields: Record<string, string> = {};
-      newSections.forEach(s => { newFields[s] = ""; });
-      setNoteFields(newFields);
+    if (!hasSoapContent) {
+      if (isFreeform) {
+        // Preserve existing freeform text as-is (no prefix ever added).
+        setNoteFields({ formatted: previousValues.formatted || "" });
+      } else {
+        const newFields: Record<string, string> = {};
+        newSections.forEach(s => { newFields[s] = ""; });
+        setNoteFields(newFields);
+      }
       return;
     }
 
-    // For freeform, just merge existing content into one block
+    // For freeform, merge existing SOAP content into one block
     if (isFreeform) {
-      const merged = Object.entries(previousValues)
+      const merged = Object.entries(soapPrev)
         .filter(([_, v]) => v && v.trim())
         .map(([k, v]) => {
           const meta = SECTION_LABELS[k];
@@ -229,7 +245,8 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
           return `${label}:\n${v}`;
         })
         .join("\n\n");
-      setNoteFields({ formatted: merged });
+      const combined = [previousValues.formatted?.trim(), merged].filter(Boolean).join("\n\n");
+      setNoteFields({ formatted: combined });
       return;
     }
 
