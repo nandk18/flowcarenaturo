@@ -44,8 +44,9 @@ type View = "day" | "week" | "month";
 const statusDot: Record<string, string> = {
   scheduled: "bg-info",
   confirmed: "bg-primary",
+  in_progress: "bg-teal-500",
   completed: "bg-success",
-  cancelled: "bg-destructive",
+  cancelled: "bg-muted-foreground",
 };
 
 const summaryTint: Record<DaySummary, string> = {
@@ -504,9 +505,14 @@ function DayView({
     date: dateStr,
   });
 
-  // Map slot -> active existing appt for full appointment metadata
-  const byTime = new Map<string, Appt>();
-  for (const a of activeAppts) byTime.set(a.appointment_time?.substring(0, 5), a);
+  // Map slot -> ALL active appts at that time (multiple bookings allowed)
+  const byTime = new Map<string, Appt[]>();
+  for (const a of activeAppts) {
+    const key = a.appointment_time?.substring(0, 5);
+    if (!key) continue;
+    if (!byTime.has(key)) byTime.set(key, []);
+    byTime.get(key)!.push(a);
+  }
 
   if (reason === "past") {
     return <Card className="shadow-card"><CardContent className="py-10 text-center text-sm text-muted-foreground">This date is in the past.</CardContent></Card>;
@@ -523,48 +529,69 @@ function DayView({
     return <Card className="shadow-card"><CardContent className="py-10 text-center text-sm text-muted-foreground">Doctor is not scheduled on this day.</CardContent></Card>;
   }
 
+  const renderApptRow = (a: Appt) => (
+    <div
+      key={a.id}
+      className="flex flex-1 flex-wrap items-center gap-2 cursor-pointer"
+      onClick={() => onOpenAppt(a)}
+    >
+      <span className={cn("h-2 w-2 rounded-full", statusDot[a.status] ?? "bg-muted-foreground")} />
+      {a.patient && (
+        <PatientLink
+          patientId={a.patient.id}
+          className={cn(a.status === "cancelled" && "line-through text-muted-foreground")}
+        >
+          {a.patient.name}
+        </PatientLink>
+      )}
+      {a.services && a.services.length > 0 && (
+        <span className="text-xs text-muted-foreground">
+          · {a.services.slice(0, 2).join(", ")}{a.services.length > 2 ? ` +${a.services.length - 2}` : ""}
+        </span>
+      )}
+      {a.reason && <span className="text-xs text-muted-foreground">— {a.reason}</span>}
+      <span className="ml-auto text-[10px] uppercase text-muted-foreground">{a.status}</span>
+      {a.status !== "completed" && a.status !== "cancelled" && (
+        <>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-[10px]"
+            onClick={(e) => { e.stopPropagation(); onReschedule(a); }}
+          >
+            Reschedule
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-[10px] text-red-600 border-red-300 hover:bg-red-50"
+            onClick={(e) => { e.stopPropagation(); onCancelAppt(a); }}
+          >
+            Cancel
+          </Button>
+        </>
+      )}
+    </div>
+  );
+
   return (
     <Card className="shadow-card"><CardContent className="p-3">
       <div className="space-y-1">
         {slots.map((s) => {
-          const a = byTime.get(s.time);
-          if (a) {
+          const list = byTime.get(s.time);
+          if (list && list.length > 0) {
             return (
               <div
                 key={s.time}
-                className="flex w-full flex-wrap items-center gap-3 rounded border border-primary/30 bg-primary/5 px-3 py-2 text-left text-sm"
+                className="flex w-full gap-3 rounded border border-primary/30 bg-primary/5 px-3 py-2 text-left text-sm"
               >
-                <span className="w-16 font-mono text-xs text-primary">{s.time}</span>
-                <div className="flex flex-1 flex-wrap items-center gap-2">
-                  <span className={cn("h-2 w-2 rounded-full", statusDot[a.status] ?? "bg-muted-foreground")} />
-                  {a.patient && <PatientLink patientId={a.patient.id}>{a.patient.name}</PatientLink>}
-                  {a.services && a.services.length > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      · {a.services.slice(0, 2).join(", ")}{a.services.length > 2 ? ` +${a.services.length - 2}` : ""}
-                    </span>
-                  )}
-                  {a.reason && <span className="text-xs text-muted-foreground">— {a.reason}</span>}
-                  <span className="ml-auto text-[10px] uppercase text-muted-foreground">{a.status}</span>
-                  {a.status !== "completed" && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-2 text-[10px]"
-                        onClick={() => onReschedule(a)}
-                      >
-                        Reschedule
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-2 text-[10px] text-red-600 border-red-300 hover:bg-red-50"
-                        onClick={() => onCancelAppt(a)}
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  )}
+                <span className="w-16 shrink-0 pt-0.5 font-mono text-xs text-primary">{s.time}</span>
+                <div className="flex flex-1 flex-col gap-2 divide-y divide-dashed divide-border">
+                  {list.map((a, i) => (
+                    <div key={a.id} className={cn("flex flex-wrap items-center gap-2", i > 0 && "pt-2")}>
+                      {renderApptRow(a)}
+                    </div>
+                  ))}
                 </div>
               </div>
             );
