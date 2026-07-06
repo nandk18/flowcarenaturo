@@ -274,6 +274,57 @@ export default function TreatmentBoard() {
           </div>
         )}
 
+        {/* Future sessions cleanup banner */}
+        {futureSessions.length > 0 && (
+          <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-yellow-800">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="font-medium text-sm">
+                  ⚠️ {futureSessions.length} session{futureSessions.length > 1 ? "s" : ""} scheduled for future dates. These were created in error.
+                </span>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => setShowFuture((v) => !v)}>
+                {showFuture ? "Hide" : "Review & Clean Up"}
+              </Button>
+            </div>
+            {showFuture && (
+              <div className="rounded-lg border bg-background p-2 space-y-2">
+                <ul className="max-h-48 overflow-y-auto text-xs divide-y">
+                  {futureSessions.map((f) => (
+                    <li key={f.id} className="py-1 flex justify-between gap-2">
+                      <span className="truncate">{f.service_name}</span>
+                      <span className="text-muted-foreground font-mono">{f.session_date}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={async () => {
+                    if (!clinicId) return;
+                    if (!confirm(`Delete ${futureSessions.length} future session(s)?`)) return;
+                    const { error } = await supabase
+                      .from("therapy_sessions")
+                      .delete()
+                      .eq("clinic_id", clinicId)
+                      .gt("session_date", today)
+                      .eq("status", "not_started");
+                    if (error) toast.error(error.message);
+                    else {
+                      toast.success("Future sessions removed");
+                      setShowFuture(false);
+                      load();
+                    }
+                  }}
+                >
+                  Delete All Future Sessions
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Capacity */}
         {capacities.length > 0 && (
           <div className="rounded-xl border bg-card">
