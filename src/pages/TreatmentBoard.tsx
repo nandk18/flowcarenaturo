@@ -73,9 +73,18 @@ export default function TreatmentBoard() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [capOpen, setCapOpen] = useState(true);
 
+  const [futureSessions, setFutureSessions] = useState<{ id: string; session_date: string; service_name: string; patient_id: string }[]>([]);
+  const [showFuture, setShowFuture] = useState(false);
+
+  const refreshIdle = useCallback(async () => {
+    if (!clinicId) return;
+    const { data } = await supabase.rpc("get_idle_patients", { p_clinic_id: clinicId });
+    setIdle((data as any) ?? []);
+  }, [clinicId]);
+
   const load = useCallback(async () => {
     if (!clinicId) return;
-    const [s, c, i] = await Promise.all([
+    const [s, c, i, f] = await Promise.all([
       supabase
         .from("therapy_sessions")
         .select(
@@ -87,14 +96,28 @@ export default function TreatmentBoard() {
         .order("service_name"),
       supabase.rpc("get_all_capacities", { p_clinic_id: clinicId, p_date: today }),
       supabase.rpc("get_idle_patients", { p_clinic_id: clinicId }),
+      supabase
+        .from("therapy_sessions")
+        .select("id, session_date, service_name, patient_id")
+        .eq("clinic_id", clinicId)
+        .gt("session_date", today)
+        .eq("status", "not_started"),
     ]);
     setSessions((s.data as any) ?? []);
     setCapacities((c.data as any) ?? []);
     setIdle((i.data as any) ?? []);
+    setFutureSessions((f.data as any) ?? []);
     setLoading(false);
   }, [clinicId, today]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Refresh idle every 60s
+  useEffect(() => {
+    if (!clinicId) return;
+    const t = setInterval(() => { refreshIdle(); }, 60_000);
+    return () => clearInterval(t);
+  }, [clinicId, refreshIdle]);
 
   useEffect(() => {
     if (!clinicId) return;
