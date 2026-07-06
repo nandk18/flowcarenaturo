@@ -44,8 +44,9 @@ type View = "day" | "week" | "month";
 const statusDot: Record<string, string> = {
   scheduled: "bg-info",
   confirmed: "bg-primary",
+  in_progress: "bg-teal-500",
   completed: "bg-success",
-  cancelled: "bg-destructive",
+  cancelled: "bg-muted-foreground",
 };
 
 const summaryTint: Record<DaySummary, string> = {
