@@ -2844,6 +2844,10 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      start_therapy_session: {
+        Args: { p_session_id: string; p_therapist_id: string }
+        Returns: Json
+      }
       update_sla_breach_days: { Args: never; Returns: undefined }
       validate_patient_form_token: {
         Args: { p_token: string }
