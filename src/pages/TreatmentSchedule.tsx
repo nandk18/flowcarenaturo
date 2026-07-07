@@ -210,9 +210,11 @@ export default function TreatmentSchedule() {
         session_number: 1,
         status: "not_started",
         amount: i.amount_per_session,
+        notes: i.notes?.trim() || null,
       }));
       const { error: sErr } = await supabase.from("therapy_sessions").insert(sessionRows);
       if (sErr) { setSaving(false); return toast.error(sErr.message); }
+
       scheduled = sessionRows.length;
 
       // bump sessions_scheduled on each item
