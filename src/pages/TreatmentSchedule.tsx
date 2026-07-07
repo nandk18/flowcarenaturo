@@ -183,7 +183,9 @@ export default function TreatmentSchedule() {
       sessions_completed: 0,
       sessions_scheduled: 0,
       status: "active",
+      notes: i.notes?.trim() || null,
     }));
+
     const { data: createdItems, error: itemsErr } = await supabase
       .from("treatment_plan_items")
       .insert(rows)
