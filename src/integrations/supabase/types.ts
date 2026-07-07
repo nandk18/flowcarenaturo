@@ -2272,6 +2272,7 @@ export type Database = {
           elapsed_seconds: number | null
           id: string
           invoice_id: string | null
+          notes: string | null
           patient_id: string | null
           room: string | null
           service_id: string | null
@@ -2296,6 +2297,7 @@ export type Database = {
           elapsed_seconds?: number | null
           id?: string
           invoice_id?: string | null
+          notes?: string | null
           patient_id?: string | null
           room?: string | null
           service_id?: string | null
@@ -2320,6 +2322,7 @@ export type Database = {
           elapsed_seconds?: number | null
           id?: string
           invoice_id?: string | null
+          notes?: string | null
           patient_id?: string | null
           room?: string | null
           service_id?: string | null
@@ -2460,6 +2463,7 @@ export type Database = {
           clinic_id: string | null
           created_at: string | null
           id: string
+          notes: string | null
           service_id: string | null
           service_name: string
           sessions_completed: number | null
@@ -2475,6 +2479,7 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string | null
           id?: string
+          notes?: string | null
           service_id?: string | null
           service_name: string
           sessions_completed?: number | null
@@ -2490,6 +2495,7 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string | null
           id?: string
+          notes?: string | null
           service_id?: string | null
           service_name?: string
           sessions_completed?: number | null
