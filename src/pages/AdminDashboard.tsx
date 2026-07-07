@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -6,23 +6,35 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Stethoscope, ArrowRight, Plus, Calendar, CheckCircle2, Clock, Users, Eye, Play } from "lucide-react";
+import { Stethoscope, ArrowRight, Plus, Calendar, CheckCircle2, Clock, Users, Eye, Play, Sparkles, X, CalendarClock, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PatientLink from "@/components/PatientLink";
 import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
 import CheckInModal, { type CheckInData } from "@/components/queue/CheckInModal";
+import CancelAppointmentModal from "@/components/appointments/CancelAppointmentModal";
+import RescheduleAppointmentModal from "@/components/appointments/RescheduleAppointmentModal";
 import { format } from "date-fns";
 import { formatDoctorName } from "@/lib/utils";
+import { toast } from "sonner";
+
+type ApptService = {
+  service_id: string;
+  invoice_services: { id: string; name: string; service_type: string | null; amount: number | null } | null;
+};
 
 type Appt = {
   id: string;
+  clinic_id: string;
+  appointment_date: string;
   appointment_time: string;
   status: string;
   reason: string | null;
+  notes: string | null;
   patient_id: string;
   doctor_id: string;
-  patient: { id: string; name: string } | null;
+  patient: { id: string; name: string; phone: string | null } | null;
   doctor: { name: string } | null;
+  services: ApptService[];
 };
 
 type Visit = {
@@ -57,6 +69,14 @@ const statusLabel = (s: DisplayStatus) =>
     cancelled: "Cancelled",
   })[s];
 
+// Treatment if the appointment has ≥1 linked service and ALL are service_type='treatment'.
+function classifyAppt(a: Appt): "consultation" | "treatment" {
+  const svc = a.services ?? [];
+  if (svc.length === 0) return "consultation";
+  const allTreatment = svc.every((s) => (s.invoice_services?.service_type ?? "consultation") === "treatment");
+  return allTreatment ? "treatment" : "consultation";
+}
+
 export default function AdminDashboard() {
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -65,6 +85,11 @@ export default function AdminDashboard() {
   const [totalPatients, setTotalPatients] = useState(0);
   const [bookOpen, setBookOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [mode, setMode] = useState<"consult" | "treatment">("consult");
+
+  // Modals for consult actions
+  const [cancelAppt, setCancelAppt] = useState<Appt | null>(null);
+  const [rescheduleAppt, setRescheduleAppt] = useState<Appt | null>(null);
 
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -73,7 +98,7 @@ export default function AdminDashboard() {
     const [a, v, p] = await Promise.all([
       supabase
         .from("appointments")
-        .select("id, appointment_time, status, reason, patient_id, doctor_id, patients(id, name), doctors(name)")
+        .select("id, clinic_id, appointment_date, appointment_time, status, reason, notes, patient_id, doctor_id, patients(id, name, phone), doctors(name), appointment_services(service_id, invoice_services(id, name, service_type, amount))")
         .eq("clinic_id", profile.clinic_id)
         .eq("appointment_date", today)
         .order("appointment_time"),
@@ -89,6 +114,10 @@ export default function AdminDashboard() {
         ...x,
         patient: Array.isArray(x.patients) ? x.patients[0] : x.patients,
         doctor: Array.isArray(x.doctors) ? x.doctors[0] : x.doctors,
+        services: (x.appointment_services ?? []).map((s: any) => ({
+          service_id: s.service_id,
+          invoice_services: Array.isArray(s.invoice_services) ? s.invoice_services[0] : s.invoice_services,
+        })),
       })),
     );
     setVisitsToday((v.data ?? []) as Visit[]);
@@ -120,10 +149,20 @@ export default function AdminDashboard() {
     };
   }, [profile?.clinic_id, fetchAll]);
 
+  const { consultAppts, treatmentAppts } = useMemo(() => {
+    const c: Appt[] = [];
+    const t: Appt[] = [];
+    for (const a of appts) {
+      if (classifyAppt(a) === "treatment") t.push(a);
+      else c.push(a);
+    }
+    return { consultAppts: c, treatmentAppts: t };
+  }, [appts]);
+
   const completedCount = appts.filter((a) => a.status === "completed").length;
   const pendingCount = appts.filter((a) => a.status === "scheduled" || a.status === "confirmed").length;
 
-  // Determine display status: if a visit exists today for the patient, use its status
+  // Determine display status for consult flow
   const getDisplay = (appt: Appt): DisplayStatus => {
     if (appt.status === "completed") return "completed";
     if (appt.status === "cancelled") return "cancelled";
@@ -134,7 +173,6 @@ export default function AdminDashboard() {
     return "scheduled";
   };
 
-  // Walk-in flow: open CheckIn prerequisites then create visit + open consultation
   const [startAppt, setStartAppt] = useState<Appt | null>(null);
 
   const startConsultation = async (appt: Appt, prereq: CheckInData | null) => {
@@ -187,12 +225,93 @@ export default function AdminDashboard() {
       return;
     }
     if (display === "waiting") {
-      // Walk-in already has prereqs (or skipped) — go straight in
       void startConsultation(appt, null);
       return;
     }
-    // Scheduled → prompt prerequisites first
     setStartAppt(appt);
+  };
+
+  // === TREATMENT actions ===
+
+  const startTreatment = async (appt: Appt) => {
+    if (!profile?.clinic_id || !appt.patient_id) return;
+    const treatmentServices = (appt.services ?? []).filter(
+      (s) => (s.invoice_services?.service_type ?? "consultation") === "treatment" && s.invoice_services,
+    );
+    if (treatmentServices.length === 0) {
+      toast.error("No treatment services on this appointment");
+      return;
+    }
+
+    // Fetch active plan items for this patient, matching the selected services
+    const svcIds = treatmentServices.map((s) => s.service_id);
+    const { data: planItems } = await supabase
+      .from("treatment_plan_items")
+      .select("id, treatment_plan_id, service_id, total_sessions, sessions_scheduled, sessions_completed, notes, treatment_plans!inner(id, patient_id, status)")
+      .in("service_id", svcIds)
+      .eq("clinic_id", profile.clinic_id)
+      .eq("treatment_plans.patient_id", appt.patient_id)
+      .eq("treatment_plans.status", "active");
+
+    const availableByService = new Map<string, any[]>();
+    for (const pi of (planItems as any[]) ?? []) {
+      const remaining = (pi.total_sessions ?? 0) - (pi.sessions_scheduled ?? 0) - (pi.sessions_completed ?? 0);
+      if (remaining > 0) {
+        const arr = availableByService.get(pi.service_id) ?? [];
+        arr.push(pi);
+        availableByService.set(pi.service_id, arr);
+      }
+    }
+
+    const sessionRows: any[] = [];
+    const planItemBumps: string[] = [];
+    let usedFromPlan = 0;
+
+    for (const s of treatmentServices) {
+      const svc = s.invoice_services!;
+      const availList = availableByService.get(s.service_id) ?? [];
+      const planItem = availList.shift();
+      const noteBase = appt.notes?.trim() || planItem?.notes?.trim() || null;
+
+      sessionRows.push({
+        clinic_id: profile.clinic_id,
+        patient_id: appt.patient_id,
+        service_id: s.service_id,
+        service_name: svc.name,
+        session_date: today,
+        session_number: planItem ? (planItem.sessions_completed ?? 0) + (planItem.sessions_scheduled ?? 0) + 1 : 1,
+        status: "not_started",
+        amount: svc.amount ?? 0,
+        notes: noteBase,
+        appointment_id: appt.id,
+        treatment_plan_id: planItem?.treatment_plan_id ?? null,
+        treatment_plan_item_id: planItem?.id ?? null,
+      });
+      if (planItem) {
+        planItemBumps.push(planItem.id);
+        usedFromPlan++;
+      }
+    }
+
+    const { error: insErr } = await supabase.from("therapy_sessions").insert(sessionRows);
+    if (insErr) return toast.error(insErr.message);
+
+    // Bump sessions_scheduled on used plan items (one at a time — small list)
+    for (const pid of planItemBumps) {
+      const item = ((planItems as any[]) ?? []).find((x) => x.id === pid);
+      if (item) {
+        await supabase
+          .from("treatment_plan_items")
+          .update({ sessions_scheduled: (item.sessions_scheduled ?? 0) + 1 })
+          .eq("id", pid);
+      }
+    }
+
+    await supabase.from("appointments").update({ status: "in_progress" }).eq("id", appt.id);
+    toast.success(
+      `Started ${sessionRows.length} treatment session(s)${usedFromPlan > 0 ? ` · ${usedFromPlan} from plan` : " · individual"}`,
+    );
+    navigate("/treatment/board");
   };
 
   return (
@@ -209,20 +328,53 @@ export default function AdminDashboard() {
         <StatCard icon={Users} label="Total Patients" value={totalPatients} color="text-primary" />
       </div>
 
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-display text-lg font-semibold">Today's Consultations</h2>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="inline-flex rounded-lg border bg-muted/50 p-1">
+          <button
+            onClick={() => setMode("consult")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              mode === "consult" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Stethoscope className="h-4 w-4" /> Consultations
+            <Badge variant="outline" className="ml-1 h-5 px-1.5 text-[10px]">{consultAppts.length}</Badge>
+          </button>
+          <button
+            onClick={() => setMode("treatment")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              mode === "treatment" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Sparkles className="h-4 w-4" /> Treatments
+            <Badge variant="outline" className="ml-1 h-5 px-1.5 text-[10px]">{treatmentAppts.length}</Badge>
+          </button>
+        </div>
         <Button onClick={() => setBookOpen(true)}>
           <Plus className="mr-1 h-4 w-4" /> Walk-in / Book Appointment
         </Button>
       </div>
 
-      <ConsultationTabs
-        appts={appts}
-        loading={loading}
-        getDisplay={getDisplay}
-        handleAction={handleAction}
-        onBook={() => setBookOpen(true)}
-      />
+      {mode === "consult" ? (
+        <ConsultationTabs
+          appts={consultAppts}
+          loading={loading}
+          getDisplay={getDisplay}
+          handleAction={handleAction}
+          onBook={() => setBookOpen(true)}
+          onCancel={setCancelAppt}
+          onReschedule={setRescheduleAppt}
+        />
+      ) : (
+        <TreatmentTabs
+          appts={treatmentAppts}
+          loading={loading}
+          onStartTreatment={startTreatment}
+          onCancel={setCancelAppt}
+          onReschedule={setRescheduleAppt}
+          onBook={() => setBookOpen(true)}
+          onView={(a) => navigate(`/patients/${a.patient_id}?tab=treatment`)}
+        />
+      )}
 
       <BookAppointmentModal
         open={bookOpen}
@@ -242,6 +394,47 @@ export default function AdminDashboard() {
           if (startAppt) await startConsultation(startAppt, data);
           setStartAppt(null);
         }}
+      />
+
+      <CancelAppointmentModal
+        open={!!cancelAppt}
+        onClose={() => setCancelAppt(null)}
+        onCancelled={fetchAll}
+        appointment={
+          cancelAppt
+            ? {
+                id: cancelAppt.id,
+                clinic_id: cancelAppt.clinic_id,
+                patient_id: cancelAppt.patient_id,
+                appointment_date: cancelAppt.appointment_date,
+                appointment_time: cancelAppt.appointment_time,
+                patient_name: cancelAppt.patient?.name ?? "Patient",
+                patient_phone: cancelAppt.patient?.phone ?? null,
+              }
+            : null
+        }
+      />
+
+      <RescheduleAppointmentModal
+        open={!!rescheduleAppt}
+        onClose={() => setRescheduleAppt(null)}
+        onRescheduled={fetchAll}
+        appointment={
+          rescheduleAppt
+            ? {
+                id: rescheduleAppt.id,
+                clinic_id: rescheduleAppt.clinic_id,
+                patient_id: rescheduleAppt.patient_id,
+                doctor_id: rescheduleAppt.doctor_id,
+                appointment_date: rescheduleAppt.appointment_date,
+                appointment_time: rescheduleAppt.appointment_time,
+                patient_name: rescheduleAppt.patient?.name ?? "Patient",
+                doctor_name: rescheduleAppt.doctor?.name ?? null,
+                reason: rescheduleAppt.reason,
+                notes: rescheduleAppt.notes,
+              }
+            : null
+        }
       />
     </DashboardLayout>
   );
@@ -269,12 +462,16 @@ function ConsultationTabs({
   getDisplay,
   handleAction,
   onBook,
+  onCancel,
+  onReschedule,
 }: {
   appts: Appt[];
   loading: boolean;
   getDisplay: (a: Appt) => DisplayStatus;
   handleAction: (a: Appt) => void;
   onBook: () => void;
+  onCancel: (a: Appt) => void;
+  onReschedule: (a: Appt) => void;
 }) {
   const [tab, setTab] = useState<"active" | "completed">("active");
   const active = appts.filter((a) => {
@@ -317,6 +514,7 @@ function ConsultationTabs({
         <div className="space-y-2">
           {list.map((appt) => {
             const display = getDisplay(appt);
+            const canModify = display === "scheduled";
             return (
               <Card key={appt.id} className="shadow-card">
                 <CardContent className="flex items-center gap-3 p-3">
@@ -339,19 +537,161 @@ function ConsultationTabs({
                       {appt.reason && ` · ${appt.reason}`}
                     </p>
                   </div>
-                  {display === "completed" ? (
-                    <Button size="sm" variant="outline" onClick={() => handleAction(appt)}>
-                      <Eye className="mr-1 h-3 w-3" /> View Summary
-                    </Button>
-                  ) : display === "in_progress" ? (
-                    <Button size="sm" variant="outline" onClick={() => handleAction(appt)}>
-                      <Play className="mr-1 h-3 w-3" /> Continue
-                    </Button>
-                  ) : display === "cancelled" ? null : (
-                    <Button size="sm" onClick={() => handleAction(appt)}>
-                      <ArrowRight className="mr-1 h-3 w-3" /> Start Consultation
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {display === "completed" ? (
+                      <Button size="sm" variant="outline" onClick={() => handleAction(appt)}>
+                        <Eye className="mr-1 h-3 w-3" /> View Summary
+                      </Button>
+                    ) : display === "in_progress" ? (
+                      <Button size="sm" variant="outline" onClick={() => handleAction(appt)}>
+                        <Play className="mr-1 h-3 w-3" /> Continue
+                      </Button>
+                    ) : display === "cancelled" ? null : (
+                      <>
+                        {canModify && (
+                          <>
+                            <Button size="sm" variant="ghost" onClick={() => onReschedule(appt)} title="Reschedule">
+                              <CalendarClock className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => onCancel(appt)} title="Cancel">
+                              <X className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </>
+                        )}
+                        <Button size="sm" onClick={() => handleAction(appt)}>
+                          <ArrowRight className="mr-1 h-3 w-3" /> Start Consultation
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
+function TreatmentTabs({
+  appts,
+  loading,
+  onStartTreatment,
+  onCancel,
+  onReschedule,
+  onBook,
+  onView,
+}: {
+  appts: Appt[];
+  loading: boolean;
+  onStartTreatment: (a: Appt) => void;
+  onCancel: (a: Appt) => void;
+  onReschedule: (a: Appt) => void;
+  onBook: () => void;
+  onView: (a: Appt) => void;
+}) {
+  const [tab, setTab] = useState<"active" | "completed">("active");
+  const active = appts.filter((a) => a.status === "scheduled" || a.status === "confirmed" || a.status === "in_progress");
+  const completed = appts.filter((a) => a.status === "completed");
+  const list = tab === "active" ? active : completed;
+
+  return (
+    <>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-3">
+        <TabsList>
+          <TabsTrigger value="active">Active ({active.length})</TabsTrigger>
+          <TabsTrigger value="completed">Completed ({completed.length})</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {loading ? (
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
+          ))}
+        </div>
+      ) : list.length === 0 ? (
+        <Card className="shadow-card">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <Sparkles className="mb-4 h-16 w-16 text-muted-foreground/20" />
+            <p className="text-sm text-muted-foreground">
+              {tab === "active" ? "No treatments booked for today" : "No completed treatments today"}
+            </p>
+            {tab === "active" && (
+              <Button variant="outline" className="mt-4" onClick={onBook}>
+                <Plus className="mr-1 h-4 w-4" /> Book Treatment
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {list.map((appt) => {
+            const svcNames = (appt.services ?? [])
+              .map((s) => s.invoice_services?.name)
+              .filter(Boolean) as string[];
+            const isInProgress = appt.status === "in_progress";
+            const isCompleted = appt.status === "completed";
+            const canModify = !isInProgress && !isCompleted;
+            return (
+              <Card key={appt.id} className="shadow-card">
+                <CardContent className="flex items-center gap-3 p-3">
+                  <span className="font-mono text-xs font-bold text-primary w-14">
+                    {appt.appointment_time?.substring(0, 5)}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {appt.patient && (
+                        <PatientLink patientId={appt.patient.id} className="truncate">
+                          {appt.patient.name}
+                        </PatientLink>
+                      )}
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] ${
+                          isCompleted
+                            ? "bg-success/15 text-success border-success/30"
+                            : isInProgress
+                            ? "bg-orange-500/15 text-orange-700 border-orange-500/30"
+                            : "bg-info/15 text-info border-info/30"
+                        }`}
+                      >
+                        {isCompleted ? "Completed" : isInProgress ? "On Board" : "Booked"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {svcNames.length > 0 ? svcNames.join(", ") : "Treatment"}
+                      {appt.notes && ` · 📝 ${appt.notes}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {isCompleted ? (
+                      <Button size="sm" variant="outline" onClick={() => onView(appt)}>
+                        <Eye className="mr-1 h-3 w-3" /> View
+                      </Button>
+                    ) : isInProgress ? (
+                      <Button size="sm" variant="outline" onClick={() => onView(appt)}>
+                        <Activity className="mr-1 h-3 w-3" /> On Board
+                      </Button>
+                    ) : (
+                      <>
+                        {canModify && (
+                          <>
+                            <Button size="sm" variant="ghost" onClick={() => onReschedule(appt)} title="Reschedule">
+                              <CalendarClock className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => onCancel(appt)} title="Cancel">
+                              <X className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </>
+                        )}
+                        <Button size="sm" onClick={() => onStartTreatment(appt)}>
+                          <Play className="mr-1 h-3 w-3" /> Start Treatment
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
