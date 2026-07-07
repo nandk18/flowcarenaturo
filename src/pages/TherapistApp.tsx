@@ -23,9 +23,11 @@ type Session = {
   started_at: string | null;
   completed_at: string | null;
   setup_photo_url: string | null;
+  notes: string | null;
   patients?: { id: string; first_name: string | null; last_name: string | null; name: string | null } | null;
   treatment_plan_items?: { total_sessions: number | null } | null;
 };
+
 type Idle = { patient_id: string; patient_name: string; idle_minutes: number };
 
 function LiveClock() {
