@@ -26,10 +26,12 @@ type Session = {
   completed_at: string | null;
   session_number: number | null;
   setup_photo_url?: string | null;
+  notes?: string | null;
   patients?: { id: string; first_name: string | null; last_name: string | null; name: string | null } | null;
   profiles?: { full_name: string | null; therapist_color: string | null } | null;
   treatment_plan_items?: { total_sessions: number | null } | null;
 };
+
 
 type Capacity = { service_id: string; service_name: string; max_per_day: number | null; booked_count: number; available: number; is_full: boolean; pct_full: number };
 type Idle = { patient_id: string; patient_name: string; idle_minutes: number };
@@ -88,7 +90,7 @@ export default function TreatmentBoard() {
       supabase
         .from("therapy_sessions")
         .select(
-          "id, patient_id, service_id, service_name, status, session_date, therapist_id, room, started_at, completed_at, session_number, setup_photo_url, patients(id, first_name, last_name, name), profiles:therapist_id(full_name, therapist_color), treatment_plan_items(total_sessions)"
+          "id, patient_id, service_id, service_name, status, session_date, therapist_id, room, started_at, completed_at, session_number, setup_photo_url, notes, patients(id, first_name, last_name, name), profiles:therapist_id(full_name, therapist_color), treatment_plan_items(total_sessions)"
         )
         .eq("clinic_id", clinicId)
         .eq("session_date", today)
@@ -325,41 +327,8 @@ export default function TreatmentBoard() {
           </div>
         )}
 
-        {/* Capacity */}
-        {capacities.length > 0 && (
-          <div className="rounded-xl border bg-card">
-            <button
-              className="flex w-full items-center justify-between p-3 text-sm font-medium"
-              onClick={() => setCapOpen((v) => !v)}
-            >
-              <span>Today's capacity</span>
-              {capOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </button>
-            {capOpen && (
-              <div className="grid grid-cols-1 gap-2 p-3 pt-0 md:grid-cols-2">
-                {capacities.map((c) => {
-                  const barColor = c.pct_full >= 90 ? "bg-destructive" : c.pct_full >= 70 ? "bg-amber-500" : "bg-emerald-500";
-                  return (
-                    <div key={c.service_id} className="flex items-center gap-3 rounded-lg border bg-background p-2">
-                      <span className="min-w-0 flex-1 truncate text-xs font-medium">{c.service_name}</span>
-                      {c.max_per_day ? (
-                        <>
-                          <div className="h-1.5 w-24 overflow-hidden rounded bg-muted">
-                            <div className={`h-full ${barColor}`} style={{ width: `${Math.min(100, c.pct_full)}%` }} />
-                          </div>
-                          <span className="text-xs font-mono">{c.booked_count}/{c.max_per_day}</span>
-                          <span className="text-[10px] text-muted-foreground w-20 text-right">
-                            {c.is_full ? "full" : `${c.available} left`}
-                          </span>
-                        </>
-                      ) : <span className="text-xs text-muted-foreground">unlimited</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+
+
 
         {/* Patient cards */}
         {loading ? (
@@ -453,6 +422,11 @@ function SessionRow({
             <div className="text-[11px] text-muted-foreground truncate">
               {sessLabel && `${sessLabel} · `}{s.profiles?.full_name ?? "Unassigned"}{s.room ? ` · ${s.room}` : ""}
             </div>
+            {s.notes && (
+              <div className="mt-1 rounded bg-amber-100/70 border border-amber-200 px-1.5 py-1 text-[11px] text-amber-900 line-clamp-2" title={s.notes}>
+                📝 {s.notes}
+              </div>
+            )}
           </div>
           <div className="flex flex-col gap-1">
             <Popover>
@@ -484,6 +458,7 @@ function SessionRow({
       </li>
     );
   }
+
   if (s.status === "in_progress") {
     return (
       <li className="rounded-lg border border-l-4 border-orange-500/60 bg-orange-500/5 p-2">
@@ -495,6 +470,12 @@ function SessionRow({
               {s.profiles?.full_name ?? "Unassigned"}{s.room ? ` · ${s.room}` : ""}{sessLabel && ` · ${sessLabel}`}
             </div>
             {s.started_at && <div className="mt-0.5"><ElapsedTimer startedAt={s.started_at} /></div>}
+            {s.notes && (
+              <div className="mt-1 rounded bg-amber-100/70 border border-amber-200 px-1.5 py-1 text-[11px] text-amber-900 line-clamp-2" title={s.notes}>
+                📝 {s.notes}
+              </div>
+            )}
+
           </div>
           <div className="flex flex-col gap-1">
             <Button size="sm" disabled={busy} onClick={onComplete}><CheckCircle2 className="h-3 w-3 mr-1" />Complete</Button>

@@ -23,7 +23,9 @@ type PlanItem = {
   sessions_per_visit: number;
   amount_per_session: number;
   scheduleToday: boolean;
+  notes?: string;
 };
+
 type Capacity = { service_id: string; service_name: string; max_per_day: number | null; booked_count: number; available: number; is_full: boolean; pct_full: number };
 
 function useDebounce<T>(value: T, delay = 300) {
@@ -123,7 +125,9 @@ export default function TreatmentSchedule() {
       sessions_per_visit: Math.max(1, pPer),
       amount_per_session: Number(pickedSvc.amount),
       scheduleToday: true,
+      notes: "",
     }]);
+
     setPickedSvc(null);
     setSvcQuery("");
     setPTotal(6);
@@ -133,6 +137,9 @@ export default function TreatmentSchedule() {
   const removeItem = (idx: number) => setItems(items.filter((_, i) => i !== idx));
   const toggleToday = (idx: number, v: boolean) =>
     setItems(items.map((it, i) => (i === idx ? { ...it, scheduleToday: v } : it)));
+  const updateNotes = (idx: number, v: string) =>
+    setItems(items.map((it, i) => (i === idx ? { ...it, notes: v } : it)));
+
 
   const total = useMemo(
     () => items.reduce((sum, i) => sum + i.total_sessions * i.amount_per_session, 0),
@@ -176,7 +183,9 @@ export default function TreatmentSchedule() {
       sessions_completed: 0,
       sessions_scheduled: 0,
       status: "active",
+      notes: i.notes?.trim() || null,
     }));
+
     const { data: createdItems, error: itemsErr } = await supabase
       .from("treatment_plan_items")
       .insert(rows)
@@ -201,9 +210,11 @@ export default function TreatmentSchedule() {
         session_number: 1,
         status: "not_started",
         amount: i.amount_per_session,
+        notes: i.notes?.trim() || null,
       }));
       const { error: sErr } = await supabase.from("therapy_sessions").insert(sessionRows);
       if (sErr) { setSaving(false); return toast.error(sErr.message); }
+
       scheduled = sessionRows.length;
 
       // bump sessions_scheduled on each item
@@ -394,7 +405,18 @@ export default function TreatmentSchedule() {
                             </Button>
                           </div>
                         </div>
+                        <div className="mt-2">
+                          <Label className="text-[11px] text-muted-foreground">Notes for therapist (optional)</Label>
+                          <textarea
+                            className="mt-1 w-full rounded-md border bg-background p-2 text-xs"
+                            rows={2}
+                            placeholder="e.g. Pressure points on lower back, avoid neck…"
+                            value={i.notes ?? ""}
+                            onChange={(e) => updateNotes(idx, e.target.value)}
+                          />
+                        </div>
                       </div>
+
                     ))}
                     <div className="flex justify-between p-3 text-sm font-semibold">
                       <span>Plan total</span>

@@ -23,9 +23,11 @@ type Session = {
   started_at: string | null;
   completed_at: string | null;
   setup_photo_url: string | null;
+  notes: string | null;
   patients?: { id: string; first_name: string | null; last_name: string | null; name: string | null } | null;
   treatment_plan_items?: { total_sessions: number | null } | null;
 };
+
 type Idle = { patient_id: string; patient_name: string; idle_minutes: number };
 
 function LiveClock() {
@@ -64,7 +66,7 @@ export default function TherapistApp() {
     const [s, i] = await Promise.all([
       supabase
         .from("therapy_sessions")
-        .select("id, patient_id, service_id, service_name, status, therapist_id, room, session_number, started_at, completed_at, setup_photo_url, patients(id, first_name, last_name, name), treatment_plan_items(total_sessions)")
+        .select("id, patient_id, service_id, service_name, status, therapist_id, room, session_number, started_at, completed_at, setup_photo_url, notes, patients(id, first_name, last_name, name), treatment_plan_items(total_sessions)")
         .eq("clinic_id", clinicId)
         .eq("session_date", today)
         .or(`therapist_id.eq.${therapist.id},therapist_id.is.null`)
@@ -287,6 +289,15 @@ function SessionCard({
           {sessLabel}{s.room ? ` · ${s.room}` : ""}
           {s.status === "in_progress" && s.started_at && ` · started ${format(new Date(s.started_at), "h:mm a")}`}
         </div>
+
+        {s.notes && s.status !== "completed" && (
+          <div className="rounded-md border border-amber-300 bg-amber-100/70 p-2 text-xs text-amber-900">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-800 mb-0.5">Notes from admin</div>
+            <div className="whitespace-pre-wrap">{s.notes}</div>
+          </div>
+        )}
+
+
 
         {s.setup_photo_url && (
           <img src={s.setup_photo_url} alt="setup" className="h-20 w-full rounded-md object-cover" />

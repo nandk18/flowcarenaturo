@@ -76,8 +76,10 @@ export default function DoctorSchedulePage() {
   const [days, setDays] = useState<DayState[]>(
     Array.from({ length: 7 }, emptyDay),
   );
+  const [originalActive, setOriginalActive] = useState<boolean[]>(Array.from({ length: 7 }, () => false));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
 
   const [exceptions, setExceptions] = useState<Exception[]>([]);
   const [excDialogOpen, setExcDialogOpen] = useState(false);
@@ -99,6 +101,13 @@ export default function DoctorSchedulePage() {
   }>(null);
   const [calledMap, setCalledMap] = useState<Record<string, boolean>>({});
   const [cancelledList, setCancelledList] = useState<ConflictAppt[] | null>(null);
+
+  // Pending confirmation when disabling weekdays that have future appointments
+  const [dayOffConfirm, setDayOffConfirm] = useState<null | {
+    disabledDays: number[]; // day_of_week values (0..6)
+    appts: (ConflictAppt & { appointment_date: string; day_of_week: number })[];
+  }>(null);
+
 
   // load doctors
   useEffect(() => {
@@ -149,10 +158,12 @@ export default function DoctorSchedulePage() {
         };
       }
       setDays(next);
+      setOriginalActive(next.map((d) => d.active));
       setExceptions(excRes.data || []);
       setLoading(false);
     })();
   }, [selectedDoctorId, profile?.clinic_id]);
+
 
   const updateDay = (idx: number, patch: Partial<DayState>) => {
     setDays((prev) => prev.map((d, i) => (i === idx ? { ...d, ...patch } : d)));
@@ -192,22 +203,65 @@ export default function DoctorSchedulePage() {
       ),
     );
 
+  const persistSchedule = async () => {
+    if (!selectedDoctorId || !profile?.clinic_id) return;
+    const rows = days.map((d, idx) => ({
+      clinic_id: profile.clinic_id,
+      doctor_id: selectedDoctorId,
+      day_of_week: idx,
+      sessions: d.active ? d.sessions : [],
+      slot_duration_minutes: d.slot_duration_minutes,
+      is_active: d.active,
+    }));
+    const { error } = await (supabase as any)
+      .from("doctor_schedules")
+      .upsert(rows, { onConflict: "doctor_id,day_of_week" });
+    if (error) throw error;
+    setOriginalActive(days.map((d) => d.active));
+  };
+
   const handleSave = async () => {
     if (!selectedDoctorId || !profile?.clinic_id) return;
     setSaving(true);
     try {
-      const rows = days.map((d, idx) => ({
-        clinic_id: profile.clinic_id,
-        doctor_id: selectedDoctorId,
-        day_of_week: idx,
-        sessions: d.active ? d.sessions : [],
-        slot_duration_minutes: d.slot_duration_minutes,
-        is_active: d.active,
-      }));
-      const { error } = await (supabase as any)
-        .from("doctor_schedules")
-        .upsert(rows, { onConflict: "doctor_id,day_of_week" });
-      if (error) throw error;
+      // Detect weekdays flipped active -> inactive
+      const disabledDays: number[] = [];
+      for (let i = 0; i < 7; i++) {
+        if (originalActive[i] === true && days[i].active === false) disabledDays.push(i);
+      }
+
+      if (disabledDays.length > 0) {
+        const todayStr = format(new Date(), "yyyy-MM-dd");
+        const { data: futureAppts } = await supabase
+          .from("appointments")
+          .select("id, appointment_date, appointment_time, patients(id, name, phone)")
+          .eq("doctor_id", selectedDoctorId)
+          .gte("appointment_date", todayStr)
+          .in("status", ["scheduled", "confirmed"]);
+
+        const affected = ((futureAppts as any[]) ?? [])
+          .map((a) => {
+            const d = new Date(a.appointment_date + "T00:00:00");
+            // JS day: 0=Sun..6=Sat; DoW column: 0=Sun..6=Sat (matches)
+            const dow = d.getDay();
+            return {
+              id: a.id,
+              appointment_date: a.appointment_date,
+              appointment_time: a.appointment_time,
+              day_of_week: dow,
+              patient: Array.isArray(a.patients) ? a.patients[0] : a.patients,
+            };
+          })
+          .filter((a) => disabledDays.includes(a.day_of_week));
+
+        if (affected.length > 0) {
+          setDayOffConfirm({ disabledDays, appts: affected });
+          setSaving(false);
+          return;
+        }
+      }
+
+      await persistSchedule();
       toast.success("Schedule saved");
     } catch (err: any) {
       toast.error(err.message);
@@ -215,6 +269,56 @@ export default function DoctorSchedulePage() {
       setSaving(false);
     }
   };
+
+  const confirmDayOffAndSave = async () => {
+    if (!dayOffConfirm || !profile?.clinic_id) return;
+    setSaving(true);
+    try {
+      const ids = dayOffConfirm.appts.map((a) => a.id);
+      const dayNames = dayOffConfirm.disabledDays.map((d) => DAY_FULL[d]).join(", ");
+      if (ids.length > 0) {
+        await (supabase as any)
+          .from("appointments")
+          .update({
+            status: "cancelled",
+            notes: `Cancelled: Doctor no longer available on ${dayNames}`,
+          })
+          .in("id", ids);
+
+        // Also create call_logs so reception can inform patients
+        const nowIso = new Date().toISOString();
+        const callLogRows = dayOffConfirm.appts
+          .filter((a) => a.patient?.id)
+          .map((a) => ({
+            patient_id: a.patient!.id,
+            clinic_id: profile.clinic_id,
+            outcome: "no_answer",
+            notes: `Appointment cancelled: Doctor no longer available on ${DAY_FULL[a.day_of_week]}`,
+            source: "appointment_cancelled" as any,
+            called_at: nowIso,
+          }));
+        if (callLogRows.length > 0) {
+          await (supabase as any).from("call_logs").insert(callLogRows);
+        }
+      }
+      await persistSchedule();
+      setCancelledList(
+        dayOffConfirm.appts.map((a) => ({
+          id: a.id,
+          appointment_time: a.appointment_time,
+          patient: a.patient,
+        })),
+      );
+      setCalledMap({});
+      setDayOffConfirm(null);
+      toast.success(`Schedule saved · ${ids.length} appointment(s) cancelled`);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
 
   // Exceptions
   const refreshExceptions = async () => {
@@ -867,6 +971,53 @@ export default function DoctorSchedulePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Day-off confirmation (weekday turned off) */}
+      <Dialog
+        open={!!dayOffConfirm}
+        onOpenChange={(o) => {
+          if (!o) setDayOffConfirm(null);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              {dayOffConfirm?.appts.length} future appointment
+              {dayOffConfirm?.appts.length === 1 ? "" : "s"} affected
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Turning off {dayOffConfirm?.disabledDays.map((d) => DAY_FULL[d]).join(", ")} will cancel these appointments.
+          </p>
+          <div className="max-h-60 overflow-y-auto space-y-2">
+            {dayOffConfirm?.appts.map((a) => (
+              <div
+                key={a.id}
+                className="flex items-center gap-3 rounded-lg border border-border p-2 text-sm"
+              >
+                <div className="font-mono text-primary text-xs w-24 shrink-0">
+                  {a.appointment_date} {a.appointment_time?.substring(0, 5)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{a.patient?.name || "—"}</div>
+                  <div className="text-xs text-muted-foreground truncate">{a.patient?.phone || "no phone"}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDayOffConfirm(null)}>
+              Cancel & Go Back
+            </Button>
+            <Button variant="destructive" onClick={confirmDayOffAndSave} disabled={saving}>
+              {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+              Cancel Appointments & Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SettingsShell>
   );
 }
+
