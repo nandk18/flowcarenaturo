@@ -26,10 +26,12 @@ type Session = {
   completed_at: string | null;
   session_number: number | null;
   setup_photo_url?: string | null;
+  notes?: string | null;
   patients?: { id: string; first_name: string | null; last_name: string | null; name: string | null } | null;
   profiles?: { full_name: string | null; therapist_color: string | null } | null;
   treatment_plan_items?: { total_sessions: number | null } | null;
 };
+
 
 type Capacity = { service_id: string; service_name: string; max_per_day: number | null; booked_count: number; available: number; is_full: boolean; pct_full: number };
 type Idle = { patient_id: string; patient_name: string; idle_minutes: number };
