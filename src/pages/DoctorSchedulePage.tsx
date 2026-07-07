@@ -971,6 +971,53 @@ export default function DoctorSchedulePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Day-off confirmation (weekday turned off) */}
+      <Dialog
+        open={!!dayOffConfirm}
+        onOpenChange={(o) => {
+          if (!o) setDayOffConfirm(null);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              {dayOffConfirm?.appts.length} future appointment
+              {dayOffConfirm?.appts.length === 1 ? "" : "s"} affected
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Turning off {dayOffConfirm?.disabledDays.map((d) => DAY_FULL[d]).join(", ")} will cancel these appointments.
+          </p>
+          <div className="max-h-60 overflow-y-auto space-y-2">
+            {dayOffConfirm?.appts.map((a) => (
+              <div
+                key={a.id}
+                className="flex items-center gap-3 rounded-lg border border-border p-2 text-sm"
+              >
+                <div className="font-mono text-primary text-xs w-24 shrink-0">
+                  {a.appointment_date} {a.appointment_time?.substring(0, 5)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{a.patient?.name || "—"}</div>
+                  <div className="text-xs text-muted-foreground truncate">{a.patient?.phone || "no phone"}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDayOffConfirm(null)}>
+              Cancel & Go Back
+            </Button>
+            <Button variant="destructive" onClick={confirmDayOffAndSave} disabled={saving}>
+              {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+              Cancel Appointments & Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SettingsShell>
   );
 }
+
