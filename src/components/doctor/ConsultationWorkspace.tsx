@@ -109,8 +109,19 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
 
   // Template
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
-  const [activeSections, setActiveSections] = useState<string[]>(DEFAULT_SECTIONS);
+  const [activeSections, setActiveSections] = useState<string[]>(["formatted"]);
   const [isReformatting, setIsReformatting] = useState(false);
+  const [templateResolved, setTemplateResolved] = useState(false);
+
+  // Fallback: if no template resolves within 2s, default to freeform so the
+  // Notes tab never stays blank.
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setSelectedTemplate((prev: any) => prev ?? { id: "__freeform_fallback__", name: "Free-form", template_type: "freeform", sections: ["formatted"] });
+      setTemplateResolved(true);
+    }, 2000);
+    return () => clearTimeout(timeout);
+  }, []);
 
   // Doctor's enabled templates
   const [enabledTemplateNames, setEnabledTemplateNames] = useState<string[]>(["SOAP Notes"]);
