@@ -373,7 +373,7 @@ export default function AdminDashboard() {
       )}
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard icon={Calendar} label="Today's Appointments" value={appts.length} color="text-info" />
+        <StatCard icon={Calendar} label="Today's Appointments" value={activeAppts.length} color="text-info" />
         <StatCard icon={CheckCircle2} label="Completed" value={completedCount} color="text-success" />
         <StatCard icon={Clock} label="Pending" value={pendingCount} color="text-warning" />
         <StatCard icon={Users} label="Total Patients" value={totalPatients} color="text-primary" />
