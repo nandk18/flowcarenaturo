@@ -405,7 +405,18 @@ export default function TreatmentSchedule() {
                             </Button>
                           </div>
                         </div>
+                        <div className="mt-2">
+                          <Label className="text-[11px] text-muted-foreground">Notes for therapist (optional)</Label>
+                          <textarea
+                            className="mt-1 w-full rounded-md border bg-background p-2 text-xs"
+                            rows={2}
+                            placeholder="e.g. Pressure points on lower back, avoid neck…"
+                            value={i.notes ?? ""}
+                            onChange={(e) => updateNotes(idx, e.target.value)}
+                          />
+                        </div>
                       </div>
+
                     ))}
                     <div className="flex justify-between p-3 text-sm font-semibold">
                       <span>Plan total</span>
