@@ -151,10 +151,12 @@ export default function DoctorSchedulePage() {
         };
       }
       setDays(next);
+      setOriginalActive(next.map((d) => d.active));
       setExceptions(excRes.data || []);
       setLoading(false);
     })();
   }, [selectedDoctorId, profile?.clinic_id]);
+
 
   const updateDay = (idx: number, patch: Partial<DayState>) => {
     setDays((prev) => prev.map((d, i) => (i === idx ? { ...d, ...patch } : d)));
