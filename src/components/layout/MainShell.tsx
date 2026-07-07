@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
-import { Users, UserPlus, CalendarDays, Phone, Sun, Moon, Receipt, CheckSquare, HeartPulse, LayoutGrid, CalendarPlus, UsersRound } from "lucide-react";
+import { Users, UserPlus, CalendarDays, Phone, Sun, Moon, Receipt, CheckSquare, HeartPulse, LayoutGrid, CalendarPlus, UsersRound, FileText } from "lucide-react";
 import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
 import GlobalSearch from "./GlobalSearch";
