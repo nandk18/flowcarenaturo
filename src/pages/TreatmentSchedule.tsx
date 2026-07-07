@@ -23,7 +23,9 @@ type PlanItem = {
   sessions_per_visit: number;
   amount_per_session: number;
   scheduleToday: boolean;
+  notes?: string;
 };
+
 type Capacity = { service_id: string; service_name: string; max_per_day: number | null; booked_count: number; available: number; is_full: boolean; pct_full: number };
 
 function useDebounce<T>(value: T, delay = 300) {
