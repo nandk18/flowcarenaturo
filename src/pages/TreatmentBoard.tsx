@@ -422,6 +422,11 @@ function SessionRow({
             <div className="text-[11px] text-muted-foreground truncate">
               {sessLabel && `${sessLabel} · `}{s.profiles?.full_name ?? "Unassigned"}{s.room ? ` · ${s.room}` : ""}
             </div>
+            {s.notes && (
+              <div className="mt-1 rounded bg-amber-100/70 border border-amber-200 px-1.5 py-1 text-[11px] text-amber-900 line-clamp-2" title={s.notes}>
+                📝 {s.notes}
+              </div>
+            )}
           </div>
           <div className="flex flex-col gap-1">
             <Popover>
@@ -453,6 +458,7 @@ function SessionRow({
       </li>
     );
   }
+
   if (s.status === "in_progress") {
     return (
       <li className="rounded-lg border border-l-4 border-orange-500/60 bg-orange-500/5 p-2">
