@@ -137,6 +137,9 @@ export default function TreatmentSchedule() {
   const removeItem = (idx: number) => setItems(items.filter((_, i) => i !== idx));
   const toggleToday = (idx: number, v: boolean) =>
     setItems(items.map((it, i) => (i === idx ? { ...it, scheduleToday: v } : it)));
+  const updateNotes = (idx: number, v: string) =>
+    setItems(items.map((it, i) => (i === idx ? { ...it, notes: v } : it)));
+
 
   const total = useMemo(
     () => items.reduce((sum, i) => sum + i.total_sessions * i.amount_per_session, 0),
