@@ -90,7 +90,7 @@ export default function TreatmentBoard() {
       supabase
         .from("therapy_sessions")
         .select(
-          "id, patient_id, service_id, service_name, status, session_date, therapist_id, room, started_at, completed_at, session_number, setup_photo_url, patients(id, first_name, last_name, name), profiles:therapist_id(full_name, therapist_color), treatment_plan_items(total_sessions)"
+          "id, patient_id, service_id, service_name, status, session_date, therapist_id, room, started_at, completed_at, session_number, setup_photo_url, notes, patients(id, first_name, last_name, name), profiles:therapist_id(full_name, therapist_color), treatment_plan_items(total_sessions)"
         )
         .eq("clinic_id", clinicId)
         .eq("session_date", today)
