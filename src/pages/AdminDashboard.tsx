@@ -190,18 +190,21 @@ export default function AdminDashboard() {
     [txSessions],
   );
 
+  // Exclude cancelled from Consult/Treatment lists and top-level counts.
+  const activeAppts = useMemo(() => appts.filter((a) => a.status !== "cancelled"), [appts]);
+
   const { consultAppts, treatmentAppts } = useMemo(() => {
     const c: Appt[] = [];
     const t: Appt[] = [];
-    for (const a of appts) {
+    for (const a of activeAppts) {
       if (classifyAppt(a) === "treatment") t.push(a);
       else c.push(a);
     }
     return { consultAppts: c, treatmentAppts: t };
-  }, [appts]);
+  }, [activeAppts]);
 
-  const completedCount = appts.filter((a) => a.status === "completed").length;
-  const pendingCount = appts.filter((a) => a.status === "scheduled" || a.status === "confirmed").length;
+  const completedCount = activeAppts.filter((a) => a.status === "completed").length;
+  const pendingCount = activeAppts.filter((a) => a.status === "scheduled" || a.status === "confirmed").length;
 
   // Determine display status for consult flow
   const getDisplay = (appt: Appt): DisplayStatus => {
