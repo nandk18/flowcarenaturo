@@ -368,8 +368,6 @@ export default function AdminDashboard() {
           <Button size="sm" variant="outline" onClick={() => { setLoading(true); void fetchAll(); }}>Retry</Button>
         </div>
       )}
-      <div className="hidden">
-        {/* placeholder */}
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard icon={Calendar} label="Today's Appointments" value={appts.length} color="text-info" />
