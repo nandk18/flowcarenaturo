@@ -43,6 +43,8 @@ type Visit = {
   status: string;
 };
 
+type TxSession = { appointment_id: string | null; status: string };
+
 type DisplayStatus = "waiting" | "scheduled" | "in_progress" | "completed" | "cancelled";
 
 const statusStyle = (s: DisplayStatus) => {
@@ -82,9 +84,11 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [appts, setAppts] = useState<Appt[]>([]);
   const [visitsToday, setVisitsToday] = useState<Visit[]>([]);
+  const [txSessions, setTxSessions] = useState<TxSession[]>([]);
   const [totalPatients, setTotalPatients] = useState(0);
   const [bookOpen, setBookOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [mode, setMode] = useState<"consult" | "treatment">("consult");
 
   // Modals for consult actions
@@ -95,34 +99,48 @@ export default function AdminDashboard() {
 
   const fetchAll = useCallback(async () => {
     if (!profile?.clinic_id) return;
-    const [a, v, p] = await Promise.all([
-      supabase
-        .from("appointments")
-        .select("id, clinic_id, appointment_date, appointment_time, status, reason, notes, patient_id, doctor_id, patients(id, name, phone), doctors(name), appointment_services(service_id, invoice_services(id, name, service_type, amount))")
-        .eq("clinic_id", profile.clinic_id)
-        .eq("appointment_date", today)
-        .order("appointment_time"),
-      supabase
-        .from("visits")
-        .select("id, patient_id, status")
-        .eq("clinic_id", profile.clinic_id)
-        .eq("visit_date", today),
-      supabase.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", profile.clinic_id),
-    ]);
-    setAppts(
-      (a.data ?? []).map((x: any) => ({
-        ...x,
-        patient: Array.isArray(x.patients) ? x.patients[0] : x.patients,
-        doctor: Array.isArray(x.doctors) ? x.doctors[0] : x.doctors,
-        services: (x.appointment_services ?? []).map((s: any) => ({
-          service_id: s.service_id,
-          invoice_services: Array.isArray(s.invoice_services) ? s.invoice_services[0] : s.invoice_services,
+    try {
+      setFetchError(null);
+      const [a, v, p, ts] = await Promise.all([
+        supabase
+          .from("appointments")
+          .select("id, clinic_id, appointment_date, appointment_time, status, reason, notes, patient_id, doctor_id, patients(id, name, phone), doctors(name), appointment_services(service_id, invoice_services(id, name, service_type, amount))")
+          .eq("clinic_id", profile.clinic_id)
+          .eq("appointment_date", today)
+          .order("appointment_time"),
+        supabase
+          .from("visits")
+          .select("id, patient_id, status")
+          .eq("clinic_id", profile.clinic_id)
+          .eq("visit_date", today),
+        supabase.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", profile.clinic_id),
+        supabase
+          .from("therapy_sessions")
+          .select("appointment_id, status")
+          .eq("clinic_id", profile.clinic_id)
+          .eq("session_date", today),
+      ]);
+      if (a.error) throw a.error;
+      setAppts(
+        (a.data ?? []).map((x: any) => ({
+          ...x,
+          patient: Array.isArray(x.patients) ? x.patients[0] : x.patients,
+          doctor: Array.isArray(x.doctors) ? x.doctors[0] : x.doctors,
+          services: (x.appointment_services ?? []).map((s: any) => ({
+            service_id: s.service_id,
+            invoice_services: Array.isArray(s.invoice_services) ? s.invoice_services[0] : s.invoice_services,
+          })),
         })),
-      })),
-    );
-    setVisitsToday((v.data ?? []) as Visit[]);
-    setTotalPatients(p.count ?? 0);
-    setLoading(false);
+      );
+      setVisitsToday((v.data ?? []) as Visit[]);
+      setTxSessions((ts.data ?? []) as TxSession[]);
+      setTotalPatients(p.count ?? 0);
+    } catch (err: any) {
+      console.error("[AdminDashboard fetchAll]", err);
+      setFetchError(err?.message || "Failed to load dashboard");
+    } finally {
+      setLoading(false);
+    }
   }, [profile?.clinic_id, today]);
 
   useEffect(() => {
@@ -143,24 +161,50 @@ export default function AdminDashboard() {
         { event: "*", schema: "public", table: "visits", filter: `clinic_id=eq.${profile.clinic_id}` },
         () => fetchAll(),
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "therapy_sessions", filter: `clinic_id=eq.${profile.clinic_id}` },
+        () => fetchAll(),
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
   }, [profile?.clinic_id, fetchAll]);
 
+  // Treatment display: 'completed' if all sessions completed, 'in_progress' if any in_progress,
+  // 'booked' otherwise (no sessions yet or all not_started).
+  const getTxDisplay = useCallback(
+    (a: Appt): "booked" | "in_progress" | "completed" | "cancelled" => {
+      if (a.status === "cancelled") return "cancelled";
+      const rows = txSessions.filter((s) => s.appointment_id === a.id);
+      if (rows.length > 0) {
+        if (rows.every((s) => s.status === "completed")) return "completed";
+        if (rows.some((s) => s.status === "in_progress")) return "in_progress";
+        if (rows.some((s) => s.status !== "cancelled")) return "in_progress";
+      }
+      if (a.status === "completed") return "completed";
+      if (a.status === "in_progress") return "in_progress";
+      return "booked";
+    },
+    [txSessions],
+  );
+
+  // Exclude cancelled from Consult/Treatment lists and top-level counts.
+  const activeAppts = useMemo(() => appts.filter((a) => a.status !== "cancelled"), [appts]);
+
   const { consultAppts, treatmentAppts } = useMemo(() => {
     const c: Appt[] = [];
     const t: Appt[] = [];
-    for (const a of appts) {
+    for (const a of activeAppts) {
       if (classifyAppt(a) === "treatment") t.push(a);
       else c.push(a);
     }
     return { consultAppts: c, treatmentAppts: t };
-  }, [appts]);
+  }, [activeAppts]);
 
-  const completedCount = appts.filter((a) => a.status === "completed").length;
-  const pendingCount = appts.filter((a) => a.status === "scheduled" || a.status === "confirmed").length;
+  const completedCount = activeAppts.filter((a) => a.status === "completed").length;
+  const pendingCount = activeAppts.filter((a) => a.status === "scheduled" || a.status === "confirmed").length;
 
   // Determine display status for consult flow
   const getDisplay = (appt: Appt): DisplayStatus => {
@@ -243,15 +287,24 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Fetch active plan items for this patient, matching the selected services
+    // Fetch active plan items for this patient (two-step for reliability)
     const svcIds = treatmentServices.map((s) => s.service_id);
-    const { data: planItems } = await supabase
-      .from("treatment_plan_items")
-      .select("id, treatment_plan_id, service_id, total_sessions, sessions_scheduled, sessions_completed, notes, treatment_plans!inner(id, patient_id, status)")
-      .in("service_id", svcIds)
+    const { data: activePlans } = await supabase
+      .from("treatment_plans")
+      .select("id")
+      .eq("patient_id", appt.patient_id)
       .eq("clinic_id", profile.clinic_id)
-      .eq("treatment_plans.patient_id", appt.patient_id)
-      .eq("treatment_plans.status", "active");
+      .eq("status", "active");
+    const planIds = (activePlans ?? []).map((p: any) => p.id);
+    let planItems: any[] = [];
+    if (planIds.length > 0) {
+      const { data } = await supabase
+        .from("treatment_plan_items")
+        .select("id, treatment_plan_id, service_id, service_name, total_sessions, sessions_scheduled, sessions_completed, notes")
+        .in("treatment_plan_id", planIds)
+        .in("service_id", svcIds);
+      planItems = (data ?? []) as any[];
+    }
 
     const availableByService = new Map<string, any[]>();
     for (const pi of (planItems as any[]) ?? []) {
@@ -321,8 +374,15 @@ export default function AdminDashboard() {
         <p className="text-sm text-muted-foreground">Today's appointments and consultations</p>
       </div>
 
+      {fetchError && (
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm">
+          <span className="text-destructive">Failed to load: {fetchError}</span>
+          <Button size="sm" variant="outline" onClick={() => { setLoading(true); void fetchAll(); }}>Retry</Button>
+        </div>
+      )}
+
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard icon={Calendar} label="Today's Appointments" value={appts.length} color="text-info" />
+        <StatCard icon={Calendar} label="Today's Appointments" value={activeAppts.length} color="text-info" />
         <StatCard icon={CheckCircle2} label="Completed" value={completedCount} color="text-success" />
         <StatCard icon={Clock} label="Pending" value={pendingCount} color="text-warning" />
         <StatCard icon={Users} label="Total Patients" value={totalPatients} color="text-primary" />
@@ -368,6 +428,7 @@ export default function AdminDashboard() {
         <TreatmentTabs
           appts={treatmentAppts}
           loading={loading}
+          getTxDisplay={getTxDisplay}
           onStartTreatment={startTreatment}
           onCancel={setCancelAppt}
           onReschedule={setRescheduleAppt}
@@ -577,6 +638,7 @@ function ConsultationTabs({
 function TreatmentTabs({
   appts,
   loading,
+  getTxDisplay,
   onStartTreatment,
   onCancel,
   onReschedule,
@@ -585,6 +647,7 @@ function TreatmentTabs({
 }: {
   appts: Appt[];
   loading: boolean;
+  getTxDisplay: (a: Appt) => "booked" | "in_progress" | "completed" | "cancelled";
   onStartTreatment: (a: Appt) => void;
   onCancel: (a: Appt) => void;
   onReschedule: (a: Appt) => void;
@@ -592,8 +655,11 @@ function TreatmentTabs({
   onView: (a: Appt) => void;
 }) {
   const [tab, setTab] = useState<"active" | "completed">("active");
-  const active = appts.filter((a) => a.status === "scheduled" || a.status === "confirmed" || a.status === "in_progress");
-  const completed = appts.filter((a) => a.status === "completed");
+  const active = appts.filter((a) => {
+    const d = getTxDisplay(a);
+    return d === "booked" || d === "in_progress";
+  });
+  const completed = appts.filter((a) => getTxDisplay(a) === "completed");
   const list = tab === "active" ? active : completed;
 
   return (
@@ -631,9 +697,10 @@ function TreatmentTabs({
             const svcNames = (appt.services ?? [])
               .map((s) => s.invoice_services?.name)
               .filter(Boolean) as string[];
-            const isInProgress = appt.status === "in_progress";
-            const isCompleted = appt.status === "completed";
-            const canModify = !isInProgress && !isCompleted;
+            const display = getTxDisplay(appt);
+            const isInProgress = display === "in_progress";
+            const isCompleted = display === "completed";
+            const canModify = display === "booked";
             return (
               <Card key={appt.id} className="shadow-card">
                 <CardContent className="flex items-center gap-3 p-3">

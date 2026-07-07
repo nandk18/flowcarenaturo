@@ -34,6 +34,7 @@ import OpeningChecklistPage from "./pages/OpeningChecklistPage";
 import ClosingChecklistPage from "./pages/ClosingChecklistPage";
 import ExpenseListPage from "./pages/ExpenseListPage";
 import TodoListPage from "./pages/TodoListPage";
+import PendingInvoicesPage from "./pages/PendingInvoicesPage";
 import PatientImportPage from "./pages/PatientImportPage";
 import PatientFormPublic from "./pages/PatientFormPublic";
 import NotificationsPage from "./pages/NotificationsPage";
@@ -329,6 +330,7 @@ function AppRoutes() {
       <Route path="/tasks/closing-checklist" element={<ClosingChecklistPage />} />
       <Route path="/tasks/expense-list" element={<ExpenseListPage />} />
       <Route path="/tasks/todo-list" element={<TodoListPage />} />
+      <Route path="/tasks/pending-invoices" element={<PendingInvoicesPage />} />
       <Route path="/tasks" element={<Navigate to="/tasks/call-task" replace />} />
 
       {/* Billing detail (reachable from Settings → Billing) */}
