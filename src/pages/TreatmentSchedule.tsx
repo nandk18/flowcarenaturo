@@ -125,7 +125,9 @@ export default function TreatmentSchedule() {
       sessions_per_visit: Math.max(1, pPer),
       amount_per_session: Number(pickedSvc.amount),
       scheduleToday: true,
+      notes: "",
     }]);
+
     setPickedSvc(null);
     setSvcQuery("");
     setPTotal(6);
