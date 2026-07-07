@@ -128,17 +128,52 @@ export default function BillingConfigPage() {
       .slice(-30);
   }, [payments]);
 
-  const exportCsv = () => {
-    if (invoices.length === 0) { toast.error("No invoices to export"); return; }
+  const filteredInvoices = useMemo(
+    () => (statusFilter === "all" ? invoices : invoices.filter((i) => i.status === statusFilter)),
+    [invoices, statusFilter],
+  );
+
+  const exportCsv = async () => {
+    if (filteredInvoices.length === 0) { toast.error("No invoices to export"); return; }
+    // Fetch per-invoice payment breakdown for UPI/Cash columns
+    const invoiceIds = filteredInvoices.map((i) => i.id);
+    const { data: pays } = await supabase
+      .from("payments")
+      .select("invoice_id, amount, payment_method")
+      .in("invoice_id", invoiceIds);
+    const byInv = new Map<string, { upi: number; cash: number }>();
+    (pays ?? []).forEach((p: any) => {
+      const cur = byInv.get(p.invoice_id) ?? { upi: 0, cash: 0 };
+      const m = String(p.payment_method || "").toLowerCase();
+      if (m.includes("upi")) cur.upi += Number(p.amount);
+      else if (m.includes("cash")) cur.cash += Number(p.amount);
+      byInv.set(p.invoice_id, cur);
+    });
+
+    let totalUpi = 0;
+    let totalCash = 0;
+    let grand = 0;
+
+    const dataRows = filteredInvoices.map((inv) => {
+      const b = byInv.get(inv.id) ?? { upi: 0, cash: 0 };
+      totalUpi += b.upi;
+      totalCash += b.cash;
+      grand += Number(inv.total_amount);
+      return [
+        inv.invoice_number, inv.invoice_date,
+        inv.patients?.name || "", inv.patients?.healthcare_id || "",
+        inv.total_amount, inv.paid_amount, inv.outstanding_amount, inv.status,
+        b.upi.toFixed(2), b.cash.toFixed(2),
+      ].map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",");
+    });
+
     const rows = [
-      ["Invoice #", "Date", "Patient", "Healthcare ID", "Total", "Paid", "Outstanding", "Status"].join(","),
-      ...invoices.map((inv) =>
-        [
-          inv.invoice_number, inv.invoice_date,
-          inv.patients?.name || "", inv.patients?.healthcare_id || "",
-          inv.total_amount, inv.paid_amount, inv.outstanding_amount, inv.status,
-        ].map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")
-      ),
+      ["Invoice #", "Date", "Patient", "Healthcare ID", "Total", "Paid", "Outstanding", "Status", "UPI", "Cash"].join(","),
+      ...dataRows,
+      "",
+      `"TOTAL UPI","","","","","","","","${totalUpi.toFixed(2)}",""`,
+      `"TOTAL CASH","","","","","","","","","${totalCash.toFixed(2)}"`,
+      `"GRAND TOTAL","","","","${grand.toFixed(2)}","","","","",""`,
     ].join("\n");
     const blob = new Blob(["\uFEFF" + rows], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -148,7 +183,7 @@ export default function BillingConfigPage() {
     document.body.appendChild(a);
     a.click();
     setTimeout(() => { if (a.parentNode) document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
-    toast.success(`Exported ${invoices.length} invoices`);
+    toast.success(`Exported ${filteredInvoices.length} invoices`);
   };
 
   const handleSaveConfig = async () => {
