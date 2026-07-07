@@ -244,6 +244,21 @@ export default function BillingConfigPage() {
               <Label className="text-xs">To</Label>
               <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
             </div>
+            <div>
+              <Label className="text-xs">Status</Label>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                  <SelectItem value="partially_paid">Partially paid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-xs text-muted-foreground pb-2">
+              {filteredInvoices.length} of {invoices.length} shown
+            </div>
             <Button variant="outline" size="sm" onClick={exportCsv}>
               <Download className="w-3 h-3 mr-1" /> Export CSV
             </Button>
