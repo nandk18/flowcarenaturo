@@ -66,7 +66,7 @@ export default function TherapistApp() {
     const [s, i] = await Promise.all([
       supabase
         .from("therapy_sessions")
-        .select("id, patient_id, service_id, service_name, status, therapist_id, room, session_number, started_at, completed_at, setup_photo_url, patients(id, first_name, last_name, name), treatment_plan_items(total_sessions)")
+        .select("id, patient_id, service_id, service_name, status, therapist_id, room, session_number, started_at, completed_at, setup_photo_url, notes, patients(id, first_name, last_name, name), treatment_plan_items(total_sessions)")
         .eq("clinic_id", clinicId)
         .eq("session_date", today)
         .or(`therapist_id.eq.${therapist.id},therapist_id.is.null`)
