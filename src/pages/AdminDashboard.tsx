@@ -362,6 +362,15 @@ export default function AdminDashboard() {
         <p className="text-sm text-muted-foreground">Today's appointments and consultations</p>
       </div>
 
+      {fetchError && (
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm">
+          <span className="text-destructive">Failed to load: {fetchError}</span>
+          <Button size="sm" variant="outline" onClick={() => { setLoading(true); void fetchAll(); }}>Retry</Button>
+        </div>
+      )}
+      <div className="hidden">
+        {/* placeholder */}
+
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard icon={Calendar} label="Today's Appointments" value={appts.length} color="text-info" />
         <StatCard icon={CheckCircle2} label="Completed" value={completedCount} color="text-success" />
