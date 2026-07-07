@@ -161,11 +161,34 @@ export default function AdminDashboard() {
         { event: "*", schema: "public", table: "visits", filter: `clinic_id=eq.${profile.clinic_id}` },
         () => fetchAll(),
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "therapy_sessions", filter: `clinic_id=eq.${profile.clinic_id}` },
+        () => fetchAll(),
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
   }, [profile?.clinic_id, fetchAll]);
+
+  // Treatment display: 'completed' if all sessions completed, 'in_progress' if any in_progress,
+  // 'booked' otherwise (no sessions yet or all not_started).
+  const getTxDisplay = useCallback(
+    (a: Appt): "booked" | "in_progress" | "completed" | "cancelled" => {
+      if (a.status === "cancelled") return "cancelled";
+      const rows = txSessions.filter((s) => s.appointment_id === a.id);
+      if (rows.length > 0) {
+        if (rows.every((s) => s.status === "completed")) return "completed";
+        if (rows.some((s) => s.status === "in_progress")) return "in_progress";
+        if (rows.some((s) => s.status !== "cancelled")) return "in_progress";
+      }
+      if (a.status === "completed") return "completed";
+      if (a.status === "in_progress") return "in_progress";
+      return "booked";
+    },
+    [txSessions],
+  );
 
   const { consultAppts, treatmentAppts } = useMemo(() => {
     const c: Appt[] = [];
