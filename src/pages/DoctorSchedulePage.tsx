@@ -76,8 +76,10 @@ export default function DoctorSchedulePage() {
   const [days, setDays] = useState<DayState[]>(
     Array.from({ length: 7 }, emptyDay),
   );
+  const [originalActive, setOriginalActive] = useState<boolean[]>(Array.from({ length: 7 }, () => false));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
 
   const [exceptions, setExceptions] = useState<Exception[]>([]);
   const [excDialogOpen, setExcDialogOpen] = useState(false);
