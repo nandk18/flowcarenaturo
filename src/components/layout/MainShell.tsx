@@ -88,6 +88,12 @@ export default function MainShell({
         { to: "/tasks/closing-checklist", icon: Moon, label: "Closing Checklist" },
         { to: "/tasks/expense-list", icon: Receipt, label: "Expense List" },
         { to: "/tasks/todo-list", icon: CheckSquare, label: "To Do List" },
+        {
+          to: "/tasks/pending-invoices",
+          icon: FileText,
+          label: "Pending Invoices",
+          badge: pendingInvoiceCount > 0 ? String(pendingInvoiceCount) : undefined,
+        },
       ],
     },
     ...(treatmentEnabled ? [{
