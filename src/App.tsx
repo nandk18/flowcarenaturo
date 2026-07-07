@@ -34,6 +34,7 @@ import OpeningChecklistPage from "./pages/OpeningChecklistPage";
 import ClosingChecklistPage from "./pages/ClosingChecklistPage";
 import ExpenseListPage from "./pages/ExpenseListPage";
 import TodoListPage from "./pages/TodoListPage";
+import PendingInvoicesPage from "./pages/PendingInvoicesPage";
 import PatientImportPage from "./pages/PatientImportPage";
 import PatientFormPublic from "./pages/PatientFormPublic";
 import NotificationsPage from "./pages/NotificationsPage";
