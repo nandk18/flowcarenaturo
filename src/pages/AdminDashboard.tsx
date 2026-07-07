@@ -416,6 +416,7 @@ export default function AdminDashboard() {
         <TreatmentTabs
           appts={treatmentAppts}
           loading={loading}
+          getTxDisplay={getTxDisplay}
           onStartTreatment={startTreatment}
           onCancel={setCancelAppt}
           onReschedule={setRescheduleAppt}
