@@ -287,15 +287,24 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Fetch active plan items for this patient, matching the selected services
+    // Fetch active plan items for this patient (two-step for reliability)
     const svcIds = treatmentServices.map((s) => s.service_id);
-    const { data: planItems } = await supabase
-      .from("treatment_plan_items")
-      .select("id, treatment_plan_id, service_id, total_sessions, sessions_scheduled, sessions_completed, notes, treatment_plans!inner(id, patient_id, status)")
-      .in("service_id", svcIds)
+    const { data: activePlans } = await supabase
+      .from("treatment_plans")
+      .select("id")
+      .eq("patient_id", appt.patient_id)
       .eq("clinic_id", profile.clinic_id)
-      .eq("treatment_plans.patient_id", appt.patient_id)
-      .eq("treatment_plans.status", "active");
+      .eq("status", "active");
+    const planIds = (activePlans ?? []).map((p: any) => p.id);
+    let planItems: any[] = [];
+    if (planIds.length > 0) {
+      const { data } = await supabase
+        .from("treatment_plan_items")
+        .select("id, treatment_plan_id, service_id, service_name, total_sessions, sessions_scheduled, sessions_completed, notes")
+        .in("treatment_plan_id", planIds)
+        .in("service_id", svcIds);
+      planItems = (data ?? []) as any[];
+    }
 
     const availableByService = new Map<string, any[]>();
     for (const pi of (planItems as any[]) ?? []) {
