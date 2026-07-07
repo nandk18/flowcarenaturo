@@ -31,6 +31,7 @@ export default function BillingConfigPage() {
   const [payments, setPayments] = useState<any[]>([]);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "unpaid" | "partially_paid">("all");
 
   // Configuration form state
   const [gstNumber, setGstNumber] = useState("");
