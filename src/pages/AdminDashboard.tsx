@@ -43,6 +43,8 @@ type Visit = {
   status: string;
 };
 
+type TxSession = { appointment_id: string | null; status: string };
+
 type DisplayStatus = "waiting" | "scheduled" | "in_progress" | "completed" | "cancelled";
 
 const statusStyle = (s: DisplayStatus) => {
@@ -82,9 +84,11 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [appts, setAppts] = useState<Appt[]>([]);
   const [visitsToday, setVisitsToday] = useState<Visit[]>([]);
+  const [txSessions, setTxSessions] = useState<TxSession[]>([]);
   const [totalPatients, setTotalPatients] = useState(0);
   const [bookOpen, setBookOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [mode, setMode] = useState<"consult" | "treatment">("consult");
 
   // Modals for consult actions
@@ -95,34 +99,48 @@ export default function AdminDashboard() {
 
   const fetchAll = useCallback(async () => {
     if (!profile?.clinic_id) return;
-    const [a, v, p] = await Promise.all([
-      supabase
-        .from("appointments")
-        .select("id, clinic_id, appointment_date, appointment_time, status, reason, notes, patient_id, doctor_id, patients(id, name, phone), doctors(name), appointment_services(service_id, invoice_services(id, name, service_type, amount))")
-        .eq("clinic_id", profile.clinic_id)
-        .eq("appointment_date", today)
-        .order("appointment_time"),
-      supabase
-        .from("visits")
-        .select("id, patient_id, status")
-        .eq("clinic_id", profile.clinic_id)
-        .eq("visit_date", today),
-      supabase.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", profile.clinic_id),
-    ]);
-    setAppts(
-      (a.data ?? []).map((x: any) => ({
-        ...x,
-        patient: Array.isArray(x.patients) ? x.patients[0] : x.patients,
-        doctor: Array.isArray(x.doctors) ? x.doctors[0] : x.doctors,
-        services: (x.appointment_services ?? []).map((s: any) => ({
-          service_id: s.service_id,
-          invoice_services: Array.isArray(s.invoice_services) ? s.invoice_services[0] : s.invoice_services,
+    try {
+      setFetchError(null);
+      const [a, v, p, ts] = await Promise.all([
+        supabase
+          .from("appointments")
+          .select("id, clinic_id, appointment_date, appointment_time, status, reason, notes, patient_id, doctor_id, patients(id, name, phone), doctors(name), appointment_services(service_id, invoice_services(id, name, service_type, amount))")
+          .eq("clinic_id", profile.clinic_id)
+          .eq("appointment_date", today)
+          .order("appointment_time"),
+        supabase
+          .from("visits")
+          .select("id, patient_id, status")
+          .eq("clinic_id", profile.clinic_id)
+          .eq("visit_date", today),
+        supabase.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", profile.clinic_id),
+        supabase
+          .from("therapy_sessions")
+          .select("appointment_id, status")
+          .eq("clinic_id", profile.clinic_id)
+          .eq("session_date", today),
+      ]);
+      if (a.error) throw a.error;
+      setAppts(
+        (a.data ?? []).map((x: any) => ({
+          ...x,
+          patient: Array.isArray(x.patients) ? x.patients[0] : x.patients,
+          doctor: Array.isArray(x.doctors) ? x.doctors[0] : x.doctors,
+          services: (x.appointment_services ?? []).map((s: any) => ({
+            service_id: s.service_id,
+            invoice_services: Array.isArray(s.invoice_services) ? s.invoice_services[0] : s.invoice_services,
+          })),
         })),
-      })),
-    );
-    setVisitsToday((v.data ?? []) as Visit[]);
-    setTotalPatients(p.count ?? 0);
-    setLoading(false);
+      );
+      setVisitsToday((v.data ?? []) as Visit[]);
+      setTxSessions((ts.data ?? []) as TxSession[]);
+      setTotalPatients(p.count ?? 0);
+    } catch (err: any) {
+      console.error("[AdminDashboard fetchAll]", err);
+      setFetchError(err?.message || "Failed to load dashboard");
+    } finally {
+      setLoading(false);
+    }
   }, [profile?.clinic_id, today]);
 
   useEffect(() => {
