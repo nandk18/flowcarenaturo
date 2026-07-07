@@ -330,6 +330,7 @@ function AppRoutes() {
       <Route path="/tasks/closing-checklist" element={<ClosingChecklistPage />} />
       <Route path="/tasks/expense-list" element={<ExpenseListPage />} />
       <Route path="/tasks/todo-list" element={<TodoListPage />} />
+      <Route path="/tasks/pending-invoices" element={<PendingInvoicesPage />} />
       <Route path="/tasks" element={<Navigate to="/tasks/call-task" replace />} />
 
       {/* Billing detail (reachable from Settings → Billing) */}
