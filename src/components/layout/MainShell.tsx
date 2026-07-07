@@ -19,13 +19,14 @@ export default function MainShell({
   const clinicId = profile?.clinic_id;
   const { enabled: treatmentEnabled } = useTreatmentEnabled();
   const [careCallCount, setCareCallCount] = useState(0);
+  const [pendingInvoiceCount, setPendingInvoiceCount] = useState(0);
 
   useEffect(() => {
     if (!clinicId) return;
     let cancelled = false;
     const fetchCount = async () => {
       const sevenAgoIso = new Date(Date.now() - 7 * 86400_000).toISOString();
-      const [careRes, cancelRes] = await Promise.all([
+      const [careRes, cancelRes, invRes] = await Promise.all([
         (supabase as any)
           .from("appointments")
           .select("id", { count: "exact", head: true })
@@ -38,11 +39,19 @@ export default function MainShell({
           .eq("clinic_id", clinicId)
           .eq("source", "appointment_cancelled")
           .gte("called_at", sevenAgoIso),
+        (supabase as any)
+          .from("invoices")
+          .select("id", { count: "exact", head: true })
+          .eq("clinic_id", clinicId)
+          .in("status", ["unpaid", "partially_paid"]),
       ]);
       const cancelPending = ((cancelRes.data ?? []) as any[]).filter(
         (r) => !/^\[informed:/.test(r.notes ?? ""),
       ).length;
-      if (!cancelled) setCareCallCount((careRes.count ?? 0) + cancelPending);
+      if (!cancelled) {
+        setCareCallCount((careRes.count ?? 0) + cancelPending);
+        setPendingInvoiceCount(invRes.count ?? 0);
+      }
     };
     fetchCount();
     const interval = setInterval(fetchCount, 60_000);
