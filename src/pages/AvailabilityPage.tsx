@@ -414,10 +414,10 @@ function MonthView({
               </div>
               <div className="flex-1 space-y-0.5 overflow-hidden">
                 {items.slice(0, 3).map((a) => (
-                  <div key={a.id} className="flex items-center gap-1 truncate rounded bg-background/70 px-1 py-0.5">
+                  <div key={a.id} className={cn("flex items-center gap-1 truncate rounded bg-background/70 px-1 py-0.5", a.status === "cancelled" && "opacity-60") }>
                     <span className={cn("h-1.5 w-1.5 rounded-full", statusDot[a.status] ?? "bg-muted-foreground")} />
                     <span className="font-mono">{a.appointment_time?.substring(0, 5)}</span>
-                    <span className="truncate">
+                    <span className={cn("truncate", a.status === "cancelled" && "line-through text-muted-foreground")}>
                       {a.patient?.name ?? "—"}
                       {a.services && a.services.length > 0 && (
                         <span className="text-muted-foreground"> · {a.services.slice(0, 2).join(", ")}</span>
@@ -426,6 +426,7 @@ function MonthView({
                   </div>
                 ))}
                 {items.length > 3 && <div className="text-[10px] text-muted-foreground">+{items.length - 3} more</div>}
+
               </div>
             </button>
           );
