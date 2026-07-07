@@ -109,8 +109,19 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
 
   // Template
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
-  const [activeSections, setActiveSections] = useState<string[]>(DEFAULT_SECTIONS);
+  const [activeSections, setActiveSections] = useState<string[]>(["formatted"]);
   const [isReformatting, setIsReformatting] = useState(false);
+  const [templateResolved, setTemplateResolved] = useState(false);
+
+  // Fallback: if no template resolves within 2s, default to freeform so the
+  // Notes tab never stays blank.
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setSelectedTemplate((prev: any) => prev ?? { id: "__freeform_fallback__", name: "Free-form", template_type: "freeform", sections: ["formatted"] });
+      setTemplateResolved(true);
+    }, 2000);
+    return () => clearTimeout(timeout);
+  }, []);
 
   // Doctor's enabled templates
   const [enabledTemplateNames, setEnabledTemplateNames] = useState<string[]>(["SOAP Notes"]);
@@ -200,6 +211,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
     t?.template_type === "freeform" || (typeof t?.name === "string" && t.name.toLowerCase().includes("free"));
 
   const handleTemplateChange = async (template: any) => {
+    setTemplateResolved(true);
     // No-op if the same template is re-selected (prevents remount side-effects
     // like re-merging freeform content and re-adding label prefixes on tab switches).
     if (template?.id && template.id === selectedTemplate?.id) {
@@ -652,8 +664,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
   }
 
   function renderSoap() {
-    const isFreeform = isFreeformTemplate(selectedTemplate);
-    const templateLoaded = !!selectedTemplate;
+    const isFreeform = !selectedTemplate || isFreeformTemplate(selectedTemplate);
     return (
       <Card className="rounded-2xl border-0 shadow-sm">
         <CardContent className="space-y-4 p-6">
@@ -671,7 +682,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
               <Loader2 className="w-5 h-5 animate-spin" />
               <span className="text-sm font-medium">Reformatting notes to {selectedTemplate?.name || "new template"}...</span>
             </div>
-          ) : !templateLoaded ? (
+          ) : !templateResolved && !selectedTemplate ? (
             <div className="space-y-3 py-4">
               <div className="h-4 w-32 rounded bg-muted animate-pulse" />
               <div className="h-[300px] rounded-lg bg-muted/50 animate-pulse" />
