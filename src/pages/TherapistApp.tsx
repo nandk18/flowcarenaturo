@@ -290,6 +290,15 @@ function SessionCard({
           {s.status === "in_progress" && s.started_at && ` · started ${format(new Date(s.started_at), "h:mm a")}`}
         </div>
 
+        {s.notes && s.status !== "completed" && (
+          <div className="rounded-md border border-amber-300 bg-amber-100/70 p-2 text-xs text-amber-900">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-800 mb-0.5">Notes from admin</div>
+            <div className="whitespace-pre-wrap">{s.notes}</div>
+          </div>
+        )}
+
+
+
         {s.setup_photo_url && (
           <img src={s.setup_photo_url} alt="setup" className="h-20 w-full rounded-md object-cover" />
         )}
