@@ -102,6 +102,13 @@ export default function DoctorSchedulePage() {
   const [calledMap, setCalledMap] = useState<Record<string, boolean>>({});
   const [cancelledList, setCancelledList] = useState<ConflictAppt[] | null>(null);
 
+  // Pending confirmation when disabling weekdays that have future appointments
+  const [dayOffConfirm, setDayOffConfirm] = useState<null | {
+    disabledDays: number[]; // day_of_week values (0..6)
+    appts: (ConflictAppt & { appointment_date: string; day_of_week: number })[];
+  }>(null);
+
+
   // load doctors
   useEffect(() => {
     if (!profile?.clinic_id) return;
