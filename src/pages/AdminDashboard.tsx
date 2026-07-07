@@ -626,6 +626,7 @@ function ConsultationTabs({
 function TreatmentTabs({
   appts,
   loading,
+  getTxDisplay,
   onStartTreatment,
   onCancel,
   onReschedule,
@@ -634,6 +635,7 @@ function TreatmentTabs({
 }: {
   appts: Appt[];
   loading: boolean;
+  getTxDisplay: (a: Appt) => "booked" | "in_progress" | "completed" | "cancelled";
   onStartTreatment: (a: Appt) => void;
   onCancel: (a: Appt) => void;
   onReschedule: (a: Appt) => void;
@@ -641,8 +643,11 @@ function TreatmentTabs({
   onView: (a: Appt) => void;
 }) {
   const [tab, setTab] = useState<"active" | "completed">("active");
-  const active = appts.filter((a) => a.status === "scheduled" || a.status === "confirmed" || a.status === "in_progress");
-  const completed = appts.filter((a) => a.status === "completed");
+  const active = appts.filter((a) => {
+    const d = getTxDisplay(a);
+    return d === "booked" || d === "in_progress";
+  });
+  const completed = appts.filter((a) => getTxDisplay(a) === "completed");
   const list = tab === "active" ? active : completed;
 
   return (
@@ -680,9 +685,10 @@ function TreatmentTabs({
             const svcNames = (appt.services ?? [])
               .map((s) => s.invoice_services?.name)
               .filter(Boolean) as string[];
-            const isInProgress = appt.status === "in_progress";
-            const isCompleted = appt.status === "completed";
-            const canModify = !isInProgress && !isCompleted;
+            const display = getTxDisplay(appt);
+            const isInProgress = display === "in_progress";
+            const isCompleted = display === "completed";
+            const canModify = display === "booked";
             return (
               <Card key={appt.id} className="shadow-card">
                 <CardContent className="flex items-center gap-3 p-3">
