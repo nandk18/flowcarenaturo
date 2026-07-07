@@ -211,6 +211,7 @@ export default function ConsultationWorkspace({ visit, onComplete }: { visit: Vi
     t?.template_type === "freeform" || (typeof t?.name === "string" && t.name.toLowerCase().includes("free"));
 
   const handleTemplateChange = async (template: any) => {
+    setTemplateResolved(true);
     // No-op if the same template is re-selected (prevents remount side-effects
     // like re-merging freeform content and re-adding label prefixes on tab switches).
     if (template?.id && template.id === selectedTemplate?.id) {
