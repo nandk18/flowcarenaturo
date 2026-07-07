@@ -325,41 +325,8 @@ export default function TreatmentBoard() {
           </div>
         )}
 
-        {/* Capacity */}
-        {capacities.length > 0 && (
-          <div className="rounded-xl border bg-card">
-            <button
-              className="flex w-full items-center justify-between p-3 text-sm font-medium"
-              onClick={() => setCapOpen((v) => !v)}
-            >
-              <span>Today's capacity</span>
-              {capOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </button>
-            {capOpen && (
-              <div className="grid grid-cols-1 gap-2 p-3 pt-0 md:grid-cols-2">
-                {capacities.map((c) => {
-                  const barColor = c.pct_full >= 90 ? "bg-destructive" : c.pct_full >= 70 ? "bg-amber-500" : "bg-emerald-500";
-                  return (
-                    <div key={c.service_id} className="flex items-center gap-3 rounded-lg border bg-background p-2">
-                      <span className="min-w-0 flex-1 truncate text-xs font-medium">{c.service_name}</span>
-                      {c.max_per_day ? (
-                        <>
-                          <div className="h-1.5 w-24 overflow-hidden rounded bg-muted">
-                            <div className={`h-full ${barColor}`} style={{ width: `${Math.min(100, c.pct_full)}%` }} />
-                          </div>
-                          <span className="text-xs font-mono">{c.booked_count}/{c.max_per_day}</span>
-                          <span className="text-[10px] text-muted-foreground w-20 text-right">
-                            {c.is_full ? "full" : `${c.available} left`}
-                          </span>
-                        </>
-                      ) : <span className="text-xs text-muted-foreground">unlimited</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+
+
 
         {/* Patient cards */}
         {loading ? (
