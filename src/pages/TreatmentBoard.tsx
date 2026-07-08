@@ -255,6 +255,9 @@ export default function TreatmentBoard() {
               </div>
             </div>
           </div>
+          <Button size="sm" onClick={() => navigate("/treatment/schedule")}>
+            <Plus className="h-4 w-4 mr-1" /> New Plan / Schedule Therapy
+          </Button>
         </div>
 
         {/* Summary bar */}
