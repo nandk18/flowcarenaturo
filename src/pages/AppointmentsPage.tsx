@@ -269,6 +269,30 @@ export default function AppointmentsPage() {
   const convertToVisit = async (appt: Appointment) => {
     if (!profile?.clinic_id) return;
     try {
+      // If this appointment is treatment-only, don't create a visit/clinical note.
+      // Start the treatment flow and route the user to the treatment board instead.
+      const svcs = (appt as any).services ?? [];
+      const svcInfos = svcs.map((s: any) => s?.invoice_services).filter(Boolean);
+      const isTreatmentOnly =
+        svcInfos.length > 0 &&
+        svcInfos.every((s: any) => (s?.service_type ?? "consultation") === "treatment");
+      if (isTreatmentOnly) {
+        const { startTreatmentForAppointment } = await import("@/lib/treatmentStart");
+        const result = await startTreatmentForAppointment({
+          id: appt.id,
+          clinic_id: profile.clinic_id,
+          patient_id: appt.patient_id,
+          notes: (appt as any).notes ?? null,
+          services: svcs,
+        });
+        if (!result.ok) { toast.error(result.error || "Could not start treatment"); return; }
+        setDetailAppt(null);
+        fetchAppointments();
+        toast.success(`Started ${result.createdSessions} treatment session(s)`);
+        navigate("/treatment/board");
+        return;
+      }
+
       // Get next token number
       const today = new Date().toISOString().split("T")[0];
       const { data: lastVisit } = await supabase.from("visits")
