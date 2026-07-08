@@ -196,17 +196,22 @@ export default function TreatmentBoard() {
 
   const addTherapyForPatient = async (patientId: string, svc: SvcRow) => {
     if (!clinicId) return;
-    const { error } = await supabase.from("therapy_sessions").insert({
-      clinic_id: clinicId,
-      patient_id: patientId,
-      service_id: svc.id,
-      service_name: svc.name,
-      session_date: today,
-      status: "not_started",
+    const res = await createTherapySession({
+      clinicId,
+      patientId,
+      serviceId: svc.id,
+      serviceName: svc.name,
       amount: svc.amount,
+      date: today,
     });
-    if (error) toast.error(error.message);
-    else toast.success(`Added ${svc.name}`);
+    if (!res.ok) { toast.error(res.error); return; }
+    if (res.data.isExisting) {
+      toast.info(`${svc.name} already on today's board for this patient`);
+    } else if (res.data.is_individual) {
+      toast.success(`Added ${svc.name} (individual session)`);
+    } else {
+      toast.success(`Added ${svc.name} — Session ${res.data.session_number} of ${res.data.total_sessions}`);
+    }
   };
 
   const summary = useMemo(() => {
