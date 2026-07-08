@@ -82,7 +82,7 @@ export async function createTherapySession(
       "id, sessions_completed, sessions_scheduled, total_sessions, status, treatment_plan_id, treatment_plans!inner(id, patient_id, clinic_id, status)",
     )
     .eq("service_id", serviceId)
-    .eq("status", "active")
+    .or("status.eq.active,status.is.null")
     .eq("treatment_plans.patient_id", patientId)
     .eq("treatment_plans.clinic_id", clinicId)
     .eq("treatment_plans.status", "active");
@@ -133,6 +133,7 @@ export async function createTherapySession(
     const { data: newItem, error: itemErr } = await supabase
       .from("treatment_plan_items")
       .insert({
+        clinic_id: clinicId,
         treatment_plan_id: newPlan.id,
         service_id: serviceId,
         service_name: serviceName,

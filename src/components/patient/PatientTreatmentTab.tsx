@@ -16,6 +16,8 @@ type Item = {
   sessions_per_visit: number;
   amount_per_session: number | null;
   status: string | null;
+  session_completed_count?: number;
+  session_scheduled_count?: number;
 };
 type Plan = {
   id: string;
@@ -53,6 +55,27 @@ export default function PatientTreatmentTab({ patientId, clinicId }: { patientId
       .eq("patient_id", patientId)
       .eq("clinic_id", clinicId)
       .order("created_at", { ascending: false });
+    const planIds = (data ?? []).map((p: any) => p.id);
+    const { data: sessions } = planIds.length > 0
+      ? await supabase
+        .from("therapy_sessions")
+        .select("treatment_plan_id, treatment_plan_item_id, status")
+        .eq("patient_id", patientId)
+        .eq("clinic_id", clinicId)
+        .in("treatment_plan_id", planIds)
+        .neq("status", "cancelled")
+      : { data: [] as any[] };
+
+    const sessionCounts = new Map<string, { completed: number; scheduled: number }>();
+    for (const s of sessions ?? []) {
+      const key = (s as any).treatment_plan_item_id;
+      if (!key) continue;
+      const prev = sessionCounts.get(key) ?? { completed: 0, scheduled: 0 };
+      if ((s as any).status === "completed") prev.completed += 1;
+      else prev.scheduled += 1;
+      sessionCounts.set(key, prev);
+    }
+
     const mapped: Plan[] = (data ?? [])
       .map((p: any) => ({
         id: p.id,
@@ -61,7 +84,21 @@ export default function PatientTreatmentTab({ patientId, clinicId }: { patientId
         status: p.status,
         total_plan_value: p.total_plan_value,
         created_at: p.created_at,
-        items: (p.treatment_plan_items ?? []).filter((i: any) => Number(i.total_sessions ?? 0) > 0),
+        items: (p.treatment_plan_items ?? [])
+          .map((i: any) => {
+            const counts = sessionCounts.get(i.id) ?? { completed: 0, scheduled: 0 };
+            const counterTotal = Number(i.total_sessions ?? 0);
+            const fallbackTotal = Math.max(1, counts.completed + counts.scheduled);
+            return {
+              ...i,
+              total_sessions: counterTotal > 0 ? counterTotal : fallbackTotal,
+              sessions_completed: Math.max(Number(i.sessions_completed ?? 0), counts.completed),
+              sessions_scheduled: Math.max(Number(i.sessions_scheduled ?? 0), counts.scheduled),
+              session_completed_count: counts.completed,
+              session_scheduled_count: counts.scheduled,
+            };
+          })
+          .filter((i: any) => Number(i.total_sessions ?? 0) > 0),
       }))
       .filter((p: Plan) => p.items.length > 0);
     setPlans(mapped);
