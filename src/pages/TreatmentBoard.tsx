@@ -65,7 +65,10 @@ export default function TreatmentBoard() {
   const clinicId = profile?.clinic_id;
   const { enabled, loading: flagLoading } = useTreatmentEnabled();
   const navigate = useNavigate();
-  const today = format(new Date(), "yyyy-MM-dd");
+  // Use UTC date to match how session_date is stamped on insert (both client
+  // helpers and SQL use UTC). Local-date drift after IST midnight was hiding
+  // today's sessions from the board.
+  const today = new Date().toISOString().split("T")[0];
 
   const [sessions, setSessions] = useState<Session[]>([]);
   const [capacities, setCapacities] = useState<Capacity[]>([]);
