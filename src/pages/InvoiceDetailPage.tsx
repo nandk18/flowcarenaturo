@@ -87,7 +87,9 @@ export default function InvoiceDetailPage() {
     );
   };
 
-  if (!invoice) return <DashboardLayout><div className="p-8 text-sm text-muted-foreground">Loading…</div></DashboardLayout>;
+  if (loadError) return <DashboardLayout><div className="p-8 space-y-3 max-w-md"><p className="text-sm text-destructive">Failed to load invoice: {loadError}</p><Button size="sm" variant="outline" onClick={load}>Retry</Button><Button size="sm" variant="ghost" onClick={() => navigate("/dashboard/billing")}><ArrowLeft className="w-4 h-4 mr-1"/>Back</Button></div></DashboardLayout>;
+  if (!loaded) return <DashboardLayout><div className="p-8 text-sm text-muted-foreground">Loading…</div></DashboardLayout>;
+  if (!invoice) return <DashboardLayout><div className="p-8 space-y-3 max-w-md"><p className="text-sm text-muted-foreground">Invoice not found.</p><Button size="sm" variant="ghost" onClick={() => navigate("/dashboard/billing")}><ArrowLeft className="w-4 h-4 mr-1"/>Back</Button></div></DashboardLayout>;
 
   return (
     <DashboardLayout>
