@@ -26,6 +26,12 @@ export type StartTreatmentResult = {
 const marker = (apptId: string) => `[appt:${apptId}]`;
 const hasMarker = (notes: string | null | undefined, apptId: string) =>
   !!notes && notes.includes(marker(apptId));
+const withMarker = (notes: string | null | undefined, apptId: string) => {
+  const base = notes?.trim() ?? "";
+  return hasMarker(base, apptId) ? base : [base || null, marker(apptId)].filter(Boolean).join(" ");
+};
+const remainingSessions = (pi: any) =>
+  (pi.total_sessions ?? 0) - (pi.sessions_scheduled ?? 0) - (pi.sessions_completed ?? 0);
 
 /**
  * For each treatment-type service on an appointment, ensures exactly one active
@@ -74,13 +80,22 @@ export async function ensureIndividualPlanForServices(params: {
       continue;
     }
     // 2) If there's any active item for this service with remaining capacity, reuse it (no new plan).
-    const hasReusable = planItems.some(
+    const reusable = planItems.find(
       (pi) =>
         pi.service_id === s.service_id &&
         (pi.status ?? "active") === "active" &&
-        (pi.total_sessions ?? 0) - (pi.sessions_scheduled ?? 0) - (pi.sessions_completed ?? 0) > 0,
+        remainingSessions(pi) > 0,
     );
-    if (hasReusable) continue;
+    if (reusable) {
+      // Tag the reused plan item so Start Treatment can attach this appointment
+      // to the same package item instead of creating an individual duplicate.
+      if (appointmentId && !hasMarker(reusable.notes, appointmentId)) {
+        const nextNotes = withMarker(reusable.notes, appointmentId);
+        await supabase.from("treatment_plan_items").update({ notes: nextNotes }).eq("id", reusable.id);
+        reusable.notes = nextNotes;
+      }
+      continue;
+    }
 
     // 3) Otherwise create a new 1-session individual plan tagged with the appt marker.
     const { data: newPlan, error: planErr } = await supabase
@@ -131,12 +146,12 @@ export async function startTreatmentForAppointment(appt: StartTreatmentAppt): Pr
 
   const today = new Date().toISOString().split("T")[0];
 
-  // Idempotency: if sessions already exist for this appointment today, just mark in_progress.
+  // Idempotency: if sessions already exist for this appointment, just mark in_progress.
   const { data: existingSessions } = await supabase
     .from("therapy_sessions")
     .select("id")
     .eq("appointment_id", appt.id)
-    .eq("session_date", today);
+    .neq("status", "cancelled");
   if ((existingSessions ?? []).length > 0) {
     await supabase.from("appointments").update({ status: "in_progress" }).eq("id", appt.id);
     return {
@@ -168,7 +183,6 @@ export async function startTreatmentForAppointment(appt: StartTreatmentAppt): Pr
 
   const sessionRows: any[] = [];
   const planItemBumps: string[] = [];
-  const planItemExpands: string[] = []; // items to expand total_sessions by 1
   let usedFromPlan = 0;
   let createdIndividual = 0;
 
@@ -177,7 +191,13 @@ export async function startTreatmentForAppointment(appt: StartTreatmentAppt): Pr
 
     // Prefer item that was tagged for THIS appointment.
     let planItem =
-      planItems.find((pi) => pi.service_id === s.service_id && hasMarker(pi.notes, appt.id)) ?? null;
+      planItems.find(
+        (pi) =>
+          pi.service_id === s.service_id &&
+          hasMarker(pi.notes, appt.id) &&
+          (pi.status ?? "active") === "active" &&
+          remainingSessions(pi) > 0,
+      ) ?? null;
 
     // Otherwise reuse any active item with remaining capacity.
     if (!planItem) {
@@ -185,22 +205,19 @@ export async function startTreatmentForAppointment(appt: StartTreatmentAppt): Pr
         (pi) =>
           pi.service_id === s.service_id &&
           (pi.status ?? "active") === "active" &&
-          (pi.total_sessions ?? 0) - (pi.sessions_scheduled ?? 0) - (pi.sessions_completed ?? 0) > 0,
+          remainingSessions(pi) > 0,
       ) ?? null;
     }
 
-    // Otherwise reuse ANY active item for this service, expanding its total by 1.
-    if (!planItem) {
-      const anyActive = planItems.find(
-        (pi) => pi.service_id === s.service_id && (pi.status ?? "active") === "active",
-      );
-      if (anyActive) {
-        planItem = anyActive;
-        planItemExpands.push(anyActive.id);
-      }
+    // Tag reused package items to make future retries/double-clicks deterministic.
+    if (planItem && !hasMarker(planItem.notes, appt.id)) {
+      const nextNotes = withMarker(planItem.notes, appt.id);
+      await supabase.from("treatment_plan_items").update({ notes: nextNotes }).eq("id", planItem.id);
+      planItem.notes = nextNotes;
     }
 
-    // Last resort: create a fresh individual plan for this service.
+    // Last resort: create a fresh individual plan for this service. Do not expand
+    // exhausted/completed package items; a new extra session should be individual.
     if (!planItem) {
       const { data: newPlan, error: planErr } = await supabase
         .from("treatment_plans")
@@ -264,13 +281,6 @@ export async function startTreatmentForAppointment(appt: StartTreatmentAppt): Pr
   const { error: insErr } = await supabase.from("therapy_sessions").insert(sessionRows);
   if (insErr) {
     return { ok: false, error: insErr.message, createdSessions: 0, usedFromPlan: 0, createdIndividual: 0 };
-  }
-
-  // Expand total_sessions on reused items that had no remaining capacity.
-  for (const pid of planItemExpands) {
-    const item = planItems.find((x) => x.id === pid);
-    const currentTotal = item?.total_sessions ?? 0;
-    await supabase.from("treatment_plan_items").update({ total_sessions: currentTotal + 1 }).eq("id", pid);
   }
 
   // Bump sessions_scheduled for every item we scheduled a session against.

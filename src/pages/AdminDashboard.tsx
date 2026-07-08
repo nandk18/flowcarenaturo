@@ -506,7 +506,7 @@ function ConsultationTabs({
         <div className="space-y-2">
           {list.map((appt) => {
             const display = getDisplay(appt);
-            const canModify = display === "scheduled";
+            const canModify = display === "scheduled" || display === "waiting" || display === "in_progress";
             return (
               <Card key={appt.id} className="shadow-card">
                 <CardContent className="flex items-center gap-3 p-3">
@@ -534,10 +534,6 @@ function ConsultationTabs({
                       <Button size="sm" variant="outline" onClick={() => handleAction(appt)}>
                         <Eye className="mr-1 h-3 w-3" /> View Summary
                       </Button>
-                    ) : display === "in_progress" ? (
-                      <Button size="sm" variant="outline" onClick={() => handleAction(appt)}>
-                        <Play className="mr-1 h-3 w-3" /> Continue
-                      </Button>
                     ) : display === "cancelled" ? null : (
                       <>
                         {canModify && (
@@ -550,8 +546,12 @@ function ConsultationTabs({
                             </Button>
                           </>
                         )}
-                        <Button size="sm" onClick={() => handleAction(appt)}>
-                          <ArrowRight className="mr-1 h-3 w-3" /> Start Consultation
+                        <Button size="sm" variant={display === "in_progress" ? "outline" : "default"} onClick={() => handleAction(appt)}>
+                          {display === "in_progress" ? (
+                            <><Play className="mr-1 h-3 w-3" /> Continue</>
+                          ) : (
+                            <><ArrowRight className="mr-1 h-3 w-3" /> Start Consultation</>
+                          )}
                         </Button>
                       </>
                     )}
