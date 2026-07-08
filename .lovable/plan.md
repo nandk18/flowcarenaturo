@@ -1,51 +1,49 @@
-# Fix Treatment Appointment Flow
+# Fix Treatment flow: duplicates, clinical notes, and Schedule merge
 
-Three related issues, all rooted in the app treating every appointment as a consultation.
+## 1) Duplicate "Individual —" plans on booking + Start Treatment
 
-## 1. Treatment appointment shows "Start Consultation"
+**Root cause:** `BookAppointmentModal` calls `ensureIndividualPlanForServices` at booking time, and `startTreatmentForAppointment` also creates an individual plan if it can't reuse one. Any mismatch (e.g. sessions_scheduled already bumped, service_id mapping, or a second call) creates a second plan, leaving one plan orphaned with `total=0, completed=0` → shows `0/0 done`.
 
-**Where:** `src/pages/SalesPatientDetail.tsx` → `renderAction` (line ~1548) / `startConsultation` (line ~1496) inside the Appointments tab.
+**Fix — make booking the single source of truth:**
+- Keep `ensureIndividualPlanForServices` at booking time (already there). Change it to be idempotent per (patient, service, appointment): tag created plans with `source_appointment_id` (store in `treatment_plans.notes` JSON prefix or a new column — reuse existing `notes` field with `[appt:<id>]` marker for zero migration).
+- In `startTreatmentForAppointment`:
+  - First look up plan items linked (via marker or via matching active individual plan with remaining>0) for the appointment's services.
+  - Only fall back to creating a new plan if none exist AND booking was skipped (walk-in path).
+  - Never create a second `Individual — <svc>` plan if one already exists for that patient+service with `total_sessions >= 1` and any remaining capacity — reuse it.
+- Cleanup: on load in `PatientTreatmentTab`, filter out plans where `total_sessions == 0 AND items.length == 0` (defensive, so historical orphans don't display).
+- One-time SQL cleanup migration: delete `treatment_plans` rows with no `treatment_plan_items` and `status='active'` older than the fix (safe, they are empty).
 
-Right now every scheduled appointment for today renders the green **Start Consultation** button, even when the booked services are all `service_type = 'treatment'`.
+## 2) Clinical Notes tab still shows "Consultation" for treatment appointments
 
-**Fix:**
-- Derive `apptKind` per row from the already-fetched `appointment_services → invoice_services.service_type` (same logic used in `BookAppointmentModal`): if every linked service is `treatment` → `"treatment"`, otherwise `"consultation"`.
-- In `renderAction`, when `apptKind === "treatment"` and status is `scheduled`/`in_progress`, render an **Start Treatment** button (teal, `Activity` icon) that:
-  - Marks the appointment `in_progress`.
-  - Calls the existing `startTreatment` flow (extract the shared logic from `AdminDashboard.startTreatment` into a small helper in `src/lib/treatmentStart.ts` and call it from both places) — it already ensures a plan/plan-item exists and creates the `therapy_sessions` row.
-  - Navigates to `/treatment/board`.
-- For `completed` treatment appointments, show a **View on Board** link instead of "View Summary".
-
-## 2. Clinical notes / visit is created for treatment-only appointments
-
-Same root cause: `startConsultation` unconditionally inserts into `visits` and later a clinical note/prescription can be attached. With the split above, treatment-only appointments never enter that path, so no `visits`/`clinical_notes` row is ever created for them.
-
-Also update `convertToVisit` in `src/pages/AppointmentsPage.tsx` (line ~269) to guard the same way — if the appointment is treatment-only, route to the board instead of pushing a token into the visit queue.
-
-No DB changes; strictly a UI/routing guard.
-
-## 3. Treatment Tab shows no progress for individual / plan-only-after-"What to do Today"
-
-**Where:** `src/components/patient/PatientTreatmentTab.tsx` reads `treatment_plans` + `treatment_plan_items` and computes progress from `sessions_completed / total_sessions`.
-
-Two gaps:
-- **Individual walk-ins:** the "Individual — <service>" plan is created lazily inside `AdminDashboard.startTreatment`. If the user just booked a treatment appointment (and never opened the admin start), no plan exists yet, so the Treatment tab is empty.
-- **Plan progress lag:** `sessions_completed` only increments when the therapist marks a session complete on the board. Until then the tab shows `0/N` even after sessions were scheduled. The user expects "in progress" visibility (scheduled vs completed).
+**Root cause:** `loadClinicalNotes` reads from `visits`. A DB trigger (`auto_create_visit_on_appointment` or similar) still creates a `visits` row for every appointment regardless of service type, so treatment-only appointments appear as consultations in the Clinical Notes tab.
 
 **Fix:**
-- Move the "auto-create individual plan + item" block out of `AdminDashboard.startTreatment` into the shared `startTreatment` helper from item 1, so it also fires when treatment is started from `SalesPatientDetail`. This guarantees every treatment appointment produces a plan row.
-- Alternative earlier point: run the same "ensure individual plan" logic inside `BookAppointmentModal` right after inserting the appointment when `bookingKind === "treatment"` and no active plan matches. That way the Treatment tab lights up the moment the appointment is booked, before anyone touches the board. Pick this location.
-- In `PatientTreatmentTab`, extend the row to also show `sessions_scheduled` (already fetched — just add to select): render `completed / scheduled / total` and split the progress bar into a filled `completed` segment plus a lighter `scheduled` segment. This removes the "nothing happens until Complete" perception.
-- Refetch on mount **and** subscribe to `treatment_plans` / `treatment_plan_items` / `therapy_sessions` changes for this `patient_id` via a single Supabase channel (cleaned up on unmount) so the tab updates live when the board changes state.
+- Add a DB migration updating the visit-creation trigger to skip appointments where every linked `appointment_services.service_id` maps to `invoice_services.service_type = 'treatment'`.
+- In `loadClinicalNotes`, additionally filter out visits whose linked appointment is treatment-only (defense in depth for existing rows): join `appointments → appointment_services → invoice_services` and drop visits where all services are treatment and there are no `clinical_notes` / `prescriptions`.
+- No UI copy changes needed elsewhere.
 
-## Technical section
+## 3) Merge "Schedule Therapy" into Treatment Board
 
-Files touched:
-- `src/lib/treatmentStart.ts` — new. Exports `ensureIndividualPlanForServices(...)` and `startTreatmentForAppointment(...)`; consolidates plan/item lookup, individual-plan creation, and `therapy_sessions` insertion currently duplicated in `AdminDashboard.startTreatment`.
-- `src/pages/AdminDashboard.tsx` — replace inline `startTreatment` body with call to the helper.
-- `src/pages/SalesPatientDetail.tsx` — compute `apptKind` per row in `loadAppointments`; branch `renderAction`; add `startTreatmentAction` using the helper; adjust "View Summary" branch.
-- `src/pages/AppointmentsPage.tsx` — guard `convertToVisit` for treatment-only appointments.
-- `src/components/appointments/BookAppointmentModal.tsx` — after insert, when `bookingKind === "treatment"`, call `ensureIndividualPlanForServices` so a plan row exists immediately.
-- `src/components/patient/PatientTreatmentTab.tsx` — select `sessions_scheduled`, render scheduled+completed+total, add realtime subscription, split progress bar.
+**Goal:** Remove the standalone Schedule page from navigation; expose it inside the Board.
 
-No SQL migration required — `sessions_scheduled` and `sessions_completed` columns already exist.
+**Changes:**
+- `src/pages/TreatmentBoard.tsx`: add a primary "New Plan / Schedule Therapy" button in the header that opens `TreatmentSchedule` inside a full-screen `Dialog` (or slide-over `Sheet`). Support `?patient_id=` deep link by auto-opening the dialog when the query param is present.
+- `src/pages/TreatmentSchedule.tsx`: extract the body into a reusable `<TreatmentScheduleForm patientId? onDone />` component; keep the page as a thin wrapper that redirects to `/treatment/board?patient_id=…` (so existing bookmarks still work).
+- Update all callers to point at the Board instead:
+  - `src/components/patient/PatientTreatmentTab.tsx` "New Plan" → `/treatment/board?patient_id=…&new=1`
+  - `src/pages/SalesPatientDetail.tsx` line 1012 "New Plan" → same
+  - `src/components/doctor/ConsultationWorkspace.tsx` line 848 → same
+  - `src/components/layout/MainShell.tsx`: remove the "Schedule Therapy" sidebar item.
+  - `src/pages/TreatmentIndex.tsx`: remove the "Schedule Therapy" card (leave Board + Therapists).
+- `src/App.tsx`: keep `/treatment/schedule` route pointing to the thin redirect wrapper so old links don't 404.
+
+## Technical notes
+
+- No schema change required for #1 beyond the cleanup delete; the appointment marker fits in `treatment_plans.notes` (text).
+- Trigger change in #2 must be idempotent (`CREATE OR REPLACE FUNCTION` + `DROP TRIGGER IF EXISTS`).
+- `TreatmentSchedule` currently uses `DashboardLayout`; the extracted form must not render its own layout when embedded in the Board dialog.
+
+## Out of scope
+
+- No visual redesign of the Board beyond the added button and dialog.
+- No changes to therapist app or push flow.

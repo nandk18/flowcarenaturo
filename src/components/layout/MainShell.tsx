@@ -100,7 +100,6 @@ export default function MainShell({
       label: "Treatment",
       items: [
         { to: "/treatment/board", icon: LayoutGrid, label: "Board" },
-        { to: "/treatment/schedule", icon: CalendarPlus, label: "Schedule Therapy" },
         { to: "/treatment/therapists", icon: UsersRound, label: "Therapists" },
       ],
     }] : []),

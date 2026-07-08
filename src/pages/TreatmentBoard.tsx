@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,7 @@ export default function TreatmentBoard() {
   const { profile } = useAuth();
   const clinicId = profile?.clinic_id;
   const { enabled, loading: flagLoading } = useTreatmentEnabled();
+  const navigate = useNavigate();
   const today = format(new Date(), "yyyy-MM-dd");
 
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -254,6 +255,9 @@ export default function TreatmentBoard() {
               </div>
             </div>
           </div>
+          <Button size="sm" onClick={() => navigate("/treatment/schedule")}>
+            <Plus className="h-4 w-4 mr-1" /> New Plan / Schedule Therapy
+          </Button>
         </div>
 
         {/* Summary bar */}

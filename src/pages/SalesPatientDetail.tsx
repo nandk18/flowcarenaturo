@@ -404,19 +404,29 @@ export default function SalesPatientDetail() {
       const k = d.visit_id ?? "_patient";
       (docsByVisit[k] ||= []).push(d);
     });
-    const enriched: VisitDetail[] = rows.map((r: any) => ({
-      id: r.id,
-      visit_date: r.visit_date,
-      created_at: r.created_at,
-      chief_complaint: r.chief_complaint,
-      vitals: r.vitals,
-      status: r.status,
-      doctor_id: r.doctor_id,
-      doctor_name: r.doctor_id ? (docMap.get(r.doctor_id) ?? null) : null,
-      clinical_notes: r.clinical_notes ?? [],
-      prescriptions: r.prescriptions ?? [],
-      documents: docsByVisit[r.id] ?? [],
-    }));
+    const enriched: VisitDetail[] = rows
+      .map((r: any) => ({
+        id: r.id,
+        visit_date: r.visit_date,
+        created_at: r.created_at,
+        chief_complaint: r.chief_complaint,
+        vitals: r.vitals,
+        status: r.status,
+        doctor_id: r.doctor_id,
+        doctor_name: r.doctor_id ? (docMap.get(r.doctor_id) ?? null) : null,
+        clinical_notes: r.clinical_notes ?? [],
+        prescriptions: r.prescriptions ?? [],
+        documents: docsByVisit[r.id] ?? [],
+      }))
+      // Hide "empty" visits (typically auto-created for treatment-only appointments):
+      // no clinical notes, no prescriptions, no chief complaint, no documents.
+      .filter((v) => {
+        const hasNotes = (v.clinical_notes ?? []).length > 0;
+        const hasRx = (v.prescriptions ?? []).length > 0;
+        const hasDocs = (v.documents ?? []).length > 0;
+        const hasCc = !!(v.chief_complaint && String(v.chief_complaint).trim());
+        return hasNotes || hasRx || hasDocs || hasCc;
+      });
     setClinicalNotes(enriched);
   };
 

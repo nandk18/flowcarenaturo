@@ -14,7 +14,6 @@ export default function TreatmentIndex() {
 
   const cards = [
     { to: "/treatment/board", icon: LayoutGrid, title: "Treatment Board", desc: "Live view of today's therapy sessions" },
-    { to: "/treatment/schedule", icon: CalendarPlus, title: "Schedule Therapy", desc: "Build a treatment plan for a patient" },
     { to: "/treatment/therapists", icon: Users, title: "Therapists", desc: "Manage therapist profiles and PINs" },
   ];
 
