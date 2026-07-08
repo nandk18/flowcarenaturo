@@ -27,15 +27,26 @@ export default function InvoiceDetailPage() {
   const [invoice, setInvoice] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [payOpen, setPayOpen] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   const load = async () => {
     if (!invoiceId) return;
-    const { data } = await supabase.from("invoices")
-      .select(`*,patients(id,name,healthcare_id,phone,email),doctors(id,name),visits(id,chief_complaint)`)
-      .eq("id", invoiceId).single();
-    setInvoice(data);
-    const { data: pays } = await supabase.from("payments").select("*").eq("invoice_id", invoiceId).order("payment_date", { ascending: false });
-    setPayments(pays || []);
+    setLoadError(null);
+    setLoaded(false);
+    try {
+      const { data, error } = await supabase.from("invoices")
+        .select(`*,patients(id,name,healthcare_id,phone,email),doctors(id,name),visits(id,chief_complaint)`)
+        .eq("id", invoiceId).maybeSingle();
+      if (error) throw error;
+      setInvoice(data);
+      const { data: pays } = await supabase.from("payments").select("*").eq("invoice_id", invoiceId).order("payment_date", { ascending: false });
+      setPayments(pays || []);
+    } catch (e: any) {
+      setLoadError(e?.message || "Failed to load invoice");
+    } finally {
+      setLoaded(true);
+    }
   };
 
   useEffect(() => { load(); }, [invoiceId]);
