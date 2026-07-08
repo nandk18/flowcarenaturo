@@ -183,7 +183,7 @@ export async function startTreatmentForAppointment(appt: StartTreatmentAppt): Pr
     });
 
     if (!res.ok) {
-      return { ok: false, error: res.error, createdSessions: 0, usedFromPlan: 0, createdIndividual: 0 };
+      return { ok: false, error: (res as { ok: false; error: string }).error, createdSessions: 0, usedFromPlan: 0, createdIndividual: 0 };
     }
 
     if (!res.data.isExisting) createdSessions++;
