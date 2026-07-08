@@ -33,6 +33,8 @@ const withMarker = (notes: string | null | undefined, apptId: string) => {
 };
 const remainingSessions = (pi: any) =>
   (pi.total_sessions ?? 0) - (pi.sessions_scheduled ?? 0) - (pi.sessions_completed ?? 0);
+const normalizeServiceName = (name?: string | null) =>
+  (name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 
 /**
  * For each treatment-type service on an appointment, ensures exactly one active
@@ -65,25 +67,27 @@ export async function ensureIndividualPlanForServices(params: {
   const planIds = (activePlans ?? []).map((p: any) => p.id);
   let planItems: any[] = [];
   if (planIds.length > 0) {
-    const svcIds = treatmentServices.map((s) => s.service_id);
     const { data } = await supabase
       .from("treatment_plan_items")
-      .select("id, treatment_plan_id, service_id, total_sessions, sessions_scheduled, sessions_completed, notes, status")
-      .in("treatment_plan_id", planIds)
-      .in("service_id", svcIds);
+      .select("id, treatment_plan_id, service_id, service_name, total_sessions, sessions_scheduled, sessions_completed, notes, status")
+      .in("treatment_plan_id", planIds);
     planItems = (data ?? []) as any[];
   }
 
   for (const s of treatmentServices) {
     const svc = s.invoice_services!;
+    const targetServiceName = normalizeServiceName(svc.name);
     // 1) If an item for THIS appointment already exists, skip (idempotent).
-    if (appointmentId && planItems.some((pi) => pi.service_id === s.service_id && hasMarker(pi.notes, appointmentId))) {
+    if (appointmentId && planItems.some((pi) =>
+      (pi.service_id === s.service_id || normalizeServiceName(pi.service_name) === targetServiceName) &&
+      hasMarker(pi.notes, appointmentId)
+    )) {
       continue;
     }
     // 2) If there's any active item for this service with remaining capacity, reuse it (no new plan).
     const reusable = planItems.find(
       (pi) =>
-        pi.service_id === s.service_id &&
+        (pi.service_id === s.service_id || normalizeServiceName(pi.service_name) === targetServiceName) &&
         (pi.status ?? "active") === "active" &&
         remainingSessions(pi) > 0,
     );
