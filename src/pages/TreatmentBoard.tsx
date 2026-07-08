@@ -486,11 +486,14 @@ function SessionRow({
               {s.profiles?.full_name ?? "Unassigned"}{s.room ? ` · ${s.room}` : ""}{sessLabel && ` · ${sessLabel}`}
             </div>
             {s.started_at && <div className="mt-0.5"><ElapsedTimer startedAt={s.started_at} /></div>}
-            {s.notes && (
-              <div className="mt-1 rounded bg-amber-100/70 border border-amber-200 px-1.5 py-1 text-[11px] text-amber-900 line-clamp-2" title={s.notes}>
-                📝 {s.notes}
-              </div>
-            )}
+            {(() => {
+              const clean = (s.notes ?? "").replace(/\s*\[appt:[0-9a-f-]+\]\s*/gi, "").trim();
+              return clean ? (
+                <div className="mt-1 rounded bg-amber-100/70 border border-amber-200 px-1.5 py-1 text-[11px] text-amber-900 line-clamp-2" title={clean}>
+                  📝 {clean}
+                </div>
+              ) : null;
+            })()}
 
           </div>
           <div className="flex flex-col gap-1">
