@@ -319,11 +319,52 @@ export default function AdminDashboard() {
     const sessionRows: any[] = [];
     const planItemBumps: string[] = [];
     let usedFromPlan = 0;
+    let createdIndividual = 0;
 
     for (const s of treatmentServices) {
       const svc = s.invoice_services!;
       const availList = availableByService.get(s.service_id) ?? [];
-      const planItem = availList.shift();
+      let planItem = availList.shift();
+
+      // If no matching active plan item, auto-create an "individual" 1-session plan
+      // so the treatment shows up in the patient's plan history and count flows on completion.
+      if (!planItem) {
+        const { data: newPlan, error: planErr } = await supabase
+          .from("treatment_plans")
+          .insert({
+            clinic_id: profile.clinic_id,
+            patient_id: appt.patient_id,
+            name: `Individual — ${svc.name} — ${today}`,
+            status: "active",
+            total_visits: 1,
+            visits_completed: 0,
+          } as any)
+          .select("id")
+          .single();
+        if (!planErr && newPlan) {
+          const { data: newItem } = await supabase
+            .from("treatment_plan_items")
+            .insert({
+              treatment_plan_id: newPlan.id,
+              service_id: s.service_id,
+              service_name: svc.name,
+              total_sessions: 1,
+              sessions_scheduled: 0,
+              sessions_completed: 0,
+              sessions_per_visit: 1,
+              amount_per_session: svc.amount ?? 0,
+              status: "active",
+              notes: appt.notes?.trim() || null,
+            } as any)
+            .select("id, treatment_plan_id, sessions_completed, sessions_scheduled")
+            .single();
+          if (newItem) {
+            planItem = newItem;
+            createdIndividual++;
+          }
+        }
+      }
+
       const noteBase = appt.notes?.trim() || planItem?.notes?.trim() || null;
 
       sessionRows.push({
@@ -349,20 +390,19 @@ export default function AdminDashboard() {
     const { error: insErr } = await supabase.from("therapy_sessions").insert(sessionRows);
     if (insErr) return toast.error(insErr.message);
 
-    // Bump sessions_scheduled on used plan items (one at a time — small list)
+    // Bump sessions_scheduled on used plan items
     for (const pid of planItemBumps) {
       const item = ((planItems as any[]) ?? []).find((x) => x.id === pid);
-      if (item) {
-        await supabase
-          .from("treatment_plan_items")
-          .update({ sessions_scheduled: (item.sessions_scheduled ?? 0) + 1 })
-          .eq("id", pid);
-      }
+      const currentScheduled = item?.sessions_scheduled ?? 0;
+      await supabase
+        .from("treatment_plan_items")
+        .update({ sessions_scheduled: currentScheduled + 1 })
+        .eq("id", pid);
     }
 
     await supabase.from("appointments").update({ status: "in_progress" }).eq("id", appt.id);
     toast.success(
-      `Started ${sessionRows.length} treatment session(s)${usedFromPlan > 0 ? ` · ${usedFromPlan} from plan` : " · individual"}`,
+      `Started ${sessionRows.length} treatment session(s)${usedFromPlan > 0 ? ` · ${usedFromPlan - createdIndividual} from plan${createdIndividual > 0 ? ` · ${createdIndividual} individual` : ""}` : ""}`,
     );
     navigate("/treatment/board");
   };
