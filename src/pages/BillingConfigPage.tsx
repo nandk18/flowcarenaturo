@@ -73,10 +73,10 @@ export default function BillingConfigPage() {
     if (!clinicId) return;
     const { data } = await supabase
       .from("payments")
-      .select("id,amount,payment_method,payment_date")
+      .select("id,invoice_id,amount,payment_method,payment_date")
       .eq("clinic_id", clinicId)
       .order("payment_date", { ascending: false })
-      .limit(500);
+      .limit(2000);
     setPayments(data || []);
   };
 
@@ -94,44 +94,63 @@ export default function BillingConfigPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clinicId]);
 
-  const todayCollection = useMemo(
-    () => payments.filter((p) => p.payment_date === today).reduce((s, p) => s + Number(p.amount), 0),
-    [payments, today]
-  );
-  const totalOutstanding = useMemo(
-    () => invoices.filter((i) => i.status !== "cancelled").reduce((s, i) => s + Number(i.outstanding_amount), 0),
-    [invoices]
-  );
-  const todayInvoiceCount = useMemo(() => invoices.filter((i) => i.invoice_date === today).length, [invoices, today]);
-  const todayPaidCount = useMemo(
-    () => invoices.filter((i) => i.invoice_date === today && i.status === "paid").length,
-    [invoices, today]
-  );
-
-  const totalInvoiced = invoices.reduce((s, i) => s + Number(i.total_amount), 0);
-  const totalCollected = invoices.reduce((s, i) => s + Number(i.paid_amount), 0);
-  const collectionRate = totalInvoiced > 0 ? ((totalCollected / totalInvoiced) * 100).toFixed(1) : "0";
-
-  const methodBreakdown = useMemo(() => {
-    const map: Record<string, number> = {};
-    payments.forEach((p) => { map[p.payment_method] = (map[p.payment_method] || 0) + Number(p.amount); });
-    const total = Object.values(map).reduce((s, v) => s + v, 0) || 1;
-    return Object.entries(map).map(([k, v]) => ({ method: k, amount: v, pct: ((v / total) * 100).toFixed(1) }));
-  }, [payments]);
-
-  const dailyChart = useMemo(() => {
-    const map: Record<string, number> = {};
-    payments.forEach((p) => { map[p.payment_date] = (map[p.payment_date] || 0) + Number(p.amount); });
-    return Object.entries(map)
-      .map(([date, amount]) => ({ date, amount }))
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(-30);
-  }, [payments]);
-
+  // Master filter: date range applied at fetch; status applied client-side.
   const filteredInvoices = useMemo(
     () => (statusFilter === "all" ? invoices : invoices.filter((i) => i.status === statusFilter)),
     [invoices, statusFilter],
   );
+  const filteredInvoiceIds = useMemo(() => new Set(filteredInvoices.map((i) => i.id)), [filteredInvoices]);
+  const filteredPayments = useMemo(
+    () => payments.filter((p) => filteredInvoiceIds.has(p.invoice_id)),
+    [payments, filteredInvoiceIds],
+  );
+
+  const todayCollection = useMemo(
+    () => filteredPayments.filter((p) => p.payment_date === today).reduce((s, p) => s + Number(p.amount), 0),
+    [filteredPayments, today]
+  );
+  const totalOutstanding = useMemo(
+    () => filteredInvoices.filter((i) => i.status !== "cancelled").reduce((s, i) => s + Number(i.outstanding_amount), 0),
+    [filteredInvoices]
+  );
+  const todayInvoiceCount = useMemo(() => filteredInvoices.filter((i) => i.invoice_date === today).length, [filteredInvoices, today]);
+  const todayPaidCount = useMemo(
+    () => filteredInvoices.filter((i) => i.invoice_date === today && i.status === "paid").length,
+    [filteredInvoices, today]
+  );
+
+  const totalInvoiced = filteredInvoices.reduce((s, i) => s + Number(i.total_amount), 0);
+  const totalCollected = filteredInvoices.reduce((s, i) => s + Number(i.paid_amount), 0);
+  const collectionRate = totalInvoiced > 0 ? ((totalCollected / totalInvoiced) * 100).toFixed(1) : "0";
+
+  const totalCash = useMemo(
+    () => filteredPayments
+      .filter((p) => String(p.payment_method || "").toLowerCase().includes("cash"))
+      .reduce((s, p) => s + Number(p.amount), 0),
+    [filteredPayments],
+  );
+  const totalUpi = useMemo(
+    () => filteredPayments
+      .filter((p) => String(p.payment_method || "").toLowerCase().includes("upi"))
+      .reduce((s, p) => s + Number(p.amount), 0),
+    [filteredPayments],
+  );
+
+  const methodBreakdown = useMemo(() => {
+    const map: Record<string, number> = {};
+    filteredPayments.forEach((p) => { map[p.payment_method] = (map[p.payment_method] || 0) + Number(p.amount); });
+    const total = Object.values(map).reduce((s, v) => s + v, 0) || 1;
+    return Object.entries(map).map(([k, v]) => ({ method: k, amount: v, pct: ((v / total) * 100).toFixed(1) }));
+  }, [filteredPayments]);
+
+  const dailyChart = useMemo(() => {
+    const map: Record<string, number> = {};
+    filteredPayments.forEach((p) => { map[p.payment_date] = (map[p.payment_date] || 0) + Number(p.amount); });
+    return Object.entries(map)
+      .map(([date, amount]) => ({ date, amount }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-30);
+  }, [filteredPayments]);
 
   const exportCsv = async () => {
     if (filteredInvoices.length === 0) { toast.error("No invoices to export"); return; }
