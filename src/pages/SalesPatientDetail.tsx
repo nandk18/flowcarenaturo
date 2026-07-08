@@ -111,6 +111,8 @@ type AppointmentRow = {
   rescheduled_from: string | null;
   rescheduled_to: string | null;
   services_label?: string | null;
+  is_treatment?: boolean;
+  services?: { service_id: string; invoice_services: { id: string; name: string; service_type: string | null; amount: number | null } | null }[];
 };
 
 type VisitDetail = {
@@ -346,15 +348,20 @@ export default function SalesPatientDetail() {
     if (!patientId) return;
     const { data } = await supabase
       .from("appointments")
-      .select("id, appointment_date, appointment_time, status, reason, notes, doctor_id, rescheduled_from, rescheduled_to, appointment_services(invoice_services(name, service_type))")
+      .select("id, appointment_date, appointment_time, status, reason, notes, doctor_id, rescheduled_from, rescheduled_to, appointment_services(service_id, invoice_services(id, name, service_type, amount))")
       .eq("patient_id", patientId)
       .order("appointment_date", { ascending: false });
     const rows = (data ?? []).map((r: any) => {
-      const svcs = (r.appointment_services ?? [])
-        .map((s: any) => s.invoice_services)
-        .filter(Boolean);
-      const label = svcs.length ? svcs.map((s: any) => s.name).join(", ") : null;
-      return { ...r, services_label: label } as AppointmentRow;
+      const svcs = (r.appointment_services ?? []).map((s: any) => ({
+        service_id: s.service_id,
+        invoice_services: s.invoice_services ?? null,
+      }));
+      const svcInfo = svcs.map((s: any) => s.invoice_services).filter(Boolean);
+      const label = svcInfo.length ? svcInfo.map((s: any) => s.name).join(", ") : null;
+      const isTreatment =
+        svcInfo.length > 0 &&
+        svcInfo.every((s: any) => (s?.service_type ?? "consultation") === "treatment");
+      return { ...r, services_label: label, is_treatment: isTreatment, services: svcs } as AppointmentRow;
     });
     const docIds = Array.from(new Set(rows.map((r) => r.doctor_id).filter(Boolean))) as string[];
     if (docIds.length) {
@@ -1545,8 +1552,33 @@ function AppointmentsTab({
     else toast.error("No consultation found");
   };
 
+  const startTreatmentAction = async (a: AppointmentRow) => {
+    if (!clinicId) return;
+    setBusyId(a.id);
+    try {
+      const { startTreatmentForAppointment } = await import("@/lib/treatmentStart");
+      const result = await startTreatmentForAppointment({
+        id: a.id,
+        clinic_id: clinicId,
+        patient_id: patientId,
+        notes: a.notes,
+        services: (a.services ?? []) as any,
+      });
+      if (!result.ok) {
+        toast.error(result.error || "Could not start treatment");
+        return;
+      }
+      toast.success(`Started ${result.createdSessions} treatment session(s)`);
+      onChanged();
+      navigate("/treatment/board");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const renderAction = (a: AppointmentRow) => {
     const status = a.status ?? "scheduled";
+    const isTx = !!a.is_treatment;
     if (status === "cancelled") {
       return (
         <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-[10px]">
@@ -1555,6 +1587,13 @@ function AppointmentsTab({
       );
     }
     if (status === "completed") {
+      if (isTx) {
+        return (
+          <Button size="sm" variant="outline" onClick={() => navigate("/treatment/board")}>
+            <Eye className="mr-1 h-3 w-3" /> View on Board
+          </Button>
+        );
+      }
       return (
         <Button
           size="sm"
@@ -1574,6 +1613,18 @@ function AppointmentsTab({
       );
     }
     if (status === "in_progress") {
+      if (isTx) {
+        return (
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-[#1D9E75] border-[#1D9E75]/40"
+            onClick={() => navigate("/treatment/board")}
+          >
+            <Activity className="mr-1 h-3 w-3" /> Open Board
+          </Button>
+        );
+      }
       return (
         <Button
           size="sm"
@@ -1598,6 +1649,18 @@ function AppointmentsTab({
         <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-[10px]">
           Missed
         </Badge>
+      );
+    }
+    if (isTx) {
+      return (
+        <Button
+          size="sm"
+          className="bg-[#1D9E75] hover:bg-[#178a66] text-white"
+          disabled={busyId === a.id}
+          onClick={() => startTreatmentAction(a)}
+        >
+          <Activity className="mr-1 h-3 w-3" /> Start Treatment
+        </Button>
       );
     }
     return (
