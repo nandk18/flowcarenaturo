@@ -111,6 +111,7 @@ export async function createTherapySession(
   if (activeItem) {
     planId = (activeItem as any).treatment_plan_id;
     planItemId = (activeItem as any).id;
+    isIndividual = normalizeServiceName(((activeItem as any).treatment_plans as any)?.plan_name).startsWith("individual");
     sessionNumber =
       ((activeItem as any).sessions_completed ?? 0) +
       ((activeItem as any).sessions_scheduled ?? 0) +
