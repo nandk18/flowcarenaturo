@@ -279,130 +279,21 @@ export default function AdminDashboard() {
 
   const startTreatment = async (appt: Appt) => {
     if (!profile?.clinic_id || !appt.patient_id) return;
-    const treatmentServices = (appt.services ?? []).filter(
-      (s) => (s.invoice_services?.service_type ?? "consultation") === "treatment" && s.invoice_services,
-    );
-    if (treatmentServices.length === 0) {
-      toast.error("No treatment services on this appointment");
+    const { startTreatmentForAppointment } = await import("@/lib/treatmentStart");
+    const result = await startTreatmentForAppointment({
+      id: appt.id,
+      clinic_id: profile.clinic_id,
+      patient_id: appt.patient_id,
+      notes: appt.notes,
+      services: appt.services ?? [],
+    });
+    if (!result.ok) {
+      toast.error(result.error || "Could not start treatment");
       return;
     }
-
-    // Fetch active plan items for this patient (two-step for reliability)
-    const svcIds = treatmentServices.map((s) => s.service_id);
-    const { data: activePlans } = await supabase
-      .from("treatment_plans")
-      .select("id")
-      .eq("patient_id", appt.patient_id)
-      .eq("clinic_id", profile.clinic_id)
-      .eq("status", "active");
-    const planIds = (activePlans ?? []).map((p: any) => p.id);
-    let planItems: any[] = [];
-    if (planIds.length > 0) {
-      const { data } = await supabase
-        .from("treatment_plan_items")
-        .select("id, treatment_plan_id, service_id, service_name, total_sessions, sessions_scheduled, sessions_completed, notes")
-        .in("treatment_plan_id", planIds)
-        .in("service_id", svcIds);
-      planItems = (data ?? []) as any[];
-    }
-
-    const availableByService = new Map<string, any[]>();
-    for (const pi of (planItems as any[]) ?? []) {
-      const remaining = (pi.total_sessions ?? 0) - (pi.sessions_scheduled ?? 0) - (pi.sessions_completed ?? 0);
-      if (remaining > 0) {
-        const arr = availableByService.get(pi.service_id) ?? [];
-        arr.push(pi);
-        availableByService.set(pi.service_id, arr);
-      }
-    }
-
-    const sessionRows: any[] = [];
-    const planItemBumps: string[] = [];
-    let usedFromPlan = 0;
-    let createdIndividual = 0;
-
-    for (const s of treatmentServices) {
-      const svc = s.invoice_services!;
-      const availList = availableByService.get(s.service_id) ?? [];
-      let planItem = availList.shift();
-
-      // If no matching active plan item, auto-create an "individual" 1-session plan
-      // so the treatment shows up in the patient's plan history and count flows on completion.
-      if (!planItem) {
-        const { data: newPlan, error: planErr } = await supabase
-          .from("treatment_plans")
-          .insert({
-            clinic_id: profile.clinic_id,
-            patient_id: appt.patient_id,
-            plan_name: `Individual — ${svc.name}`,
-            start_date: today,
-            status: "active",
-            total_plan_value: svc.amount ?? 0,
-          } as any)
-          .select("id")
-          .single();
-        if (!planErr && newPlan) {
-          const { data: newItem } = await supabase
-            .from("treatment_plan_items")
-            .insert({
-              treatment_plan_id: newPlan.id,
-              service_id: s.service_id,
-              service_name: svc.name,
-              total_sessions: 1,
-              sessions_scheduled: 0,
-              sessions_completed: 0,
-              sessions_per_visit: 1,
-              amount_per_session: svc.amount ?? 0,
-              status: "active",
-              notes: appt.notes?.trim() || null,
-            } as any)
-            .select("id, treatment_plan_id, sessions_completed, sessions_scheduled")
-            .single();
-          if (newItem) {
-            planItem = newItem;
-            createdIndividual++;
-          }
-        }
-      }
-
-      const noteBase = appt.notes?.trim() || planItem?.notes?.trim() || null;
-
-      sessionRows.push({
-        clinic_id: profile.clinic_id,
-        patient_id: appt.patient_id,
-        service_id: s.service_id,
-        service_name: svc.name,
-        session_date: today,
-        session_number: planItem ? (planItem.sessions_completed ?? 0) + (planItem.sessions_scheduled ?? 0) + 1 : 1,
-        status: "not_started",
-        amount: svc.amount ?? 0,
-        notes: noteBase,
-        appointment_id: appt.id,
-        treatment_plan_id: planItem?.treatment_plan_id ?? null,
-        treatment_plan_item_id: planItem?.id ?? null,
-      });
-      if (planItem) {
-        planItemBumps.push(planItem.id);
-        usedFromPlan++;
-      }
-    }
-
-    const { error: insErr } = await supabase.from("therapy_sessions").insert(sessionRows);
-    if (insErr) return toast.error(insErr.message);
-
-    // Bump sessions_scheduled on used plan items
-    for (const pid of planItemBumps) {
-      const item = ((planItems as any[]) ?? []).find((x) => x.id === pid);
-      const currentScheduled = item?.sessions_scheduled ?? 0;
-      await supabase
-        .from("treatment_plan_items")
-        .update({ sessions_scheduled: currentScheduled + 1 })
-        .eq("id", pid);
-    }
-
-    await supabase.from("appointments").update({ status: "in_progress" }).eq("id", appt.id);
+    const fromPlan = result.usedFromPlan - result.createdIndividual;
     toast.success(
-      `Started ${sessionRows.length} treatment session(s)${usedFromPlan > 0 ? ` · ${usedFromPlan - createdIndividual} from plan${createdIndividual > 0 ? ` · ${createdIndividual} individual` : ""}` : ""}`,
+      `Started ${result.createdSessions} treatment session(s)${result.usedFromPlan > 0 ? ` · ${fromPlan} from plan${result.createdIndividual > 0 ? ` · ${result.createdIndividual} individual` : ""}` : ""}`,
     );
     navigate("/treatment/board");
   };
