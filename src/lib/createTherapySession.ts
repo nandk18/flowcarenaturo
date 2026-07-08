@@ -27,6 +27,8 @@ const sanitizeNotes = (raw?: string | null): string | null => {
   const cleaned = raw.replace(APPT_MARKER_RE, "").trim();
   return cleaned.length > 0 ? cleaned : null;
 };
+const normalizeServiceName = (name?: string | null) =>
+  (name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 
 /**
  * Single entry point for creating a therapy_sessions row anywhere in the app.
@@ -50,16 +52,20 @@ export async function createTherapySession(
   const sessionDate = params.date ?? new Date().toISOString().split("T")[0];
   const therapistNotes = sanitizeNotes(params.therapistNotes);
 
-  // 1. Dedup: session already exists for this patient/service/day.
-  const { data: existing } = await supabase
+  const targetServiceName = normalizeServiceName(serviceName);
+
+  // 1. Dedup: session already exists for this patient/service/day. Also compare
+  // normalized names to handle duplicated services such as two "Colon Therapy" rows.
+  const { data: existingRows } = await supabase
     .from("therapy_sessions")
-    .select("id, session_number, treatment_plan_id, treatment_plan_item_id")
+    .select("id, service_id, service_name, session_number, treatment_plan_id, treatment_plan_item_id")
     .eq("clinic_id", clinicId)
     .eq("patient_id", patientId)
-    .eq("service_id", serviceId)
     .eq("session_date", sessionDate)
-    .neq("status", "cancelled")
-    .maybeSingle();
+    .neq("status", "cancelled");
+  const existing = (existingRows ?? []).find(
+    (row: any) => row.service_id === serviceId || normalizeServiceName(row.service_name) === targetServiceName,
+  );
   if (existing) {
     return {
       ok: true,
@@ -75,20 +81,21 @@ export async function createTherapySession(
     };
   }
 
-  // 2. Find an active plan item for this (patient, service).
+  // 2. Find an active plan item for this patient/service. Match by service_id
+  // first, then by normalized service_name for duplicate service catalog rows.
   const { data: planItemsRaw } = await supabase
     .from("treatment_plan_items")
     .select(
-      "id, sessions_completed, sessions_scheduled, total_sessions, status, treatment_plan_id, treatment_plans!inner(id, patient_id, clinic_id, status)",
+      "id, service_id, service_name, sessions_completed, sessions_scheduled, total_sessions, status, treatment_plan_id, treatment_plans!inner(id, patient_id, clinic_id, status, plan_name)",
     )
-    .eq("service_id", serviceId)
-    .eq("status", "active")
+    .or("status.eq.active,status.is.null")
     .eq("treatment_plans.patient_id", patientId)
     .eq("treatment_plans.clinic_id", clinicId)
     .eq("treatment_plans.status", "active");
 
   const activeItem = (planItemsRaw ?? []).find(
     (pi: any) =>
+      (pi.service_id === serviceId || normalizeServiceName(pi.service_name) === targetServiceName) &&
       (pi.total_sessions ?? 0) -
         (pi.sessions_scheduled ?? 0) -
         (pi.sessions_completed ?? 0) >
@@ -104,6 +111,7 @@ export async function createTherapySession(
   if (activeItem) {
     planId = (activeItem as any).treatment_plan_id;
     planItemId = (activeItem as any).id;
+    isIndividual = normalizeServiceName(((activeItem as any).treatment_plans as any)?.plan_name).startsWith("individual");
     sessionNumber =
       ((activeItem as any).sessions_completed ?? 0) +
       ((activeItem as any).sessions_scheduled ?? 0) +
@@ -133,6 +141,7 @@ export async function createTherapySession(
     const { data: newItem, error: itemErr } = await supabase
       .from("treatment_plan_items")
       .insert({
+        clinic_id: clinicId,
         treatment_plan_id: newPlan.id,
         service_id: serviceId,
         service_name: serviceName,

@@ -1,24 +1,21 @@
 ## Plan
 
-### 1. Add Cancel + Reschedule actions for active consultations
-- Update the Clinical Dashboard consultation active list so scheduled, waiting, and in-progress consult appointments can show Cancel / Reschedule controls like treatment rows.
-- Keep completed consults read-only with “View Summary”.
-- Reuse the existing `CancelAppointmentModal` and `RescheduleAppointmentModal` already wired in `AdminDashboard.tsx`.
+1. **Make individual session creation visible immediately**
+   - Update the treatment booking/start flow to use the shared `createTherapySession` utility wherever treatment sessions are created.
+   - This ensures individual fallback plans are created with a valid `treatment_plan_item` and linked `therapy_session` consistently.
 
-### 2. Fix treatment plan reuse when booking/walk-in adds a therapy already in a plan
-- Update treatment-start logic so a booked/walk-in treatment first searches the patient’s active treatment plan item for the same service.
-- If a matching active plan item exists, schedule against that item and increment `sessions_scheduled`, so progress becomes like `2/6` instead of creating a new individual plan.
-- Only create an individual one-session plan when no active plan item exists for that service.
+2. **Fix Treatment tab filtering/display**
+   - Adjust `PatientTreatmentTab` so individual plans are not hidden when their plan item counters are temporarily stale or inconsistent.
+   - Show progress using plan-item counters plus linked session data as a fallback, so individual sessions show as `0/1`, scheduled, or `1/1 done` instead of disappearing or showing `0/0`.
 
-### 3. Stop duplicate individual plans and 0/0 progress
-- Make `ensureIndividualPlanForServices` fully idempotent by appointment marker and by patient/service active item reuse.
-- Adjust `startTreatmentForAppointment` so it does not expand or duplicate plans incorrectly after booking already created a plan item.
-- Fix progress calculations defensively in `PatientTreatmentTab.tsx` so empty orphan plans do not show as `0/0 done`.
+3. **Prevent duplicate individual plans**
+   - Keep using existing active plan items for the same service first.
+   - Only create an `Individual - Service` plan when no existing plan item has remaining capacity and no same-day session already exists.
 
-### 4. Align booking and start-treatment behavior
-- Keep treatment-only appointments from creating consultation visits.
-- Ensure booking-time plan creation and Start Treatment use the same reuse rule: existing plan item first, individual plan only as fallback.
+4. **Migrate remaining direct session creation points**
+   - Update `startTreatmentForAppointment` and treatment booking/walk-in paths to call `createTherapySession` instead of inserting `therapy_sessions` directly.
+   - Keep appointment status updates and existing treatment-only billing behavior unchanged.
 
-### 5. Validate
-- Run a TypeScript check/build signal after changes.
-- Verify the relevant UI paths: Clinical Dashboard consult active actions, treatment booking/start flow, and Patient Treatment tab progress display.
+5. **Verify the flow**
+   - Check that booking/starting an individual treatment creates one visible plan in the patient Treatment tab.
+   - Check that completing it updates progress to `1/1 done` and does not create duplicates.

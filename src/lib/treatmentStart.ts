@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { createTherapySession } from "@/lib/createTherapySession";
 
 export type StartTreatmentService = {
   service_id: string;
@@ -32,6 +33,8 @@ const withMarker = (notes: string | null | undefined, apptId: string) => {
 };
 const remainingSessions = (pi: any) =>
   (pi.total_sessions ?? 0) - (pi.sessions_scheduled ?? 0) - (pi.sessions_completed ?? 0);
+const normalizeServiceName = (name?: string | null) =>
+  (name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 
 /**
  * For each treatment-type service on an appointment, ensures exactly one active
@@ -64,25 +67,27 @@ export async function ensureIndividualPlanForServices(params: {
   const planIds = (activePlans ?? []).map((p: any) => p.id);
   let planItems: any[] = [];
   if (planIds.length > 0) {
-    const svcIds = treatmentServices.map((s) => s.service_id);
     const { data } = await supabase
       .from("treatment_plan_items")
-      .select("id, treatment_plan_id, service_id, total_sessions, sessions_scheduled, sessions_completed, notes, status")
-      .in("treatment_plan_id", planIds)
-      .in("service_id", svcIds);
+      .select("id, treatment_plan_id, service_id, service_name, total_sessions, sessions_scheduled, sessions_completed, notes, status")
+      .in("treatment_plan_id", planIds);
     planItems = (data ?? []) as any[];
   }
 
   for (const s of treatmentServices) {
     const svc = s.invoice_services!;
+    const targetServiceName = normalizeServiceName(svc.name);
     // 1) If an item for THIS appointment already exists, skip (idempotent).
-    if (appointmentId && planItems.some((pi) => pi.service_id === s.service_id && hasMarker(pi.notes, appointmentId))) {
+    if (appointmentId && planItems.some((pi) =>
+      (pi.service_id === s.service_id || normalizeServiceName(pi.service_name) === targetServiceName) &&
+      hasMarker(pi.notes, appointmentId)
+    )) {
       continue;
     }
     // 2) If there's any active item for this service with remaining capacity, reuse it (no new plan).
     const reusable = planItems.find(
       (pi) =>
-        pi.service_id === s.service_id &&
+        (pi.service_id === s.service_id || normalizeServiceName(pi.service_name) === targetServiceName) &&
         (pi.status ?? "active") === "active" &&
         remainingSessions(pi) > 0,
     );
@@ -115,6 +120,7 @@ export async function ensureIndividualPlanForServices(params: {
       .filter(Boolean)
       .join(" ");
     await supabase.from("treatment_plan_items").insert({
+      clinic_id: clinicId,
       treatment_plan_id: newPlan.id,
       service_id: s.service_id,
       service_name: svc.name,
@@ -162,149 +168,38 @@ export async function startTreatmentForAppointment(appt: StartTreatmentAppt): Pr
     };
   }
 
-  const svcIds = treatmentServices.map((s) => s.service_id);
-
-  const { data: activePlans } = await supabase
-    .from("treatment_plans")
-    .select("id")
-    .eq("patient_id", appt.patient_id)
-    .eq("clinic_id", appt.clinic_id)
-    .eq("status", "active");
-  const planIds = (activePlans ?? []).map((p: any) => p.id);
-  let planItems: any[] = [];
-  if (planIds.length > 0) {
-    const { data } = await supabase
-      .from("treatment_plan_items")
-      .select("id, treatment_plan_id, service_id, service_name, total_sessions, sessions_scheduled, sessions_completed, notes, status")
-      .in("treatment_plan_id", planIds)
-      .in("service_id", svcIds);
-    planItems = (data ?? []) as any[];
-  }
-
-  const sessionRows: any[] = [];
-  const planItemBumps: string[] = [];
   let usedFromPlan = 0;
   let createdIndividual = 0;
+  let createdSessions = 0;
 
   for (const s of treatmentServices) {
     const svc = s.invoice_services!;
 
-    // Prefer item that was tagged for THIS appointment.
-    let planItem =
-      planItems.find(
-        (pi) =>
-          pi.service_id === s.service_id &&
-          hasMarker(pi.notes, appt.id) &&
-          (pi.status ?? "active") === "active" &&
-          remainingSessions(pi) > 0,
-      ) ?? null;
-
-    // Otherwise reuse any active item with remaining capacity.
-    if (!planItem) {
-      planItem = planItems.find(
-        (pi) =>
-          pi.service_id === s.service_id &&
-          (pi.status ?? "active") === "active" &&
-          remainingSessions(pi) > 0,
-      ) ?? null;
-    }
-
-    // Tag reused package items to make future retries/double-clicks deterministic.
-    if (planItem && !hasMarker(planItem.notes, appt.id)) {
-      const nextNotes = withMarker(planItem.notes, appt.id);
-      await supabase.from("treatment_plan_items").update({ notes: nextNotes }).eq("id", planItem.id);
-      planItem.notes = nextNotes;
-    }
-
-    // Last resort: create a fresh individual plan for this service. Do not expand
-    // exhausted/completed package items; a new extra session should be individual.
-    if (!planItem) {
-      const { data: newPlan, error: planErr } = await supabase
-        .from("treatment_plans")
-        .insert({
-          clinic_id: appt.clinic_id,
-          patient_id: appt.patient_id,
-          plan_name: `Individual — ${svc.name}`,
-          start_date: today,
-          status: "active",
-          total_plan_value: svc.amount ?? 0,
-        } as any)
-        .select("id")
-        .single();
-      if (!planErr && newPlan) {
-        const itemNotes = [appt.notes?.trim() || null, marker(appt.id)].filter(Boolean).join(" ");
-        const { data: newItem } = await supabase
-          .from("treatment_plan_items")
-          .insert({
-            treatment_plan_id: newPlan.id,
-            service_id: s.service_id,
-            service_name: svc.name,
-            total_sessions: 1,
-            sessions_scheduled: 0,
-            sessions_completed: 0,
-            sessions_per_visit: 1,
-            amount_per_session: svc.amount ?? 0,
-            status: "active",
-            notes: itemNotes || null,
-          } as any)
-          .select("id, treatment_plan_id, sessions_completed, sessions_scheduled, total_sessions")
-          .single();
-        if (newItem) {
-          planItem = { ...newItem, service_id: s.service_id };
-          createdIndividual++;
-        }
-      }
-    }
-
-    // Only use the appointment's human-entered notes. Never fall back to
-    // planItem.notes — it contains internal `[appt:xxx]` markers we use for
-    // idempotency and must never leak into therapy_sessions.notes (which is
-    // shown as therapist notes on the board).
-    const rawApptNotes = appt.notes?.trim() ?? "";
-    const noteBase = rawApptNotes && !/^\[appt:[0-9a-f-]+\]$/i.test(rawApptNotes) ? rawApptNotes : null;
-
-    sessionRows.push({
-      clinic_id: appt.clinic_id,
-      patient_id: appt.patient_id,
-      service_id: s.service_id,
-      service_name: svc.name,
-      session_date: today,
-      session_number: planItem ? (planItem.sessions_completed ?? 0) + (planItem.sessions_scheduled ?? 0) + 1 : 1,
-      status: "not_started",
+    const res = await createTherapySession({
+      clinicId: appt.clinic_id,
+      patientId: appt.patient_id,
+      serviceId: s.service_id,
+      serviceName: svc.name,
       amount: svc.amount ?? 0,
-      notes: noteBase,
-      appointment_id: appt.id,
-      treatment_plan_id: planItem?.treatment_plan_id ?? null,
-      treatment_plan_item_id: planItem?.id ?? null,
+      date: today,
+      therapistNotes: appt.notes,
+      appointmentId: appt.id,
     });
-    if (planItem) {
-      planItemBumps.push(planItem.id);
-      usedFromPlan++;
+
+    if (!res.ok) {
+      return { ok: false, error: (res as { ok: false; error: string }).error, createdSessions: 0, usedFromPlan: 0, createdIndividual: 0 };
     }
-  }
 
-  const { error: insErr } = await supabase.from("therapy_sessions").insert(sessionRows);
-  if (insErr) {
-    return { ok: false, error: insErr.message, createdSessions: 0, usedFromPlan: 0, createdIndividual: 0 };
-  }
-
-  // Bump sessions_scheduled for every item we scheduled a session against.
-  for (const pid of planItemBumps) {
-    // Re-read latest to avoid stale local counter (in case of concurrent updates).
-    const { data: latest } = await supabase
-      .from("treatment_plan_items")
-      .select("sessions_scheduled")
-      .eq("id", pid)
-      .maybeSingle();
-    const currentScheduled = (latest as any)?.sessions_scheduled ?? 0;
-    await supabase.from("treatment_plan_items").update({ sessions_scheduled: currentScheduled + 1 }).eq("id", pid);
+    if (!res.data.isExisting) createdSessions++;
+    if (res.data.is_individual) createdIndividual++;
+    else usedFromPlan++;
   }
 
   await supabase.from("appointments").update({ status: "in_progress" }).eq("id", appt.id);
 
   return {
     ok: true,
-    createdSessions: sessionRows.length,
+    createdSessions,
     usedFromPlan,
     createdIndividual,
   };
