@@ -319,15 +319,23 @@ export default function BillingConfigPage() {
           </Card>
 
           <Card className="p-4">
+            <h3 className="font-semibold text-sm mb-3">Cash vs UPI (filtered)</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><div className="text-xs text-muted-foreground">Total Cash</div><div className="text-lg font-bold">₹{totalCash.toLocaleString("en-IN")}</div></div>
+              <div><div className="text-xs text-muted-foreground">Total UPI</div><div className="text-lg font-bold">₹{totalUpi.toLocaleString("en-IN")}</div></div>
+            </div>
+          </Card>
+
+          <Card className="p-4">
             <h3 className="font-semibold text-sm mb-3">Outstanding Patients</h3>
             <div className="space-y-2 text-sm">
-              {invoices.filter((i) => Number(i.outstanding_amount) > 0).length === 0 && (
+              {filteredInvoices.filter((i) => Number(i.outstanding_amount) > 0).length === 0 && (
                 <p className="text-muted-foreground text-xs">No outstanding invoices</p>
               )}
-              {invoices.filter((i) => Number(i.outstanding_amount) > 0).slice(0, 20).map((i) => (
+              {filteredInvoices.filter((i) => Number(i.outstanding_amount) > 0).slice(0, 20).map((i) => (
                 <button
                   key={i.id}
-                  onClick={() => navigate(`/patients/${i.patients?.id}?tab=invoices`)}
+                  onClick={() => navigate(`/dashboard/billing/${i.id}`)}
                   className="w-full flex justify-between border-b pb-1 text-left hover:bg-muted/50 px-2 py-1 rounded"
                 >
                   <div>
