@@ -111,6 +111,8 @@ type AppointmentRow = {
   rescheduled_from: string | null;
   rescheduled_to: string | null;
   services_label?: string | null;
+  is_treatment?: boolean;
+  services?: { service_id: string; invoice_services: { id: string; name: string; service_type: string | null; amount: number | null } | null }[];
 };
 
 type VisitDetail = {
