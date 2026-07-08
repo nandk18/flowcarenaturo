@@ -86,7 +86,7 @@ export async function createTherapySession(
   const { data: planItemsRaw } = await supabase
     .from("treatment_plan_items")
     .select(
-      "id, service_id, service_name, sessions_completed, sessions_scheduled, total_sessions, status, treatment_plan_id, treatment_plans!inner(id, patient_id, clinic_id, status)",
+      "id, service_id, service_name, sessions_completed, sessions_scheduled, total_sessions, status, treatment_plan_id, treatment_plans!inner(id, patient_id, clinic_id, status, plan_name)",
     )
     .or("status.eq.active,status.is.null")
     .eq("treatment_plans.patient_id", patientId)
