@@ -348,6 +348,28 @@ export default function BookAppointmentModal({
           }
           // else: no services selected → keep the default consultation invoice as-is
         }
+
+        // Ensure an active plan/plan-item exists for treatment services so the
+        // patient's Treatment tab reflects the booking immediately.
+        if (bookingKind === "treatment") {
+          try {
+            const chosenAll = services.filter((s) => selectedServiceIds.includes(s.id));
+            const { ensureIndividualPlanForServices } = await import("@/lib/treatmentStart");
+            await ensureIndividualPlanForServices({
+              clinicId: profile.clinic_id,
+              patientId,
+              notes: notes || null,
+              startDate: date,
+              services: chosenAll.map((s) => ({
+                service_id: s.id,
+                invoice_services: { id: s.id, name: s.name, service_type: s.service_type ?? null, amount: s.amount ?? 0 },
+              })),
+            });
+          } catch (e) {
+            // non-fatal
+            console.warn("ensureIndividualPlanForServices failed", e);
+          }
+        }
       }
       await supabase.from("patients").update({ lead_status: "current" }).eq("id", patientId);
       toast.success("Appointment booked");
