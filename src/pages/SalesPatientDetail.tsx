@@ -110,6 +110,7 @@ type AppointmentRow = {
   doctor_name?: string | null;
   rescheduled_from: string | null;
   rescheduled_to: string | null;
+  services_label?: string | null;
 };
 
 type VisitDetail = {
