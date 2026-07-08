@@ -360,7 +360,7 @@ export default function BookAppointmentModal({
               patientId,
               notes: notes || null,
               startDate: date,
-              appointmentId: appt?.id ?? null,
+              appointmentId: data?.id ?? null,
               services: chosenAll.map((s) => ({
                 service_id: s.id,
                 invoice_services: { id: s.id, name: s.name, service_type: s.service_type ?? null, amount: s.amount ?? 0 },
