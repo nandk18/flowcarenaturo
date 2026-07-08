@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { createTherapySession } from "@/lib/createTherapySession";
 
 type Session = {
   id: string;
@@ -196,17 +197,22 @@ export default function TreatmentBoard() {
 
   const addTherapyForPatient = async (patientId: string, svc: SvcRow) => {
     if (!clinicId) return;
-    const { error } = await supabase.from("therapy_sessions").insert({
-      clinic_id: clinicId,
-      patient_id: patientId,
-      service_id: svc.id,
-      service_name: svc.name,
-      session_date: today,
-      status: "not_started",
+    const res = await createTherapySession({
+      clinicId,
+      patientId,
+      serviceId: svc.id,
+      serviceName: svc.name,
       amount: svc.amount,
+      date: today,
     });
-    if (error) toast.error(error.message);
-    else toast.success(`Added ${svc.name}`);
+    if (!res.ok) { toast.error((res as any).error); return; }
+    if (res.data.isExisting) {
+      toast.info(`${svc.name} already on today's board for this patient`);
+    } else if (res.data.is_individual) {
+      toast.success(`Added ${svc.name} (individual session)`);
+    } else {
+      toast.success(`Added ${svc.name} — Session ${res.data.session_number} of ${res.data.total_sessions}`);
+    }
   };
 
   const summary = useMemo(() => {
@@ -429,11 +435,14 @@ function SessionRow({
             <div className="text-[11px] text-muted-foreground truncate">
               {sessLabel && `${sessLabel} · `}{s.profiles?.full_name ?? "Unassigned"}{s.room ? ` · ${s.room}` : ""}
             </div>
-            {s.notes && (
-              <div className="mt-1 rounded bg-amber-100/70 border border-amber-200 px-1.5 py-1 text-[11px] text-amber-900 line-clamp-2" title={s.notes}>
-                📝 {s.notes}
-              </div>
-            )}
+            {(() => {
+              const clean = (s.notes ?? "").replace(/\s*\[appt:[0-9a-f-]+\]\s*/gi, "").trim();
+              return clean ? (
+                <div className="mt-1 rounded bg-amber-100/70 border border-amber-200 px-1.5 py-1 text-[11px] text-amber-900 line-clamp-2" title={clean}>
+                  📝 {clean}
+                </div>
+              ) : null;
+            })()}
           </div>
           <div className="flex flex-col gap-1">
             <Popover>
@@ -477,11 +486,14 @@ function SessionRow({
               {s.profiles?.full_name ?? "Unassigned"}{s.room ? ` · ${s.room}` : ""}{sessLabel && ` · ${sessLabel}`}
             </div>
             {s.started_at && <div className="mt-0.5"><ElapsedTimer startedAt={s.started_at} /></div>}
-            {s.notes && (
-              <div className="mt-1 rounded bg-amber-100/70 border border-amber-200 px-1.5 py-1 text-[11px] text-amber-900 line-clamp-2" title={s.notes}>
-                📝 {s.notes}
-              </div>
-            )}
+            {(() => {
+              const clean = (s.notes ?? "").replace(/\s*\[appt:[0-9a-f-]+\]\s*/gi, "").trim();
+              return clean ? (
+                <div className="mt-1 rounded bg-amber-100/70 border border-amber-200 px-1.5 py-1 text-[11px] text-amber-900 line-clamp-2" title={clean}>
+                  📝 {clean}
+                </div>
+              ) : null;
+            })()}
 
           </div>
           <div className="flex flex-col gap-1">
