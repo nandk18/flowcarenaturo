@@ -138,7 +138,7 @@ export default function PendingInvoicesPage() {
                   <TableRow
                     key={r.id}
                     className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => r.patients?.id ? navigate(`/patients/${r.patients.id}?tab=invoices`)}
+                    onClick={() => r.patients?.id && navigate(`/patients/${r.patients.id}?tab=invoices`)}
                   >
                     <TableCell className="font-medium">{r.patients?.name ?? "—"}</TableCell>
                     <TableCell className="font-mono text-xs">{r.invoice_number}</TableCell>
