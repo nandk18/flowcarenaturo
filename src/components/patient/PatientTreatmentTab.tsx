@@ -129,9 +129,12 @@ export default function PatientTreatmentTab({ patientId, clinicId }: { patientId
                     <div className="flex items-center gap-2">
                       {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">{p.plan_name || "Treatment plan"}</span>
                           <Badge variant="outline" className="text-[10px]">{p.status ?? "active"}</Badge>
+                          {(p.plan_name ?? "").toLowerCase().startsWith("individual") && (
+                            <Badge variant="secondary" className="text-[10px] italic">Individual Session</Badge>
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Started {p.start_date ? format(new Date(p.start_date), "d MMM yyyy") : "—"} · ₹{Number(p.total_plan_value ?? 0).toLocaleString("en-IN")}
