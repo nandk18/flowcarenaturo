@@ -64,6 +64,7 @@ export default function TreatmentBoard() {
   const { profile } = useAuth();
   const clinicId = profile?.clinic_id;
   const { enabled, loading: flagLoading } = useTreatmentEnabled();
+  const navigate = useNavigate();
   const today = format(new Date(), "yyyy-MM-dd");
 
   const [sessions, setSessions] = useState<Session[]>([]);
