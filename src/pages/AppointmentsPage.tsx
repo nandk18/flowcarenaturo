@@ -37,7 +37,7 @@ type Appointment = {
   created_at: string;
   patient?: { name: string; healthcare_id: string | null; phone: string | null };
   doctor?: { name: string };
-  services?: string[];
+  services?: { service_id: string; invoice_services: { id: string; name: string; service_type: string | null; amount: number | null } | null }[];
 };
 
 type Doctor = { id: string; name: string };
@@ -98,7 +98,7 @@ export default function AppointmentsPage() {
     const endDate = format(addDays(weekStart, 6), "yyyy-MM-dd");
     const { data } = await (supabase as any)
       .from("appointments")
-      .select("*, patients(name, healthcare_id, phone), doctors(name), appointment_services(invoice_services(name))")
+      .select("*, patients(name, healthcare_id, phone), doctors(name), appointment_services(service_id, invoice_services(id, name, service_type, amount))")
       .eq("clinic_id", profile.clinic_id)
       .gte("appointment_date", startDate)
       .lte("appointment_date", endDate)
@@ -109,9 +109,10 @@ export default function AppointmentsPage() {
         ...a,
         patient: Array.isArray(a.patients) ? a.patients[0] : a.patients,
         doctor: Array.isArray(a.doctors) ? a.doctors[0] : a.doctors,
-        services: (a.appointment_services ?? [])
-          .map((s: any) => s.invoice_services?.name)
-          .filter(Boolean) as string[],
+        services: (a.appointment_services ?? []).map((s: any) => ({
+          service_id: s.service_id,
+          invoice_services: Array.isArray(s.invoice_services) ? s.invoice_services[0] : s.invoice_services,
+        })),
       })));
     }
     setLoading(false);
@@ -375,7 +376,7 @@ export default function AppointmentsPage() {
                   <div className={`text-lg font-bold mb-2 ${isToday(day) ? "text-primary" : "text-foreground"}`}>{format(day, "d")}</div>
                   <div className="space-y-1">
                     {dayAppts.map(appt => {
-                      const svc = appt.services ?? [];
+                      const svc = (appt.services ?? []).map((s) => s.invoice_services?.name).filter(Boolean) as string[];
                       const svcLabel = svc.length === 0 ? "" : svc.length <= 2 ? svc.join(", ") : `${svc.slice(0, 2).join(", ")} +${svc.length - 2}`;
                       return (
                         <button
