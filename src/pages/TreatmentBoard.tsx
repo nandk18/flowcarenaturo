@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { createTherapySession } from "@/lib/createTherapySession";
 
 type Session = {
   id: string;
