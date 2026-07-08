@@ -205,7 +205,7 @@ export default function TreatmentBoard() {
       amount: svc.amount,
       date: today,
     });
-    if (!res.ok) { toast.error(res.error); return; }
+    if (!res.ok) { toast.error((res as any).error); return; }
     if (res.data.isExisting) {
       toast.info(`${svc.name} already on today's board for this patient`);
     } else if (res.data.is_individual) {
