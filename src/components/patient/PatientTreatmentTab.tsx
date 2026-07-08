@@ -53,15 +53,17 @@ export default function PatientTreatmentTab({ patientId, clinicId }: { patientId
       .eq("patient_id", patientId)
       .eq("clinic_id", clinicId)
       .order("created_at", { ascending: false });
-    const mapped: Plan[] = (data ?? []).map((p: any) => ({
-      id: p.id,
-      plan_name: p.plan_name,
-      start_date: p.start_date,
-      status: p.status,
-      total_plan_value: p.total_plan_value,
-      created_at: p.created_at,
-      items: p.treatment_plan_items ?? [],
-    }));
+    const mapped: Plan[] = (data ?? [])
+      .map((p: any) => ({
+        id: p.id,
+        plan_name: p.plan_name,
+        start_date: p.start_date,
+        status: p.status,
+        total_plan_value: p.total_plan_value,
+        created_at: p.created_at,
+        items: (p.treatment_plan_items ?? []).filter((i: any) => Number(i.total_sessions ?? 0) > 0),
+      }))
+      .filter((p: Plan) => p.items.length > 0);
     setPlans(mapped);
     setLoading(false);
   };
