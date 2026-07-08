@@ -1552,8 +1552,33 @@ function AppointmentsTab({
     else toast.error("No consultation found");
   };
 
+  const startTreatmentAction = async (a: AppointmentRow) => {
+    if (!clinicId) return;
+    setBusyId(a.id);
+    try {
+      const { startTreatmentForAppointment } = await import("@/lib/treatmentStart");
+      const result = await startTreatmentForAppointment({
+        id: a.id,
+        clinic_id: clinicId,
+        patient_id: patientId,
+        notes: a.notes,
+        services: (a.services ?? []) as any,
+      });
+      if (!result.ok) {
+        toast.error(result.error || "Could not start treatment");
+        return;
+      }
+      toast.success(`Started ${result.createdSessions} treatment session(s)`);
+      onChanged();
+      navigate("/treatment/board");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const renderAction = (a: AppointmentRow) => {
     const status = a.status ?? "scheduled";
+    const isTx = !!a.is_treatment;
     if (status === "cancelled") {
       return (
         <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-[10px]">
@@ -1562,6 +1587,13 @@ function AppointmentsTab({
       );
     }
     if (status === "completed") {
+      if (isTx) {
+        return (
+          <Button size="sm" variant="outline" onClick={() => navigate("/treatment/board")}>
+            <Eye className="mr-1 h-3 w-3" /> View on Board
+          </Button>
+        );
+      }
       return (
         <Button
           size="sm"
@@ -1581,6 +1613,18 @@ function AppointmentsTab({
       );
     }
     if (status === "in_progress") {
+      if (isTx) {
+        return (
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-[#1D9E75] border-[#1D9E75]/40"
+            onClick={() => navigate("/treatment/board")}
+          >
+            <Activity className="mr-1 h-3 w-3" /> Open Board
+          </Button>
+        );
+      }
       return (
         <Button
           size="sm"
@@ -1605,6 +1649,18 @@ function AppointmentsTab({
         <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-[10px]">
           Missed
         </Badge>
+      );
+    }
+    if (isTx) {
+      return (
+        <Button
+          size="sm"
+          className="bg-[#1D9E75] hover:bg-[#178a66] text-white"
+          disabled={busyId === a.id}
+          onClick={() => startTreatmentAction(a)}
+        >
+          <Activity className="mr-1 h-3 w-3" /> Start Treatment
+        </Button>
       );
     }
     return (
