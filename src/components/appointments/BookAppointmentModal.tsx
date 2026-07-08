@@ -398,7 +398,9 @@ export default function BookAppointmentModal({
     if (!bookedAppt || !profile?.clinic_id) return;
     try {
       const today = format(new Date(), "yyyy-MM-dd");
-      if (date === today) {
+      // Do not create a "visit" (clinical queue row) for treatment-only bookings —
+      // treatments are handled on the Treatment Board, not the doctor queue.
+      if (date === today && bookingKind !== "treatment") {
         const { data: last } = await supabase.from("visits")
           .select("token_number").eq("clinic_id", profile.clinic_id)
           .eq("visit_date", today).order("token_number", { ascending: false }).limit(1).maybeSingle();
