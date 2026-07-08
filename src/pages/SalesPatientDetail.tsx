@@ -348,15 +348,20 @@ export default function SalesPatientDetail() {
     if (!patientId) return;
     const { data } = await supabase
       .from("appointments")
-      .select("id, appointment_date, appointment_time, status, reason, notes, doctor_id, rescheduled_from, rescheduled_to, appointment_services(invoice_services(name, service_type))")
+      .select("id, appointment_date, appointment_time, status, reason, notes, doctor_id, rescheduled_from, rescheduled_to, appointment_services(service_id, invoice_services(id, name, service_type, amount))")
       .eq("patient_id", patientId)
       .order("appointment_date", { ascending: false });
     const rows = (data ?? []).map((r: any) => {
-      const svcs = (r.appointment_services ?? [])
-        .map((s: any) => s.invoice_services)
-        .filter(Boolean);
-      const label = svcs.length ? svcs.map((s: any) => s.name).join(", ") : null;
-      return { ...r, services_label: label } as AppointmentRow;
+      const svcs = (r.appointment_services ?? []).map((s: any) => ({
+        service_id: s.service_id,
+        invoice_services: s.invoice_services ?? null,
+      }));
+      const svcInfo = svcs.map((s: any) => s.invoice_services).filter(Boolean);
+      const label = svcInfo.length ? svcInfo.map((s: any) => s.name).join(", ") : null;
+      const isTreatment =
+        svcInfo.length > 0 &&
+        svcInfo.every((s: any) => (s?.service_type ?? "consultation") === "treatment");
+      return { ...r, services_label: label, is_treatment: isTreatment, services: svcs } as AppointmentRow;
     });
     const docIds = Array.from(new Set(rows.map((r) => r.doctor_id).filter(Boolean))) as string[];
     if (docIds.length) {
