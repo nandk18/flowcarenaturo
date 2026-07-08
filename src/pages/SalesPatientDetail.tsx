@@ -346,10 +346,16 @@ export default function SalesPatientDetail() {
     if (!patientId) return;
     const { data } = await supabase
       .from("appointments")
-      .select("id, appointment_date, appointment_time, status, reason, notes, doctor_id, rescheduled_from, rescheduled_to")
+      .select("id, appointment_date, appointment_time, status, reason, notes, doctor_id, rescheduled_from, rescheduled_to, appointment_services(invoice_services(name, service_type))")
       .eq("patient_id", patientId)
       .order("appointment_date", { ascending: false });
-    const rows = (data ?? []) as AppointmentRow[];
+    const rows = (data ?? []).map((r: any) => {
+      const svcs = (r.appointment_services ?? [])
+        .map((s: any) => s.invoice_services)
+        .filter(Boolean);
+      const label = svcs.length ? svcs.map((s: any) => s.name).join(", ") : null;
+      return { ...r, services_label: label } as AppointmentRow;
+    });
     const docIds = Array.from(new Set(rows.map((r) => r.doctor_id).filter(Boolean))) as string[];
     if (docIds.length) {
       const { data: docs } = await supabase.from("doctors").select("id, name").in("id", docIds);
