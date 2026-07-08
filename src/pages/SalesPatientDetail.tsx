@@ -1662,7 +1662,7 @@ function AppointmentsTab({
                     )}
                   </TableCell>
                   <TableCell className="text-sm">{a.doctor_name ?? "—"}</TableCell>
-                  <TableCell className="text-sm">{a.reason ?? "Consultation"}</TableCell>
+                  <TableCell className="text-sm">{a.services_label ?? a.reason ?? "Consultation"}</TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
                       <span
