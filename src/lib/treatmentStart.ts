@@ -256,7 +256,12 @@ export async function startTreatmentForAppointment(appt: StartTreatmentAppt): Pr
       }
     }
 
-    const noteBase = appt.notes?.trim() || planItem?.notes?.trim() || null;
+    // Only use the appointment's human-entered notes. Never fall back to
+    // planItem.notes — it contains internal `[appt:xxx]` markers we use for
+    // idempotency and must never leak into therapy_sessions.notes (which is
+    // shown as therapist notes on the board).
+    const rawApptNotes = appt.notes?.trim() ?? "";
+    const noteBase = rawApptNotes && !/^\[appt:[0-9a-f-]+\]$/i.test(rawApptNotes) ? rawApptNotes : null;
 
     sessionRows.push({
       clinic_id: appt.clinic_id,
