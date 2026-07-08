@@ -334,10 +334,10 @@ export default function AdminDashboard() {
           .insert({
             clinic_id: profile.clinic_id,
             patient_id: appt.patient_id,
-            name: `Individual — ${svc.name} — ${today}`,
+            plan_name: `Individual — ${svc.name}`,
+            start_date: today,
             status: "active",
-            total_visits: 1,
-            visits_completed: 0,
+            total_plan_value: svc.amount ?? 0,
           } as any)
           .select("id")
           .single();
