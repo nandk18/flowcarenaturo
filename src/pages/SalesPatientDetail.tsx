@@ -52,7 +52,7 @@ import { getProfileId } from "@/utils/getProfileId";
 import { createShortLink } from "@/utils/createShortLink";
 
 import CheckInModal, { type CheckInData } from "@/components/queue/CheckInModal";
-import { ArrowRight, Play, Eye, X } from "lucide-react";
+import { ArrowRight, Play, Eye, X, Activity } from "lucide-react";
 import CancelAppointmentModal from "@/components/appointments/CancelAppointmentModal";
 
 import { Badge } from "@/components/ui/badge";
