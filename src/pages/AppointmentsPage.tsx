@@ -15,13 +15,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Calendar, List, Plus, Clock, User, ChevronLeft, ChevronRight,
-  Loader2, CheckCircle, XCircle, ArrowRight, AlertCircle
+  Loader2, CheckCircle, XCircle, ArrowRight, AlertCircle, MessageCircle,
 } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay, isToday, parseISO } from "date-fns";
 import { formatDoctorName } from "@/lib/utils";
 import {
   DoctorSchedule, DoctorException, generateSlots, GeneratedSlot,
 } from "@/lib/scheduleSlots";
+import { buildMessage } from "@/lib/messageTemplates";
+import { openWhatsApp } from "@/lib/whatsapp";
+
 
 type Appointment = {
   id: string;
