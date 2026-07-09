@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Play, CheckCircle2, Loader2, AlertTriangle, Plus, X, Camera, Search, ChevronDown, ChevronUp } from "lucide-react";
+import { Play, CheckCircle2, Loader2, AlertTriangle, Plus, X, Camera, Search, ChevronDown, ChevronUp, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
