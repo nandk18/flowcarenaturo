@@ -653,6 +653,25 @@ export default function AppointmentsPage() {
                     <CheckCircle className="mr-1 h-3 w-3" /> Confirm
                   </Button>
                 )}
+                {detailAppt.patient?.phone && detailAppt.status !== "cancelled" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                    onClick={async () => {
+                      const msg = await buildMessage(detailAppt.clinic_id, "appointment_reminder", {
+                        patient_name: detailAppt.patient?.name ?? "",
+                        clinic_name: clinic?.name ?? "our clinic",
+                        appointment_date: detailAppt.appointment_date,
+                        appointment_time: detailAppt.appointment_time.substring(0, 5),
+                        doctor_name: formatDoctorName(detailAppt.doctor?.name) ?? "",
+                      });
+                      openWhatsApp(detailAppt.patient!.phone!, msg);
+                    }}
+                  >
+                    <MessageCircle className="mr-1 h-3 w-3" /> WhatsApp
+                  </Button>
+                )}
                 {detailAppt.status !== "cancelled" && detailAppt.status !== "completed" && (
                   <>
                     <Button size="sm" variant="outline" className="text-destructive" onClick={() => updateStatus(detailAppt.id, "cancelled")}>
@@ -669,6 +688,7 @@ export default function AppointmentsPage() {
                   </>
                 )}
               </div>
+
             </div>
           )}
         </DialogContent>
