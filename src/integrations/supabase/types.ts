@@ -2262,6 +2262,77 @@ export type Database = {
           },
         ]
       }
+      therapy_session_reviews: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          id: string
+          patient_id: string
+          rating: number | null
+          sent_at: string | null
+          session_id: string
+          submitted_at: string | null
+          therapist_id: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          id?: string
+          patient_id: string
+          rating?: number | null
+          sent_at?: string | null
+          session_id: string
+          submitted_at?: string | null
+          therapist_id?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          patient_id?: string
+          rating?: number | null
+          sent_at?: string | null
+          session_id?: string
+          submitted_at?: string | null
+          therapist_id?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "therapy_session_reviews_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "therapy_session_reviews_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "therapy_session_reviews_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "therapy_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "therapy_session_reviews_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       therapy_sessions: {
         Row: {
           amount: number | null
@@ -2801,6 +2872,18 @@ export type Database = {
           treatment_plan_id: string
         }[]
       }
+      get_review_context: {
+        Args: { p_token: string }
+        Returns: {
+          already_submitted: boolean
+          clinic_name: string
+          patient_name: string
+          rating: number
+          service_name: string
+          session_date: string
+          therapist_name: string
+        }[]
+      }
       get_service_capacity: {
         Args: { p_clinic_id: string; p_date: string; p_service_id: string }
         Returns: {
@@ -2810,6 +2893,18 @@ export type Database = {
           max_per_day: number
           service_id: string
           service_name: string
+        }[]
+      }
+      get_therapist_scorecards: {
+        Args: { p_clinic_id: string }
+        Returns: {
+          avg_30d: number
+          avg_lifetime: number
+          reviews_30d: number
+          reviews_lifetime: number
+          therapist_color: string
+          therapist_id: string
+          therapist_name: string
         }[]
       }
       get_user_clinic_id: { Args: { _user_id: string }; Returns: string }
@@ -2831,6 +2926,7 @@ export type Database = {
           therapist_color: string
         }[]
       }
+      mark_review_sent: { Args: { p_token: string }; Returns: undefined }
       next_working_day: { Args: { p_from: string }; Returns: string }
       schedule_plan_sessions: {
         Args: { p_date: string; p_plan_id: string }
@@ -2852,6 +2948,10 @@ export type Database = {
       show_trgm: { Args: { "": string }; Returns: string[] }
       start_therapy_session: {
         Args: { p_session_id: string; p_therapist_id: string }
+        Returns: Json
+      }
+      submit_therapy_review: {
+        Args: { p_rating: number; p_token: string }
         Returns: Json
       }
       update_sla_breach_days: { Args: never; Returns: undefined }
