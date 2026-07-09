@@ -13,6 +13,7 @@ import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { createTherapySession } from "@/lib/createTherapySession";
+import { sendReviewLinkForSession } from "@/lib/therapistReview";
 
 type Session = {
   id: string;
