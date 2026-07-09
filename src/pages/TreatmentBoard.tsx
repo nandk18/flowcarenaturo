@@ -422,12 +422,13 @@ function StatCard({ tone, label, count, names }: { tone: "red" | "orange" | "gre
 }
 
 function SessionRow({
-  s, busy, therapists, onStart, onComplete, onCancel,
+  s, busy, therapists, onStart, onComplete, onCancel, onReview,
 }: {
   s: Session; busy: boolean; therapists: Therapist[];
   onStart: (therapistId: string | null) => void;
   onComplete: () => void;
   onCancel: () => void;
+  onReview?: () => void;
 }) {
   const total = s.treatment_plan_items?.total_sessions ?? null;
   const sessLabel = s.session_number ? `Session ${s.session_number}${total ? ` of ${total}` : ""}` : "";
