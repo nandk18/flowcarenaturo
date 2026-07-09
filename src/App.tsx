@@ -382,6 +382,7 @@ function AppRoutes() {
       <Route path="/treatment/board" element={<TreatmentBoard />} />
       <Route path="/treatment/schedule" element={<TreatmentSchedule />} />
       <Route path="/treatment/therapists" element={<TreatmentTherapists />} />
+      <Route path="/treatment/scorecards" element={<TherapistScorecards />} />
       <Route path="/therapist-login" element={<TherapistLogin />} />
       <Route path="/treatment/therapist" element={<TherapistApp />} />
       <Route path="/dashboard/patients" element={<Navigate to="/patients" replace />} />
