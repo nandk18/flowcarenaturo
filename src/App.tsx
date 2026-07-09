@@ -216,6 +216,7 @@ function AppRoutes() {
         <Route path="/invoice/:invoiceId" element={<PublicInvoiceViewer />} />
         <Route path="/s/:code" element={<ShortLinkRedirect />} />
         <Route path="/patient-form/:token" element={<PatientFormPublic />} />
+        <Route path="/review/:token" element={<ReviewSubmit />} />
       </Routes>
     );
 
