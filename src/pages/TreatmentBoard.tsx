@@ -536,7 +536,14 @@ function SessionRow({
               </a>
             )}
           </div>
-          <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            {onReview && (
+              <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={onReview} disabled={busy}>
+                <Star className="h-3 w-3 mr-1" /> Send review
+              </Button>
+            )}
+          </div>
         </div>
       </li>
     );
