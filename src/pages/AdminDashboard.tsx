@@ -202,11 +202,12 @@ export default function AdminDashboard() {
     const c: Appt[] = [];
     const t: Appt[] = [];
     for (const a of activeAppts) {
-      if (classifyAppt(a) === "treatment") t.push(a);
-      else c.push(a);
+      if (hasConsultation(a)) c.push(a);
+      if (hasTreatment(a)) t.push(a);
     }
     return { consultAppts: c, treatmentAppts: t };
   }, [activeAppts]);
+
 
   const completedCount = activeAppts.filter((a) => a.status === "completed").length;
   const pendingCount = activeAppts.filter((a) => a.status === "scheduled" || a.status === "confirmed").length;
