@@ -83,6 +83,11 @@ export const TEMPLATE_META: Record<
     description: "Reminder sent the day before a scheduled therapy session",
     variables: ["{patient_name}", "{clinic_name}", "{service_name}"],
   },
+  therapy_review_request: {
+    label: "Therapy Review Request",
+    description: "Sent after a therapy session to collect a 0–5 rating for the therapist",
+    variables: ["{patient_name}", "{clinic_name}", "{service_name}", "{therapist_name}", "{review_link}"],
+  },
 };
 
 export const TEMPLATE_TYPES = Object.keys(TEMPLATE_META) as MessageTemplateType[];
