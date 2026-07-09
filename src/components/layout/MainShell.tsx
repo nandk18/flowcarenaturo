@@ -101,6 +101,7 @@ export default function MainShell({
       items: [
         { to: "/treatment/board", icon: LayoutGrid, label: "Board" },
         { to: "/treatment/therapists", icon: UsersRound, label: "Therapists" },
+        { to: "/treatment/scorecards", icon: Star, label: "Scorecards" },
       ],
     }] : []),
   ];
