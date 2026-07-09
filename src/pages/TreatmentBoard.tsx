@@ -383,7 +383,7 @@ export default function TreatmentBoard() {
                           onCancel={() => cancelSession(s)}
                           onReview={async () => {
                             const res = await sendReviewLinkForSession(s.id);
-                            if (!res.ok) toast.error(res.error);
+                            if (!res.ok) toast.error((res as any).error);
                             else toast.success("Review link opened in WhatsApp");
                           }}
                         />
