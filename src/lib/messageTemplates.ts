@@ -9,7 +9,8 @@ export type MessageTemplateType =
   | "invoice_payment"
   | "care_call"
   | "appointment_cancelled_notice"
-  | "therapy_session_reminder";
+  | "therapy_session_reminder"
+  | "therapy_review_request";
 
 export type MessageTemplate = {
   id: string;
