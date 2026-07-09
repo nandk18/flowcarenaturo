@@ -10,6 +10,7 @@ import { Loader2, Play, CheckCircle2, LogOut, Camera, AlertTriangle, X } from "l
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ensureTherapistPushSubscription, removeTherapistPushSubscription } from "@/lib/therapistPush";
+import { sendReviewLinkForSession } from "@/lib/therapistReview";
 
 type Session = {
   id: string;
