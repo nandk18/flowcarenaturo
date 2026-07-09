@@ -49,6 +49,8 @@ import TreatmentSchedule from "./pages/TreatmentSchedule";
 import TreatmentTherapists from "./pages/TreatmentTherapists";
 import TherapistLogin from "./pages/TherapistLogin";
 import TherapistApp from "./pages/TherapistApp";
+import ReviewSubmit from "./pages/ReviewSubmit";
+import TherapistScorecards from "./pages/TherapistScorecards";
 import { TherapistAuthProvider } from "./hooks/useTherapistAuth";
 
 import SuperAdmin from "./pages/SuperAdmin";
