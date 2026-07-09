@@ -49,6 +49,8 @@ import TreatmentSchedule from "./pages/TreatmentSchedule";
 import TreatmentTherapists from "./pages/TreatmentTherapists";
 import TherapistLogin from "./pages/TherapistLogin";
 import TherapistApp from "./pages/TherapistApp";
+import ReviewSubmit from "./pages/ReviewSubmit";
+import TherapistScorecards from "./pages/TherapistScorecards";
 import { TherapistAuthProvider } from "./hooks/useTherapistAuth";
 
 import SuperAdmin from "./pages/SuperAdmin";
@@ -101,7 +103,8 @@ const isPublicRoute = (path: string) =>
   path.startsWith("/invoice/") ||
   path.startsWith("/rx/") ||
   path.startsWith("/s/") ||
-  path.startsWith("/patient-form/");
+  path.startsWith("/patient-form/") ||
+  path.startsWith("/review/");
 
 
 const isAuthEntryRoute = (path: string) => path === "/" || path === "/auth" || path === "/login";
@@ -215,6 +218,7 @@ function AppRoutes() {
         <Route path="/invoice/:invoiceId" element={<PublicInvoiceViewer />} />
         <Route path="/s/:code" element={<ShortLinkRedirect />} />
         <Route path="/patient-form/:token" element={<PatientFormPublic />} />
+        <Route path="/review/:token" element={<ReviewSubmit />} />
       </Routes>
     );
 
@@ -378,6 +382,7 @@ function AppRoutes() {
       <Route path="/treatment/board" element={<TreatmentBoard />} />
       <Route path="/treatment/schedule" element={<TreatmentSchedule />} />
       <Route path="/treatment/therapists" element={<TreatmentTherapists />} />
+      <Route path="/treatment/scorecards" element={<TherapistScorecards />} />
       <Route path="/therapist-login" element={<TherapistLogin />} />
       <Route path="/treatment/therapist" element={<TherapistApp />} />
       <Route path="/dashboard/patients" element={<Navigate to="/patients" replace />} />

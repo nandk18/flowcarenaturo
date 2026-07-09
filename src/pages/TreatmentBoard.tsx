@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Play, CheckCircle2, Loader2, AlertTriangle, Plus, X, Camera, Search, ChevronDown, ChevronUp } from "lucide-react";
+import { Play, CheckCircle2, Loader2, AlertTriangle, Plus, X, Camera, Search, ChevronDown, ChevronUp, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { createTherapySession } from "@/lib/createTherapySession";
+import { sendReviewLinkForSession } from "@/lib/therapistReview";
 
 type Session = {
   id: string;
@@ -380,6 +381,11 @@ export default function TreatmentBoard() {
                           onStart={(tid) => startSession(s, tid)}
                           onComplete={() => completeSession(s)}
                           onCancel={() => cancelSession(s)}
+                          onReview={async () => {
+                            const res = await sendReviewLinkForSession(s.id);
+                            if (!res.ok) toast.error((res as any).error);
+                            else toast.success("Review link opened in WhatsApp");
+                          }}
                         />
                       ))}
                     </ul>
@@ -416,12 +422,13 @@ function StatCard({ tone, label, count, names }: { tone: "red" | "orange" | "gre
 }
 
 function SessionRow({
-  s, busy, therapists, onStart, onComplete, onCancel,
+  s, busy, therapists, onStart, onComplete, onCancel, onReview,
 }: {
   s: Session; busy: boolean; therapists: Therapist[];
   onStart: (therapistId: string | null) => void;
   onComplete: () => void;
   onCancel: () => void;
+  onReview?: () => void;
 }) {
   const total = s.treatment_plan_items?.total_sessions ?? null;
   const sessLabel = s.session_number ? `Session ${s.session_number}${total ? ` of ${total}` : ""}` : "";
@@ -529,7 +536,14 @@ function SessionRow({
               </a>
             )}
           </div>
-          <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            {onReview && (
+              <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={onReview} disabled={busy}>
+                <Star className="h-3 w-3 mr-1" /> Send review
+              </Button>
+            )}
+          </div>
         </div>
       </li>
     );

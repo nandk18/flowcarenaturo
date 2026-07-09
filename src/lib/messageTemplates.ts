@@ -9,7 +9,8 @@ export type MessageTemplateType =
   | "invoice_payment"
   | "care_call"
   | "appointment_cancelled_notice"
-  | "therapy_session_reminder";
+  | "therapy_session_reminder"
+  | "therapy_review_request";
 
 export type MessageTemplate = {
   id: string;
@@ -82,6 +83,11 @@ export const TEMPLATE_META: Record<
     description: "Reminder sent the day before a scheduled therapy session",
     variables: ["{patient_name}", "{clinic_name}", "{service_name}"],
   },
+  therapy_review_request: {
+    label: "Therapy Review Request",
+    description: "Sent after a therapy session to collect a 0–5 rating for the therapist",
+    variables: ["{patient_name}", "{clinic_name}", "{service_name}", "{therapist_name}", "{review_link}"],
+  },
 };
 
 export const TEMPLATE_TYPES = Object.keys(TEMPLATE_META) as MessageTemplateType[];
@@ -105,6 +111,8 @@ const DEFAULT_BODIES: Record<MessageTemplateType, string> = {
     "Hi {patient_name}, we regret to inform you that your appointment at {clinic_name} on {appointment_date} at {appointment_time} has been cancelled due to {reason}. Please contact us to reschedule at your earliest convenience.",
   therapy_session_reminder:
     "Hi {patient_name}, this is a reminder for your therapy session ({service_name}) tomorrow at {clinic_name}. Please arrive 10 minutes early. Reply to confirm or reschedule.",
+  therapy_review_request:
+    "Hi {patient_name}, thank you for visiting {clinic_name}! Please take a moment to rate your session ({service_name}) with {therapist_name}: {review_link}",
 };
 
 export function renderTemplate(body: string, vars: Record<string, string | number | null | undefined>): string {

@@ -10,6 +10,7 @@ import { Loader2, Play, CheckCircle2, LogOut, Camera, AlertTriangle, X } from "l
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ensureTherapistPushSubscription, removeTherapistPushSubscription } from "@/lib/therapistPush";
+import { sendReviewLinkForSession } from "@/lib/therapistReview";
 
 type Session = {
   id: string;
@@ -158,7 +159,11 @@ export default function TherapistApp() {
     });
     setBusyId(null);
     if (error) toast.error(error.message);
-    else toast.success(`Completed ${s.service_name}`);
+    else {
+      toast.success(`Completed ${s.service_name}`);
+      // Fire-and-forget review link (opens WhatsApp share sheet).
+      void sendReviewLinkForSession(s.id);
+    }
   };
 
   if (flagLoading || authLoading) return <div className="p-6"><Loader2 className="h-5 w-5 animate-spin" /></div>;
