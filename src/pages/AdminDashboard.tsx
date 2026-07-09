@@ -71,13 +71,18 @@ const statusLabel = (s: DisplayStatus) =>
     cancelled: "Cancelled",
   })[s];
 
-// Treatment if the appointment has ≥1 linked service and ALL are service_type='treatment'.
-function classifyAppt(a: Appt): "consultation" | "treatment" {
+// A mixed appointment (consult + treatment) appears in BOTH streams.
+function hasTreatment(a: Appt): boolean {
   const svc = a.services ?? [];
-  if (svc.length === 0) return "consultation";
-  const allTreatment = svc.every((s) => (s.invoice_services?.service_type ?? "consultation") === "treatment");
-  return allTreatment ? "treatment" : "consultation";
+  return svc.some((s) => (s.invoice_services?.service_type ?? "consultation") === "treatment");
 }
+function hasConsultation(a: Appt): boolean {
+  const svc = a.services ?? [];
+  // No linked services → treat as consultation (legacy default).
+  if (svc.length === 0) return true;
+  return svc.some((s) => (s.invoice_services?.service_type ?? "consultation") !== "treatment");
+}
+
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
@@ -197,11 +202,12 @@ export default function AdminDashboard() {
     const c: Appt[] = [];
     const t: Appt[] = [];
     for (const a of activeAppts) {
-      if (classifyAppt(a) === "treatment") t.push(a);
-      else c.push(a);
+      if (hasConsultation(a)) c.push(a);
+      if (hasTreatment(a)) t.push(a);
     }
     return { consultAppts: c, treatmentAppts: t };
   }, [activeAppts]);
+
 
   const completedCount = activeAppts.filter((a) => a.status === "completed").length;
   const pendingCount = activeAppts.filter((a) => a.status === "scheduled" || a.status === "confirmed").length;

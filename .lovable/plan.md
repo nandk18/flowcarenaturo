@@ -1,35 +1,30 @@
-## Therapist Reviews & Scorecards
+# Fix mixed booking dashboard split + Review 404
 
-### 1. Database (single migration)
-New table `public.therapy_session_reviews`:
-- `id`, `clinic_id`, `session_id` (FK therapy_sessions, unique), `therapist_id` (FK profiles), `patient_id`, `token` (uuid, unique), `rating` smallint (0–5, validated via trigger), `submitted_at`, `sent_at`, `created_at`, `updated_at`.
-- GRANT: `anon` SELECT/UPDATE (needed for public submit via token), `authenticated` SELECT, `service_role` ALL.
-- RLS:
-  - anon: SELECT + UPDATE only when `token = current_setting('request.jwt.claims',true)` OR simple `USING (true)` on the token-scoped row (we filter by token in the query — safe since token is opaque uuid, only rating can be set).
-  - authenticated: SELECT only where `clinic_id = get_clinic_id_safe()`.
-- Trigger auto-creates a review row (with token) when a `therapy_sessions` row transitions to `completed`.
-- RPC `submit_therapy_review(p_token uuid, p_rating int)` — SECURITY DEFINER, validates 0–5, sets rating + submitted_at once.
-- View `therapist_scorecards` (or RPC `get_therapist_scorecards(p_clinic_id)`) returning per therapist: `reviews_30d`, `avg_30d`, `reviews_lifetime`, `avg_lifetime`. Scoped by `has_role`/clinic.
+## Issue 4 — `/review/:token` returns 404 (root cause found)
+In `src/App.tsx`, the **public-only routes branch** (the `if` around lines 194-225 that returns `<Routes>` with only public routes) does not include `/review/`. So an unauthenticated visitor hitting `/review/<token>` falls through to the authenticated app shell where no matching `<Route>` is mounted → `NotFound` renders (looks like a 404). The `isPublicRoute` helper was updated, but this second branch was missed.
 
-### 2. Public review page
-`src/pages/ReviewSubmit.tsx` at route `/review/:token`:
-- Fetches session/therapist/clinic info via a new RPC `get_review_context(p_token uuid)` (SECURITY DEFINER, returns therapist name, service, clinic name, already-submitted flag).
-- Renders 0–5 star selector + Submit.
-- Calls `submit_therapy_review`. Shows thank-you state.
+**Fix (one file, `src/App.tsx`):**
+- Add `path.startsWith("/review/")` to the condition of the public-only branch.
+- The `<Route path="/review/:token" element={<ReviewSubmit />} />` line is already there — no other change needed.
 
-### 3. WhatsApp send
-Extend `src/lib/messageTemplates.ts` with `therapy_review_request` template (seeded in `seed_default_message_templates`). Message includes `{therapist_name}`, `{service_name}`, `{review_link}` → `${origin}/review/{token}`.
-- **Auto**: after `complete_therapy_session` succeeds in `TherapistApp.tsx` and `TreatmentBoard.tsx`, fetch the review row's token and call `openWhatsApp(patient.phone, message)`.
-- **Manual resend**: on Treatment Board completed rows, add a "Send review" button (WhatsApp icon) that opens the same message. Button label switches to "Resend review" if `sent_at` exists, and shows ⭐N if already rated.
+## Issue 1 — Consult + Treatment booked together: only consult shows on Clinical Dashboard
+Symptom: booking one appointment with both a consultation service and a treatment service produces a "Consultation" row on the Clinical Dashboard but no treatment row / no therapy session.
 
-### 4. Scorecard UI
-- **Admin**: new page `src/pages/TherapistScorecards.tsx` (linked from Treatment section nav). Table: Therapist · 30-day avg (⭐ + count) · Lifetime avg (⭐ + count). Click row → drawer with recent reviews list.
-- **Therapist**: on `TherapistApp.tsx` header, add a small "⭐ 4.8 (30d) · 4.7 lifetime" chip that opens their own recent reviews sheet. Uses same RPC filtered to `therapist.id`.
+**What needs verification (I'll open these in build mode before editing):**
+- `src/components/appointments/BookAppointmentModal.tsx` — confirm all selected services are written to `appointment_services` (not only the first) and no early-return skips treatments when a consult is present.
+- `src/pages/AdminDashboard.tsx` — how it classifies an appointment as consult vs treatment. Likely it categorizes by "first service" or "any consult ⇒ consult only", hiding the treatment side of a mixed appointment.
+- `startTreatmentForAppointment` / auto-start flow — a mixed appointment has `isTreatmentOnlyAppointment === false`, so the "Start Treatment" path never runs and no `therapy_sessions` are created for the treatment services on that appointment.
 
-### 5. Files touched
-- New: migration, `src/pages/ReviewSubmit.tsx`, `src/pages/TherapistScorecards.tsx`, small `src/lib/therapistReview.ts` helper (build+send WhatsApp).
-- Edited: `src/App.tsx` (routes), `src/pages/TherapistApp.tsx` (auto-send on complete + scorecard chip), `src/pages/TreatmentBoard.tsx` (auto-send + resend button), `src/lib/messageTemplates.ts`, `src/components/layout/*` nav for admin scorecard link.
+**Fix plan:**
+1. **BookAppointmentModal**: ensure every selected service (consult + treatments) is inserted into `appointment_services`. If it already does, this step is a no-op.
+2. **AdminDashboard**: for each appointment, render it in **both** streams when it has mixed service types — a Consult card in the consult queue AND a Treatment card in the treatment queue. Card actions ("Start consultation" vs "Start treatment") are scoped to the relevant services only.
+3. **Treatment start on mixed appointments**: extend `startTreatmentForAppointment` so it processes only the treatment services on the appointment (already filters to treatments) and is callable even when the appointment also has consult services. Add a "Start Treatment" action on the treatment-side card that calls this without touching the consult side.
+4. **Invoice trigger** already handles mixed correctly (consultation line auto-created; therapy line added on completion) — no DB migration required.
 
-### 6. Out of scope
-- No cron reminders for un-submitted reviews (manual resend covers it).
-- No multi-dimension ratings — only overall 0–5 stars.
+## Out of scope this turn
+Items 2, 3, 5 from the previous message (status sync after cancel/complete, calendar WhatsApp button) are deferred until these two are shipped.
+
+## Technical notes
+- No DB migration.
+- Files touched: `src/App.tsx`, `src/components/appointments/BookAppointmentModal.tsx` (verify only), `src/pages/AdminDashboard.tsx`, `src/lib/treatmentStart.ts` (small guard change if needed).
+- Frontend-only fix; user must click **Publish → Update** for the review link and dashboard changes to appear on `flowcarenaturo.lovable.app`.

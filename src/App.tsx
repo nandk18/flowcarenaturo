@@ -203,7 +203,8 @@ function AppRoutes() {
     path === "/.lovable/oauth/consent" ||
     path.startsWith("/invoice/") ||
     path.startsWith("/s/") ||
-    path.startsWith("/patient-form/")
+    path.startsWith("/patient-form/") ||
+    path.startsWith("/review/")
   ) {
     return (
       <Routes>
