@@ -71,6 +71,7 @@ const summaryLabel: Record<DaySummary, string> = {
 
 export default function AvailabilityPage() {
   const { profile } = useAuth();
+  const { clinic } = useClinic();
   const [searchParams, setSearchParams] = useSearchParams();
   const presetPatientId = searchParams.get("patient") ?? undefined;
   const shouldAutoOpen = searchParams.get("book") === "1" || !!presetPatientId;
