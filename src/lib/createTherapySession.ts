@@ -50,6 +50,7 @@ export async function createTherapySession(
     serviceName,
     amount,
     appointmentId = null,
+    allowDuplicate = false,
   } = params;
   const sessionDate = params.date ?? new Date().toISOString().split("T")[0];
   const therapistNotes = sanitizeNotes(params.therapistNotes);
