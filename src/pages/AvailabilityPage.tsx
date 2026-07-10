@@ -362,8 +362,27 @@ export default function AvailabilityPage() {
             )}
             {detailAppt.reason && <p className="mt-1 text-xs text-muted-foreground">Reason: {detailAppt.reason}</p>}
             <p className="mt-1 text-xs uppercase tracking-wide text-red-700">Status: {detailAppt.status}</p>
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => setDetailAppt(null)}>Close</Button>
+              {detailAppt.patient?.phone && detailAppt.status !== "cancelled" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                  onClick={async () => {
+                    const msg = await buildMessage(detailAppt.clinic_id, "appointment_reminder", {
+                      patient_name: detailAppt.patient?.name ?? "",
+                      clinic_name: clinic?.name ?? "our clinic",
+                      appointment_date: detailAppt.appointment_date,
+                      appointment_time: detailAppt.appointment_time?.slice(0, 5) ?? "",
+                      doctor_name: formatDoctorName(detailAppt.doctor?.name) ?? "",
+                    });
+                    openWhatsApp(detailAppt.patient!.phone!, msg);
+                  }}
+                >
+                  <MessageCircle className="mr-1 h-3 w-3" /> WhatsApp
+                </Button>
+              )}
               <Button
                 size="sm"
                 onClick={() => {
