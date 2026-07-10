@@ -40,6 +40,7 @@ type Appt = {
   status: string;
   reason: string | null;
   patient: { id: string; name: string; phone: string | null } | null;
+  doctor?: { name: string } | null;
   services?: string[];
 };
 type View = "day" | "week" | "month";
