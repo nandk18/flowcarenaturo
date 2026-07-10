@@ -1,25 +1,28 @@
-## Fixes
+## Fix 1 — Treatment tab lists consult service too
 
-### 1. Consultation completion shouldn't mark treatment as completed (and vice versa)
-**Where:** `src/pages/AdminDashboard.tsx` — the "complete consultation" action currently updates the appointment row to `completed`, which cascades the whole appointment (both consult + treatment services) out of the Active queue.
+**Where:** `src/pages/AdminDashboard.tsx` (TreatmentTabs / treatment card renderer).
 
-**Fix:** For mixed appointments (has consultation AND treatment), don't flip `appointments.status` when completing the consult side. Instead track consult completion separately:
-- Use `visits.status = 'completed'` as the source of truth for the consultation side (already created on consult check-in).
-- Update the dashboard's `hasConsultation`/`hasTreatment` split so:
-  - Consultation card is hidden when the appointment has a completed `visits` row.
-  - Treatment card is hidden only when all its `therapy_sessions` are `completed`/`cancelled` (the DB trigger already handles the appointment status for pure-treatment appointments).
-- Only mark `appointments.status = 'completed'` when the appointment has no treatment services, OR when both the visit is completed and all sessions are done (leave the latter to the existing `sync_appointment_status_from_sessions` trigger by checking visit status inside it too).
+The treatment card iterates every `appointment_services` row, so a mixed appointment (Consultation + Foot Reflexology) shows both service names under the Treatment tab.
 
-### 2. Empty patient card on Treatment Board after cancellation
-**Where:** `src/pages/TreatmentBoard.tsx` — patient groups are rendered even when all their sessions for the day are cancelled with no remaining active ones.
+**Change:** When rendering a treatment appointment card, filter the displayed service list to only rows where `invoice_services.service_type === 'treatment'`. The consult service still belongs to the appointment (and appears under the Consultations tab), but must not be shown/count under Treatments.
 
-**Fix:** Filter out patient groups whose sessions are all `cancelled` (keep groups that have at least one `not_started`/`in_progress`/`completed`). Also collapse the "+ Add therapy" empty patient placeholder when there is no active plan and no non-cancelled session.
+Also apply the same filter anywhere the treatment card builds a subtitle, chip list, or "services" summary from `appt.services`.
 
-### 3. "Send review" button in Therapist App for completed sessions
-**Where:** `src/pages/TherapistApp.tsx` `SessionCard` completed branch.
+No DB change; purely presentational.
 
-**Fix:** Add a small "Send review" button next to the completed timestamp that calls the existing `sendReviewLinkForSession(s.id)` (same util already used on auto-complete and on the Board). Handles resend if the patient didn't get the WhatsApp message.
+## Fix 2 — Allow a 2nd same-service session same day on the Board
+
+**Where:** `src/lib/createTherapySession.ts` (dedup step) and `src/pages/TreatmentBoard.tsx` (`addTherapyForPatient`).
+
+Currently `createTherapySession` returns `isExisting: true` whenever a non-cancelled session for the same patient/service/day exists, and the Board shows the "already on today's board" toast — blocking manual re-add.
+
+**Change:** Add an `allowDuplicate?: boolean` parameter to `createTherapySession`. When true, skip the dedup lookup and always create a new session (incrementing `session_number` off the plan item as usual).
+
+Wire the Board's "+ Add therapy" flow to pass `allowDuplicate: true` — user explicitly picked the service, so a repeat is intentional. The auto flows (`startTreatmentForAppointment`, `ensureIndividualPlanForServices`) keep the current dedup behavior so bookings stay idempotent.
+
+Update the Board toast text to "Added 2nd session of {service}" when the plan item's `session_number` for today is > 1.
 
 ### Technical notes
-- No schema changes required for #2 and #3.
-- For #1, update the trigger `sync_appointment_status_from_sessions` (or a companion visit trigger) so an appointment is marked `completed` only when: all non-cancelled therapy sessions are completed AND (no visit exists OR visit is completed). Adjust `AdminDashboard` filters to drive UI from `visits.status` + session aggregates rather than only `appointments.status`.
+- No schema changes.
+- Files touched: `src/pages/AdminDashboard.tsx`, `src/lib/createTherapySession.ts`, `src/pages/TreatmentBoard.tsx`.
+- `startTreatmentForAppointment` continues to call `createTherapySession` without the flag → mixed-appt "Start Treatment" stays idempotent.
