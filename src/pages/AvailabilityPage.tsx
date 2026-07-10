@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import MainShell from "@/components/layout/MainShell";
 import { useAuth } from "@/hooks/useAuth";
+import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,13 +11,15 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  ChevronLeft, ChevronRight, Plus,
+  ChevronLeft, ChevronRight, Plus, MessageCircle,
 } from "lucide-react";
 import {
   addDays, addMonths, addWeeks, endOfMonth, endOfWeek, format, isSameDay,
   isSameMonth, startOfMonth, startOfWeek,
 } from "date-fns";
 import { cn, formatDoctorName } from "@/lib/utils";
+import { buildMessage } from "@/lib/messageTemplates";
+import { openWhatsApp } from "@/lib/whatsapp";
 import PatientLink from "@/components/PatientLink";
 import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
 import CancelAppointmentModal from "@/components/appointments/CancelAppointmentModal";
@@ -37,6 +40,7 @@ type Appt = {
   status: string;
   reason: string | null;
   patient: { id: string; name: string; phone: string | null } | null;
+  doctor?: { name: string } | null;
   services?: string[];
 };
 type View = "day" | "week" | "month";
@@ -67,6 +71,7 @@ const summaryLabel: Record<DaySummary, string> = {
 
 export default function AvailabilityPage() {
   const { profile } = useAuth();
+  const { clinic } = useClinic();
   const [searchParams, setSearchParams] = useSearchParams();
   const presetPatientId = searchParams.get("patient") ?? undefined;
   const shouldAutoOpen = searchParams.get("book") === "1" || !!presetPatientId;
@@ -155,7 +160,7 @@ export default function AvailabilityPage() {
     const endStr = format(rangeEnd, "yyyy-MM-dd");
     const [aRes, eRes] = await Promise.all([
       (supabase as any).from("appointments")
-        .select("id, clinic_id, patient_id, doctor_id, appointment_date, appointment_time, status, reason, patients(id, name, phone), appointment_services(invoice_services(name))")
+        .select("id, clinic_id, patient_id, doctor_id, appointment_date, appointment_time, status, reason, patients(id, name, phone), doctors(id, name), appointment_services(invoice_services(name))")
         .eq("clinic_id", profile.clinic_id)
         .eq("doctor_id", doctorId)
         .gte("appointment_date", startStr)
@@ -170,6 +175,7 @@ export default function AvailabilityPage() {
     setAppts((aRes.data ?? []).map((a: any) => ({
       ...a,
       patient: Array.isArray(a.patients) ? a.patients[0] : a.patients,
+      doctor: Array.isArray(a.doctors) ? a.doctors[0] : a.doctors,
       services: (a.appointment_services ?? [])
         .map((s: any) => s.invoice_services?.name)
         .filter(Boolean) as string[],
@@ -356,8 +362,27 @@ export default function AvailabilityPage() {
             )}
             {detailAppt.reason && <p className="mt-1 text-xs text-muted-foreground">Reason: {detailAppt.reason}</p>}
             <p className="mt-1 text-xs uppercase tracking-wide text-red-700">Status: {detailAppt.status}</p>
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => setDetailAppt(null)}>Close</Button>
+              {detailAppt.patient?.phone && detailAppt.status !== "cancelled" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                  onClick={async () => {
+                    const msg = await buildMessage(detailAppt.clinic_id, "appointment_reminder", {
+                      patient_name: detailAppt.patient?.name ?? "",
+                      clinic_name: clinic?.name ?? "our clinic",
+                      appointment_date: detailAppt.appointment_date,
+                      appointment_time: detailAppt.appointment_time?.slice(0, 5) ?? "",
+                      doctor_name: formatDoctorName(detailAppt.doctor?.name) ?? "",
+                    });
+                    openWhatsApp(detailAppt.patient!.phone!, msg);
+                  }}
+                >
+                  <MessageCircle className="mr-1 h-3 w-3" /> WhatsApp
+                </Button>
+              )}
               <Button
                 size="sm"
                 onClick={() => {
