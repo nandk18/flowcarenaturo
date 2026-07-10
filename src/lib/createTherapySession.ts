@@ -59,16 +59,21 @@ export async function createTherapySession(
 
   // 1. Dedup: session already exists for this patient/service/day. Also compare
   // normalized names to handle duplicated services such as two "Colon Therapy" rows.
-  const { data: existingRows } = await supabase
-    .from("therapy_sessions")
-    .select("id, service_id, service_name, session_number, treatment_plan_id, treatment_plan_item_id")
-    .eq("clinic_id", clinicId)
-    .eq("patient_id", patientId)
-    .eq("session_date", sessionDate)
-    .neq("status", "cancelled");
-  const existing = (existingRows ?? []).find(
-    (row: any) => row.service_id === serviceId || normalizeServiceName(row.service_name) === targetServiceName,
-  );
+  // Skipped when allowDuplicate is set (explicit manual add on the Board).
+  const existing = allowDuplicate
+    ? undefined
+    : await (async () => {
+        const { data: existingRows } = await supabase
+          .from("therapy_sessions")
+          .select("id, service_id, service_name, session_number, treatment_plan_id, treatment_plan_item_id")
+          .eq("clinic_id", clinicId)
+          .eq("patient_id", patientId)
+          .eq("session_date", sessionDate)
+          .neq("status", "cancelled");
+        return (existingRows ?? []).find(
+          (row: any) => row.service_id === serviceId || normalizeServiceName(row.service_name) === targetServiceName,
+        );
+      })();
   if (existing) {
     return {
       ok: true,
