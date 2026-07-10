@@ -177,19 +177,18 @@ export default function AdminDashboard() {
     };
   }, [profile?.clinic_id, fetchAll]);
 
-  // Treatment display: 'completed' if all sessions completed, 'in_progress' if any in_progress,
-  // 'booked' otherwise (no sessions yet or all not_started).
+  // Treatment display driven by therapy_sessions ONLY (never appt.status).
+  // This prevents a completed consultation flipping the treatment side to done.
   const getTxDisplay = useCallback(
     (a: Appt): "booked" | "in_progress" | "completed" | "cancelled" => {
       if (a.status === "cancelled") return "cancelled";
       const rows = txSessions.filter((s) => s.appointment_id === a.id);
-      if (rows.length > 0) {
-        if (rows.every((s) => s.status === "completed")) return "completed";
-        if (rows.some((s) => s.status === "in_progress")) return "in_progress";
-        if (rows.some((s) => s.status !== "cancelled")) return "in_progress";
-      }
-      if (a.status === "completed") return "completed";
-      if (a.status === "in_progress") return "in_progress";
+      if (rows.length === 0) return "booked"; // no sessions yet → treatment hasn't started
+      const active = rows.filter((s) => s.status !== "cancelled");
+      if (active.length === 0) return "cancelled";
+      if (active.every((s) => s.status === "completed")) return "completed";
+      if (active.some((s) => s.status === "in_progress")) return "in_progress";
+      if (active.some((s) => s.status === "completed")) return "in_progress"; // partial done
       return "booked";
     },
     [txSessions],
@@ -212,16 +211,20 @@ export default function AdminDashboard() {
   const completedCount = activeAppts.filter((a) => a.status === "completed").length;
   const pendingCount = activeAppts.filter((a) => a.status === "scheduled" || a.status === "confirmed").length;
 
-  // Determine display status for consult flow
+  // Consultation display: prefer visit status. For mixed appts, do NOT let appt.status=completed
+  // (set when treatment sessions all complete) cascade back to the consult side.
   const getDisplay = (appt: Appt): DisplayStatus => {
-    if (appt.status === "completed") return "completed";
     if (appt.status === "cancelled") return "cancelled";
     const v = visitsToday.find((x) => x.patient_id === appt.patient_id);
-    if (v?.status === "in_progress") return "in_progress";
     if (v?.status === "completed") return "completed";
+    if (v?.status === "in_progress") return "in_progress";
     if (v?.status === "waiting") return "waiting";
+    // Consult-only legacy appointment marked completed without a visit row.
+    if (!hasTreatment(appt) && appt.status === "completed") return "completed";
+    if (!hasTreatment(appt) && appt.status === "in_progress") return "in_progress";
     return "scheduled";
   };
+
 
   const [startAppt, setStartAppt] = useState<Appt | null>(null);
 
