@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Calendar, List, Plus, Clock, User, ChevronLeft, ChevronRight,
-  Loader2, CheckCircle, XCircle, ArrowRight, AlertCircle, MessageCircle,
+  Loader2, CheckCircle, XCircle, ArrowRight, AlertCircle,
 } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay, isToday, parseISO } from "date-fns";
 import { formatDoctorName } from "@/lib/utils";
