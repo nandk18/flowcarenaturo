@@ -175,6 +175,7 @@ export default function AvailabilityPage() {
     setAppts((aRes.data ?? []).map((a: any) => ({
       ...a,
       patient: Array.isArray(a.patients) ? a.patients[0] : a.patients,
+      doctor: Array.isArray(a.doctors) ? a.doctors[0] : a.doctors,
       services: (a.appointment_services ?? [])
         .map((s: any) => s.invoice_services?.name)
         .filter(Boolean) as string[],
