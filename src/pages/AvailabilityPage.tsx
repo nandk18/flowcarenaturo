@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import MainShell from "@/components/layout/MainShell";
 import { useAuth } from "@/hooks/useAuth";
+import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,13 +11,15 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  ChevronLeft, ChevronRight, Plus,
+  ChevronLeft, ChevronRight, Plus, MessageCircle,
 } from "lucide-react";
 import {
   addDays, addMonths, addWeeks, endOfMonth, endOfWeek, format, isSameDay,
   isSameMonth, startOfMonth, startOfWeek,
 } from "date-fns";
 import { cn, formatDoctorName } from "@/lib/utils";
+import { buildMessage } from "@/lib/messageTemplates";
+import { openWhatsApp } from "@/lib/whatsapp";
 import PatientLink from "@/components/PatientLink";
 import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
 import CancelAppointmentModal from "@/components/appointments/CancelAppointmentModal";
