@@ -1,30 +1,25 @@
-# Fix mixed booking dashboard split + Review 404
+## Fixes
 
-## Issue 4 — `/review/:token` returns 404 (root cause found)
-In `src/App.tsx`, the **public-only routes branch** (the `if` around lines 194-225 that returns `<Routes>` with only public routes) does not include `/review/`. So an unauthenticated visitor hitting `/review/<token>` falls through to the authenticated app shell where no matching `<Route>` is mounted → `NotFound` renders (looks like a 404). The `isPublicRoute` helper was updated, but this second branch was missed.
+### 1. Consultation completion shouldn't mark treatment as completed (and vice versa)
+**Where:** `src/pages/AdminDashboard.tsx` — the "complete consultation" action currently updates the appointment row to `completed`, which cascades the whole appointment (both consult + treatment services) out of the Active queue.
 
-**Fix (one file, `src/App.tsx`):**
-- Add `path.startsWith("/review/")` to the condition of the public-only branch.
-- The `<Route path="/review/:token" element={<ReviewSubmit />} />` line is already there — no other change needed.
+**Fix:** For mixed appointments (has consultation AND treatment), don't flip `appointments.status` when completing the consult side. Instead track consult completion separately:
+- Use `visits.status = 'completed'` as the source of truth for the consultation side (already created on consult check-in).
+- Update the dashboard's `hasConsultation`/`hasTreatment` split so:
+  - Consultation card is hidden when the appointment has a completed `visits` row.
+  - Treatment card is hidden only when all its `therapy_sessions` are `completed`/`cancelled` (the DB trigger already handles the appointment status for pure-treatment appointments).
+- Only mark `appointments.status = 'completed'` when the appointment has no treatment services, OR when both the visit is completed and all sessions are done (leave the latter to the existing `sync_appointment_status_from_sessions` trigger by checking visit status inside it too).
 
-## Issue 1 — Consult + Treatment booked together: only consult shows on Clinical Dashboard
-Symptom: booking one appointment with both a consultation service and a treatment service produces a "Consultation" row on the Clinical Dashboard but no treatment row / no therapy session.
+### 2. Empty patient card on Treatment Board after cancellation
+**Where:** `src/pages/TreatmentBoard.tsx` — patient groups are rendered even when all their sessions for the day are cancelled with no remaining active ones.
 
-**What needs verification (I'll open these in build mode before editing):**
-- `src/components/appointments/BookAppointmentModal.tsx` — confirm all selected services are written to `appointment_services` (not only the first) and no early-return skips treatments when a consult is present.
-- `src/pages/AdminDashboard.tsx` — how it classifies an appointment as consult vs treatment. Likely it categorizes by "first service" or "any consult ⇒ consult only", hiding the treatment side of a mixed appointment.
-- `startTreatmentForAppointment` / auto-start flow — a mixed appointment has `isTreatmentOnlyAppointment === false`, so the "Start Treatment" path never runs and no `therapy_sessions` are created for the treatment services on that appointment.
+**Fix:** Filter out patient groups whose sessions are all `cancelled` (keep groups that have at least one `not_started`/`in_progress`/`completed`). Also collapse the "+ Add therapy" empty patient placeholder when there is no active plan and no non-cancelled session.
 
-**Fix plan:**
-1. **BookAppointmentModal**: ensure every selected service (consult + treatments) is inserted into `appointment_services`. If it already does, this step is a no-op.
-2. **AdminDashboard**: for each appointment, render it in **both** streams when it has mixed service types — a Consult card in the consult queue AND a Treatment card in the treatment queue. Card actions ("Start consultation" vs "Start treatment") are scoped to the relevant services only.
-3. **Treatment start on mixed appointments**: extend `startTreatmentForAppointment` so it processes only the treatment services on the appointment (already filters to treatments) and is callable even when the appointment also has consult services. Add a "Start Treatment" action on the treatment-side card that calls this without touching the consult side.
-4. **Invoice trigger** already handles mixed correctly (consultation line auto-created; therapy line added on completion) — no DB migration required.
+### 3. "Send review" button in Therapist App for completed sessions
+**Where:** `src/pages/TherapistApp.tsx` `SessionCard` completed branch.
 
-## Out of scope this turn
-Items 2, 3, 5 from the previous message (status sync after cancel/complete, calendar WhatsApp button) are deferred until these two are shipped.
+**Fix:** Add a small "Send review" button next to the completed timestamp that calls the existing `sendReviewLinkForSession(s.id)` (same util already used on auto-complete and on the Board). Handles resend if the patient didn't get the WhatsApp message.
 
-## Technical notes
-- No DB migration.
-- Files touched: `src/App.tsx`, `src/components/appointments/BookAppointmentModal.tsx` (verify only), `src/pages/AdminDashboard.tsx`, `src/lib/treatmentStart.ts` (small guard change if needed).
-- Frontend-only fix; user must click **Publish → Update** for the review link and dashboard changes to appear on `flowcarenaturo.lovable.app`.
+### Technical notes
+- No schema changes required for #2 and #3.
+- For #1, update the trigger `sync_appointment_status_from_sessions` (or a companion visit trigger) so an appointment is marked `completed` only when: all non-cancelled therapy sessions are completed AND (no visit exists OR visit is completed). Adjust `AdminDashboard` filters to drive UI from `visits.status` + session aggregates rather than only `appointments.status`.

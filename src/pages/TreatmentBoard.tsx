@@ -237,7 +237,9 @@ export default function TreatmentBoard() {
       byPatient.set(s.patient_id, arr);
     }
     const rank = (s: Session) => (s.status === "in_progress" ? 0 : s.status === "not_started" ? 1 : 2);
-    const entries = Array.from(byPatient.entries());
+    const entries = Array.from(byPatient.entries())
+      // Hide patient groups where every session for today is cancelled (empty box).
+      .filter(([, list]) => list.some((s) => s.status !== "cancelled"));
     entries.sort((a, b) => {
       const ra = Math.min(...a[1].map(rank));
       const rb = Math.min(...b[1].map(rank));
@@ -245,6 +247,7 @@ export default function TreatmentBoard() {
     });
     return entries;
   }, [sessions]);
+
 
   if (flagLoading) return <DashboardLayout title="Treatment Board"><div className="p-6"><Loader2 className="h-5 w-5 animate-spin" /></div></DashboardLayout>;
   if (!enabled) return <Navigate to="/dashboard" replace />;
