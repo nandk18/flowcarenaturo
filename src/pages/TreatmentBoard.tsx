@@ -205,10 +205,11 @@ export default function TreatmentBoard() {
       serviceName: svc.name,
       amount: svc.amount,
       date: today,
+      allowDuplicate: true,
     });
     if (!res.ok) { toast.error((res as any).error); return; }
-    if (res.data.isExisting) {
-      toast.info(`${svc.name} already on today's board for this patient`);
+    if (res.data.session_number > 1) {
+      toast.success(`Added session ${res.data.session_number} of ${svc.name} for today`);
     } else if (res.data.is_individual) {
       toast.success(`Added ${svc.name} (individual session)`);
     } else {

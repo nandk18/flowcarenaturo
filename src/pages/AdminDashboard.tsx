@@ -635,6 +635,7 @@ function TreatmentTabs({
         <div className="space-y-2">
           {list.map((appt) => {
             const svcNames = (appt.services ?? [])
+              .filter((s) => (s.invoice_services?.service_type ?? "consultation") === "treatment")
               .map((s) => s.invoice_services?.name)
               .filter(Boolean) as string[];
             const display = getTxDisplay(appt);
