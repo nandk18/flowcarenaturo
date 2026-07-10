@@ -22,8 +22,6 @@ import { formatDoctorName } from "@/lib/utils";
 import {
   DoctorSchedule, DoctorException, generateSlots, GeneratedSlot,
 } from "@/lib/scheduleSlots";
-import { buildMessage } from "@/lib/messageTemplates";
-import { openWhatsApp } from "@/lib/whatsapp";
 
 
 type Appointment = {
