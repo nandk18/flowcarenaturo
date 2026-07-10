@@ -332,12 +332,27 @@ function SessionCard({
           </Button>
         )}
         {s.status === "completed" && (
-          <div className="text-[11px] text-emerald-700">
-            {s.started_at && format(new Date(s.started_at), "h:mm a")}
-            {s.completed_at && ` → ${format(new Date(s.completed_at), "h:mm a")}`}
-            {s.started_at && s.completed_at && ` · ${Math.max(0, Math.round((new Date(s.completed_at).getTime() - new Date(s.started_at).getTime()) / 60000))} min ✓`}
+          <div className="space-y-2">
+            <div className="text-[11px] text-emerald-700">
+              {s.started_at && format(new Date(s.started_at), "h:mm a")}
+              {s.completed_at && ` → ${format(new Date(s.completed_at), "h:mm a")}`}
+              {s.started_at && s.completed_at && ` · ${Math.max(0, Math.round((new Date(s.completed_at).getTime() - new Date(s.started_at).getTime()) / 60000))} min ✓`}
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full"
+              onClick={async () => {
+                const res = await sendReviewLinkForSession(s.id);
+                if (!res.ok) toast.error((res as any).error);
+                else toast.success("Review link opened in WhatsApp");
+              }}
+            >
+              Send review link
+            </Button>
           </div>
         )}
+
       </CardContent>
     </Card>
   );
