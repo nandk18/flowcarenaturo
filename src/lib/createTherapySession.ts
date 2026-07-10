@@ -9,6 +9,8 @@ export type CreateTherapySessionParams = {
   date?: string; // yyyy-MM-dd
   therapistNotes?: string | null;
   appointmentId?: string | null;
+  /** When true, skip the same-day dedup and always create a new session. */
+  allowDuplicate?: boolean;
 };
 
 export type CreateTherapySessionResult = {
