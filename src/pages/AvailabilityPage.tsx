@@ -160,7 +160,7 @@ export default function AvailabilityPage() {
     const endStr = format(rangeEnd, "yyyy-MM-dd");
     const [aRes, eRes] = await Promise.all([
       (supabase as any).from("appointments")
-        .select("id, clinic_id, patient_id, doctor_id, appointment_date, appointment_time, status, reason, patients(id, name, phone), appointment_services(invoice_services(name))")
+        .select("id, clinic_id, patient_id, doctor_id, appointment_date, appointment_time, status, reason, patients(id, name, phone), doctors(id, name), appointment_services(invoice_services(name))")
         .eq("clinic_id", profile.clinic_id)
         .eq("doctor_id", doctorId)
         .gte("appointment_date", startStr)
