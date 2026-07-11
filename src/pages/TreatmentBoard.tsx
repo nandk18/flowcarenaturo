@@ -86,39 +86,58 @@ export default function TreatmentBoard() {
 
   const refreshIdle = useCallback(async () => {
     if (!clinicId) return;
-    const { data } = await supabase.rpc("get_idle_patients", { p_clinic_id: clinicId });
-    setIdle((data as any) ?? []);
+    try {
+      const { data } = await supabase.rpc("get_idle_patients", { p_clinic_id: clinicId });
+      setIdle((data as any) ?? []);
+    } catch (err) {
+      console.error("[TreatmentBoard refreshIdle]", err);
+    }
   }, [clinicId]);
 
   const load = useCallback(async () => {
     if (!clinicId) return;
-    const [s, c, i, f] = await Promise.all([
-      supabase
-        .from("therapy_sessions")
-        .select(
-          "id, patient_id, service_id, service_name, status, session_date, therapist_id, room, started_at, completed_at, session_number, setup_photo_url, notes, patients(id, first_name, last_name, name), profiles:therapist_id(full_name, therapist_color), treatment_plan_items(total_sessions)"
-        )
-        .eq("clinic_id", clinicId)
-        .eq("session_date", today)
-        .order("started_at", { ascending: true, nullsFirst: false })
-        .order("service_name"),
-      supabase.rpc("get_all_capacities", { p_clinic_id: clinicId, p_date: today }),
-      supabase.rpc("get_idle_patients", { p_clinic_id: clinicId }),
-      supabase
-        .from("therapy_sessions")
-        .select("id, session_date, service_name, patient_id")
-        .eq("clinic_id", clinicId)
-        .gt("session_date", today)
-        .eq("status", "not_started"),
-    ]);
-    setSessions((s.data as any) ?? []);
-    setCapacities((c.data as any) ?? []);
-    setIdle((i.data as any) ?? []);
-    setFutureSessions((f.data as any) ?? []);
-    setLoading(false);
+    try {
+      const [s, c, i, f] = await Promise.all([
+        supabase
+          .from("therapy_sessions")
+          .select(
+            "id, patient_id, service_id, service_name, status, session_date, therapist_id, room, started_at, completed_at, session_number, setup_photo_url, notes, patients(id, first_name, last_name, name), profiles:therapist_id(full_name, therapist_color), treatment_plan_items(total_sessions)"
+          )
+          .eq("clinic_id", clinicId)
+          .eq("session_date", today)
+          .order("started_at", { ascending: true, nullsFirst: false })
+          .order("service_name"),
+        supabase.rpc("get_all_capacities", { p_clinic_id: clinicId, p_date: today }),
+        supabase.rpc("get_idle_patients", { p_clinic_id: clinicId }),
+        supabase
+          .from("therapy_sessions")
+          .select("id, session_date, service_name, patient_id")
+          .eq("clinic_id", clinicId)
+          .gt("session_date", today)
+          .eq("status", "not_started"),
+      ]);
+      setSessions((s.data as any) ?? []);
+      setCapacities((c.data as any) ?? []);
+      setIdle((i.data as any) ?? []);
+      setFutureSessions((f.data as any) ?? []);
+    } catch (err) {
+      console.error("[TreatmentBoard load]", err);
+      setSessions([]);
+      setCapacities([]);
+      setFutureSessions([]);
+    } finally {
+      setLoading(false);
+    }
   }, [clinicId, today]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await load();
+      if (cancelled) return;
+    })();
+    return () => { cancelled = true; };
+  }, [load]);
 
   // Refresh idle every 60s
   useEffect(() => {
@@ -129,16 +148,30 @@ export default function TreatmentBoard() {
 
   useEffect(() => {
     if (!clinicId) return;
-    (supabase as any).rpc("list_clinic_therapists", { p_clinic_id: clinicId })
-      .then(({ data }: any) => setTherapists((data as Therapist[]) ?? []));
-    supabase
-      .from("invoice_services")
-      .select("id, name, amount, duration_minutes")
-      .eq("clinic_id", clinicId)
-      .eq("is_active", true)
-      .eq("service_type", "treatment")
-      .order("name")
-      .then(({ data }) => setServices((data as any) ?? []));
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: tData } = await (supabase as any).rpc("list_clinic_therapists", { p_clinic_id: clinicId });
+        if (cancelled) return;
+        setTherapists((tData as Therapist[]) ?? []);
+      } catch (err) {
+        if (!cancelled) { console.error("[TreatmentBoard therapists]", err); setTherapists([]); }
+      }
+      try {
+        const { data: sData } = await supabase
+          .from("invoice_services")
+          .select("id, name, amount, duration_minutes")
+          .eq("clinic_id", clinicId)
+          .eq("is_active", true)
+          .eq("service_type", "treatment")
+          .order("name");
+        if (cancelled) return;
+        setServices((sData as any) ?? []);
+      } catch (err) {
+        if (!cancelled) { console.error("[TreatmentBoard services]", err); setServices([]); }
+      }
+    })();
+    return () => { cancelled = true; };
   }, [clinicId]);
 
   useEffect(() => {

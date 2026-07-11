@@ -111,108 +111,124 @@ export default function CallTaskPage() {
 
   const loadAll = useCallback(async () => {
     if (!clinicId) return;
-    const [apptsRes, callsRes, careRes, cancelRes, leadRes] = await Promise.all([
-      supabase
-        .from("appointments")
-        .select("id, appointment_time, patient_id, patients(id, name, phone), doctors(name)")
-        .eq("clinic_id", clinicId)
-        .eq("appointment_date", tomorrow)
-        .not("status", "in", "(cancelled,completed)")
-        .order("appointment_time"),
-      supabase
-        .from("call_logs")
-        .select("id, patient_id, called_at, outcome, notes, called_by, patients(id, name)")
-        .eq("clinic_id", clinicId)
-        .gte("called_at", today + "T00:00:00")
-        .lte("called_at", today + "T23:59:59")
-        .order("called_at", { ascending: false }),
-      (supabase as any)
-        .from("appointments")
-        .select("id, patient_id, appointment_date, appointment_time, care_call_due_date, patients(id, name, phone), doctors(name)")
-        .eq("clinic_id", clinicId)
-        .eq("care_call_required", true)
-        .eq("care_call_done", false)
-        .order("care_call_due_date", { ascending: true }),
-      (supabase as any)
-        .from("call_logs")
-        .select("id, patient_id, called_at, notes, patients(id, name, phone)")
-        .eq("clinic_id", clinicId)
-        .eq("source", "appointment_cancelled")
-        .gte("called_at", sevenAgoIso)
-        .order("called_at", { ascending: false }),
-      supabase
-        .from("patients")
-        .select("id, call_due_date", { count: "exact", head: true })
-        .eq("clinic_id", clinicId)
-        .in("lead_status", ["attempt1", "attempt2", "attempt3"])
-        .lte("call_due_date", today),
-    ]);
-    setLeadTotal(leadRes.count ?? 0);
+    try {
+      const [apptsRes, callsRes, careRes, cancelRes, leadRes] = await Promise.all([
+        supabase
+          .from("appointments")
+          .select("id, appointment_time, patient_id, patients(id, name, phone), doctors(name)")
+          .eq("clinic_id", clinicId)
+          .eq("appointment_date", tomorrow)
+          .not("status", "in", "(cancelled,completed)")
+          .order("appointment_time"),
+        supabase
+          .from("call_logs")
+          .select("id, patient_id, called_at, outcome, notes, called_by, patients(id, name)")
+          .eq("clinic_id", clinicId)
+          .gte("called_at", today + "T00:00:00")
+          .lte("called_at", today + "T23:59:59")
+          .order("called_at", { ascending: false }),
+        (supabase as any)
+          .from("appointments")
+          .select("id, patient_id, appointment_date, appointment_time, care_call_due_date, patients(id, name, phone), doctors(name)")
+          .eq("clinic_id", clinicId)
+          .eq("care_call_required", true)
+          .eq("care_call_done", false)
+          .order("care_call_due_date", { ascending: true }),
+        (supabase as any)
+          .from("call_logs")
+          .select("id, patient_id, called_at, notes, patients(id, name, phone)")
+          .eq("clinic_id", clinicId)
+          .eq("source", "appointment_cancelled")
+          .gte("called_at", sevenAgoIso)
+          .order("called_at", { ascending: false }),
+        supabase
+          .from("patients")
+          .select("id, call_due_date", { count: "exact", head: true })
+          .eq("clinic_id", clinicId)
+          .in("lead_status", ["attempt1", "attempt2", "attempt3"])
+          .lte("call_due_date", today),
+      ]);
+      setLeadTotal(leadRes.count ?? 0);
 
-    const appts = (apptsRes.data ?? []).map((x: any) => ({
-      ...x,
-      patient: Array.isArray(x.patients) ? x.patients[0] : x.patients,
-      doctor: Array.isArray(x.doctors) ? x.doctors[0] : x.doctors,
-    })) as TomorrowAppt[];
-    setTomorrowAppts(appts);
+      const appts = (apptsRes.data ?? []).map((x: any) => ({
+        ...x,
+        patient: Array.isArray(x.patients) ? x.patients[0] : x.patients,
+        doctor: Array.isArray(x.doctors) ? x.doctors[0] : x.doctors,
+      })) as TomorrowAppt[];
+      setTomorrowAppts(appts);
 
-    const restored: Record<string, string> = {};
-    for (const a of appts) {
-      const draft = formStorage.read<string>(`call_note_${a.patient_id}`, "");
-      if (draft) restored[a.patient_id] = draft;
-    }
-    if (Object.keys(restored).length) {
-      setNoteMap((m) => ({ ...restored, ...m }));
-    }
+      const restored: Record<string, string> = {};
+      for (const a of appts) {
+        const draft = formStorage.read<string>(`call_note_${a.patient_id}`, "");
+        if (draft) restored[a.patient_id] = draft;
+      }
+      if (Object.keys(restored).length) {
+        setNoteMap((m) => ({ ...restored, ...m }));
+      }
 
-    const calls = (callsRes.data ?? []).map((x: any) => ({
-      ...x,
-      patient: Array.isArray(x.patients) ? x.patients[0] : x.patients,
-    })) as CallLogEntry[];
+      const calls = (callsRes.data ?? []).map((x: any) => ({
+        ...x,
+        patient: Array.isArray(x.patients) ? x.patients[0] : x.patients,
+      })) as CallLogEntry[];
 
-    const userIds = Array.from(new Set(calls.map((c) => c.called_by).filter(Boolean))) as string[];
-    if (userIds.length) {
-      const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", userIds);
-      const map = new Map((profs ?? []).map((p: any) => [p.id, p.full_name]));
-      calls.forEach((c) => { c.caller_name = c.called_by ? map.get(c.called_by) ?? null : null; });
-    }
-    setDoneCalls(calls);
+      const userIds = Array.from(new Set(calls.map((c) => c.called_by).filter(Boolean))) as string[];
+      if (userIds.length) {
+        try {
+          const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", userIds);
+          const map = new Map((profs ?? []).map((p: any) => [p.id, p.full_name]));
+          calls.forEach((c) => { c.caller_name = c.called_by ? map.get(c.called_by) ?? null : null; });
+        } catch (err) { console.error("[CallTaskPage profiles]", err); }
+      }
+      setDoneCalls(calls);
 
-    const apptPidSet = new Set(appts.map((a) => a.patient_id));
-    const called: Record<string, boolean> = {};
-    calls.forEach((c) => { if (apptPidSet.has(c.patient_id)) called[c.patient_id] = true; });
-    setCalledMap(called);
+      const apptPidSet = new Set(appts.map((a) => a.patient_id));
+      const called: Record<string, boolean> = {};
+      calls.forEach((c) => { if (apptPidSet.has(c.patient_id)) called[c.patient_id] = true; });
+      setCalledMap(called);
 
-    // Care calls
-    const care = ((careRes as any).data ?? []).map((r: any) => ({
-      ...r,
-      patient: Array.isArray(r.patients) ? r.patients[0] : r.patients,
-      doctor: Array.isArray(r.doctors) ? r.doctors[0] : r.doctors,
-    })) as CareCallRow[];
-    setCareRows(care);
-    const careRestored: Record<string, string> = {};
-    care.forEach((r) => {
-      const v = formStorage.read<string>(`care_call_note_${r.id}`, "");
-      if (v) careRestored[r.id] = v;
-    });
-    if (Object.keys(careRestored).length) setCareNotes((m) => ({ ...careRestored, ...m }));
-
-    // Cancelled appointments - filter out informed > 24h ago
-    const cancelled = ((cancelRes as any).data ?? [])
-      .map((r: any) => ({
+      // Care calls
+      const care = ((careRes as any).data ?? []).map((r: any) => ({
         ...r,
         patient: Array.isArray(r.patients) ? r.patients[0] : r.patients,
-      }))
-      .filter((r: CancelledRow) => {
-        const m = r.notes?.match(INFORMED_PREFIX_RE);
-        if (!m) return true;
-        const informedAt = new Date(m[1]).getTime();
-        return Date.now() - informedAt < 24 * 3600_000;
-      }) as CancelledRow[];
-    setCancelledRows(cancelled);
+        doctor: Array.isArray(r.doctors) ? r.doctors[0] : r.doctors,
+      })) as CareCallRow[];
+      setCareRows(care);
+      const careRestored: Record<string, string> = {};
+      care.forEach((r) => {
+        const v = formStorage.read<string>(`care_call_note_${r.id}`, "");
+        if (v) careRestored[r.id] = v;
+      });
+      if (Object.keys(careRestored).length) setCareNotes((m) => ({ ...careRestored, ...m }));
+
+      // Cancelled appointments - filter out informed > 24h ago
+      const cancelled = ((cancelRes as any).data ?? [])
+        .map((r: any) => ({
+          ...r,
+          patient: Array.isArray(r.patients) ? r.patients[0] : r.patients,
+        }))
+        .filter((r: CancelledRow) => {
+          const m = r.notes?.match(INFORMED_PREFIX_RE);
+          if (!m) return true;
+          const informedAt = new Date(m[1]).getTime();
+          return Date.now() - informedAt < 24 * 3600_000;
+        }) as CancelledRow[];
+      setCancelledRows(cancelled);
+    } catch (err) {
+      console.error("[CallTaskPage loadAll]", err);
+      setTomorrowAppts([]);
+      setDoneCalls([]);
+      setCareRows([]);
+      setCancelledRows([]);
+    }
   }, [clinicId, tomorrow, today, sevenAgoIso]);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try { await loadAll(); } catch (err) { if (!cancelled) console.error("[CallTaskPage effect]", err); }
+    })();
+    return () => { cancelled = true; };
+  }, [loadAll]);
 
   const markCalled = async (a: TomorrowAppt, outcome: string = "follow_up") => {
     if (!clinicId) return;

@@ -33,24 +33,35 @@ export default function TodayAppointmentsWidget() {
 
   const fetchToday = async () => {
     if (!profile?.clinic_id) return;
-    const today = format(new Date(), "yyyy-MM-dd");
-    const { data } = await (supabase as any)
-      .from("appointments")
-      .select("id, clinic_id, patient_id, doctor_id, appointment_time, status, reason, patients(id, name, healthcare_id), doctors(name)")
-      .eq("clinic_id", profile.clinic_id)
-      .eq("appointment_date", today)
-      .in("status", ["scheduled", "confirmed"])
-      .order("appointment_time");
-    if (data) {
-      setAppointments(data.map((a: any) => ({
+    try {
+      const today = format(new Date(), "yyyy-MM-dd");
+      const { data, error } = await (supabase as any)
+        .from("appointments")
+        .select("id, clinic_id, patient_id, doctor_id, appointment_time, status, reason, patients(id, name, healthcare_id), doctors(name)")
+        .eq("clinic_id", profile.clinic_id)
+        .eq("appointment_date", today)
+        .in("status", ["scheduled", "confirmed"])
+        .order("appointment_time");
+      if (error) throw error;
+      setAppointments((data ?? []).map((a: any) => ({
         ...a,
         patient: Array.isArray(a.patients) ? a.patients[0] : a.patients,
         doctor: Array.isArray(a.doctors) ? a.doctors[0] : a.doctors,
       })));
+    } catch (err) {
+      console.error("[TodayAppointmentsWidget fetchToday]", err);
+      setAppointments([]);
     }
   };
 
-  useEffect(() => { fetchToday(); }, [profile?.clinic_id]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (cancelled) return;
+      await fetchToday();
+    })();
+    return () => { cancelled = true; };
+  }, [profile?.clinic_id]);
 
   const performMoveToQueue = async (appt: Appointment, checkIn: CheckInData | null) => {
     if (!profile?.clinic_id) return;
