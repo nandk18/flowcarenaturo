@@ -149,7 +149,11 @@ export default function AdminDashboard() {
   }, [profile?.clinic_id, today]);
 
   useEffect(() => {
-    fetchAll();
+    let cancelled = false;
+    (async () => {
+      try { await fetchAll(); } catch (err) { if (!cancelled) console.error("[AdminDashboard effect]", err); }
+    })();
+    return () => { cancelled = true; };
   }, [fetchAll]);
 
   useEffect(() => {
