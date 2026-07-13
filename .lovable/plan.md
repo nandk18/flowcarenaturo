@@ -1,28 +1,42 @@
-## Fix 1 — Treatment tab lists consult service too
 
-**Where:** `src/pages/AdminDashboard.tsx` (TreatmentTabs / treatment card renderer).
+## Goal
 
-The treatment card iterates every `appointment_services` row, so a mixed appointment (Consultation + Foot Reflexology) shows both service names under the Treatment tab.
+1. Let admins/staff edit clinical notes from the Patient page (not just under `/consult/`).
+2. Give therapists a read-only view of a patient's clinical notes (summary) from the Therapist App.
+3. Show each therapist an analytics widget of patients seen today and this week.
 
-**Change:** When rendering a treatment appointment card, filter the displayed service list to only rows where `invoice_services.service_type === 'treatment'`. The consult service still belongs to the appointment (and appears under the Consultations tab), but must not be shown/count under Treatments.
+---
 
-Also apply the same filter anywhere the treatment card builds a subtitle, chip list, or "services" summary from `appt.services`.
+## 1) Editable clinical notes on Patient page
 
-No DB change; purely presentational.
+**File:** `src/pages/SalesPatientDetail.tsx`
+- Currently `editable={fromConsult}` on `ClinicalNotesTab` gates editing to `/consult/*` only, and the footer shows "Read-only view. Editing happens in Consult."
+- Change gating so any authenticated staff (admin/doctor/receptionist) on this patient page can edit:
+  - Pass `editable={true}` (or `editable={fromConsult || hasStaffRole}`) so the existing "Edit note" button (`editable && editVisit && (firstNote || firstRx)`) is visible.
+  - Remove/replace the "Read-only view. Editing happens in Consult." footer.
+- Reuse the existing `EditVisitSheet` — no new editor needed. Saves go through the same clinical_notes update path already used by Consult, so RLS on `clinical_notes` continues to apply.
+- If a visit has no clinical note yet, add an "Add note" button that opens `EditVisitSheet` with a blank note (small extension to the sheet's initial state).
 
-## Fix 2 — Allow a 2nd same-service session same day on the Board
+## 2) Patient summary for Therapists
 
-**Where:** `src/lib/createTherapySession.ts` (dedup step) and `src/pages/TreatmentBoard.tsx` (`addTherapyForPatient`).
+**File:** `src/pages/TherapistApp.tsx` (+ small new component)
+- On each session card, add a "View summary" button that opens a bottom-sheet/dialog showing the most recent clinical note for that patient:
+  - Chief complaint, latest SOAP note fields, allergies/chronic conditions from `patients`.
+  - Read-only. Therapists cannot edit.
+- Data fetch: single query to `visits` (latest) joined with `clinical_notes` and `patients` allergy/chronic fields, filtered by `patient_id`.
+- RLS: the therapist is signed in as the clinic admin session (per `useAuth`), so existing `clinical_notes` SELECT policies already permit read within the clinic. No policy changes needed. If read blocked, add a dedicated `get_patient_summary_for_therapist(p_patient_id)` SECURITY DEFINER RPC scoped to the caller's clinic.
 
-Currently `createTherapySession` returns `isExisting: true` whenever a non-cancelled session for the same patient/service/day exists, and the Board shows the "already on today's board" toast — blocking manual re-add.
+## 3) Therapist analytics (today / this week)
 
-**Change:** Add an `allowDuplicate?: boolean` parameter to `createTherapySession`. When true, skip the dedup lookup and always create a new session (incrementing `session_number` off the plan item as usual).
+**File:** `src/pages/TherapistApp.tsx`
+- Add a compact stats strip above the sessions list showing for the signed-in therapist:
+  - **Today:** count of distinct patients with `therapy_sessions.status = 'completed'` and `session_date = today` where `therapist_id = me`.
+  - **This week:** same, `session_date` between Monday–Sunday of current week.
+  - **Total sessions today** (not just distinct patients).
+- Implemented client-side with two lightweight `supabase.from('therapy_sessions').select('patient_id, session_date', { count: 'exact' })` queries — no schema change.
+- Refresh on the same realtime channel already subscribed for `therapy_sessions`.
 
-Wire the Board's "+ Add therapy" flow to pass `allowDuplicate: true` — user explicitly picked the service, so a repeat is intentional. The auto flows (`startTreatmentForAppointment`, `ensureIndividualPlanForServices`) keep the current dedup behavior so bookings stay idempotent.
-
-Update the Board toast text to "Added 2nd session of {service}" when the plan item's `session_number` for today is > 1.
-
-### Technical notes
-- No schema changes.
-- Files touched: `src/pages/AdminDashboard.tsx`, `src/lib/createTherapySession.ts`, `src/pages/TreatmentBoard.tsx`.
-- `startTreatmentForAppointment` continues to call `createTherapySession` without the flag → mixed-appt "Start Treatment" stays idempotent.
+## Out of scope
+- No changes to the Consult workflow.
+- No changes to RLS unless step 2's read is blocked in practice.
+- No new tables.
