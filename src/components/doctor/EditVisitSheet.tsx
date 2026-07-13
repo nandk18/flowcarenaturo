@@ -144,7 +144,7 @@ export default function EditVisitSheet({ open, onClose, visit, onSaved }: Props)
           </div>
 
           {/* Clinical Notes */}
-          {visit.clinical_notes_id && (
+          {(visit.clinical_notes_id || visit.doctor_id) && (
             <div className="space-y-3">
               <Label className="text-sm font-semibold">Clinical Notes</Label>
               {fields.map(field => (
