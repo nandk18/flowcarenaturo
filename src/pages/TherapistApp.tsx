@@ -338,6 +338,55 @@ export default function TherapistApp() {
           </section>
         )}
       </main>
+
+      <Dialog open={!!summaryPatient} onOpenChange={(o) => !o && setSummaryPatient(null)}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Patient summary</DialogTitle>
+          </DialogHeader>
+          {summaryLoading || !summary ? (
+            <div className="py-6 flex justify-center"><Loader2 className="h-4 w-4 animate-spin" /></div>
+          ) : (
+            <div className="space-y-3 text-sm">
+              <div>
+                <div className="font-semibold">
+                  {summary.patient?.name || `${summary.patient?.first_name ?? ""} ${summary.patient?.last_name ?? ""}`.trim()}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {summary.patient?.gender ?? ""}{summary.patient?.dob ? ` · DOB ${summary.patient.dob}` : ""}
+                </div>
+              </div>
+              {summary.patient?.allergies && (
+                <div><div className="text-[10px] uppercase text-muted-foreground">Allergies</div><div>{summary.patient.allergies}</div></div>
+              )}
+              {summary.patient?.chronic_conditions && (
+                <div><div className="text-[10px] uppercase text-muted-foreground">Chronic conditions</div><div>{summary.patient.chronic_conditions}</div></div>
+              )}
+              {summary.patient?.medication_history && (
+                <div><div className="text-[10px] uppercase text-muted-foreground">Medications</div><div className="whitespace-pre-wrap">{summary.patient.medication_history}</div></div>
+              )}
+              <div className="pt-2 border-t">
+                <div className="text-[10px] uppercase text-muted-foreground mb-1">Recent visits</div>
+                {summary.visits.length === 0 && <div className="text-xs text-muted-foreground">No visits recorded.</div>}
+                {summary.visits.map((v: any, i: number) => (
+                  <div key={i} className="mb-2 rounded-md border p-2">
+                    <div className="text-[11px] text-muted-foreground">{v.visit_date}</div>
+                    {v.chief_complaint && <div className="text-xs"><b>CC:</b> {v.chief_complaint}</div>}
+                    {v.clinical_notes?.[0]?.soap_notes && (
+                      <div className="mt-1 text-xs whitespace-pre-wrap">
+                        {Object.entries(v.clinical_notes[0].soap_notes)
+                          .filter(([k, val]) => k !== "_template" && val)
+                          .map(([k, val]) => `${k}: ${val}`).join("\n")}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
