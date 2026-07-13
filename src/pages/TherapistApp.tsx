@@ -60,6 +60,10 @@ export default function TherapistApp() {
   const [dismissedIdle, setDismissedIdle] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [stats, setStats] = useState<{ dayPatients: number; daySessions: number; weekPatients: number; weekSessions: number }>({ dayPatients: 0, daySessions: 0, weekPatients: 0, weekSessions: 0 });
+  const [summaryPatient, setSummaryPatient] = useState<Session | null>(null);
+  const [summary, setSummary] = useState<any>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingUploadRef = useRef<Session | null>(null);
 
