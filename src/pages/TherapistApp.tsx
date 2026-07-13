@@ -272,6 +272,18 @@ export default function TherapistApp() {
           </div>
         ))}
 
+        {/* Analytics */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg border bg-card p-2">
+            <div className="text-[10px] uppercase text-muted-foreground">Today</div>
+            <div className="text-sm font-semibold">{stats.daySessions} sessions · {stats.dayPatients} patients</div>
+          </div>
+          <div className="rounded-lg border bg-card p-2">
+            <div className="text-[10px] uppercase text-muted-foreground">This week</div>
+            <div className="text-sm font-semibold">{stats.weekSessions} sessions · {stats.weekPatients} patients</div>
+          </div>
+        </div>
+
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
           <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" />Not started</span>
           <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-orange-500" />In progress</span>
@@ -281,6 +293,7 @@ export default function TherapistApp() {
         <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-2 text-[11px] text-blue-800">
           💡 You can start any unassigned therapy. It auto-assigns to you when started.
         </div>
+
 
         {/* My sessions */}
         <section>
