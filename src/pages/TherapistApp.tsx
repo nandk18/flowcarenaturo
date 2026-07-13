@@ -6,9 +6,10 @@ import { useTherapistAuth } from "@/hooks/useTherapistAuth";
 import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Play, CheckCircle2, LogOut, Camera, AlertTriangle, X } from "lucide-react";
+import { Loader2, Play, CheckCircle2, LogOut, Camera, AlertTriangle, X, FileText } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, startOfWeek } from "date-fns";
 import { ensureTherapistPushSubscription, removeTherapistPushSubscription } from "@/lib/therapistPush";
 import { sendReviewLinkForSession } from "@/lib/therapistReview";
 
@@ -59,6 +60,10 @@ export default function TherapistApp() {
   const [dismissedIdle, setDismissedIdle] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [stats, setStats] = useState<{ dayPatients: number; daySessions: number; weekPatients: number; weekSessions: number }>({ dayPatients: 0, daySessions: 0, weekPatients: 0, weekSessions: 0 });
+  const [summaryPatient, setSummaryPatient] = useState<Session | null>(null);
+  const [summary, setSummary] = useState<any>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingUploadRef = useRef<Session | null>(null);
 
@@ -85,6 +90,58 @@ export default function TherapistApp() {
     if (!clinicId || !therapist?.id) return;
     void ensureTherapistPushSubscription(therapist.id, clinicId);
   }, [clinicId, therapist?.id]);
+
+  // Analytics: patients/sessions completed today & this week
+  useEffect(() => {
+    if (!clinicId || !therapist?.id) return;
+    const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("therapy_sessions")
+          .select("patient_id, session_date")
+          .eq("clinic_id", clinicId)
+          .eq("therapist_id", therapist.id)
+          .eq("status", "completed")
+          .gte("session_date", weekStart);
+        const rows = data ?? [];
+        const dayRows = rows.filter((r: any) => r.session_date === today);
+        setStats({
+          daySessions: dayRows.length,
+          dayPatients: new Set(dayRows.map((r: any) => r.patient_id)).size,
+          weekSessions: rows.length,
+          weekPatients: new Set(rows.map((r: any) => r.patient_id)).size,
+        });
+      } catch {}
+    })();
+  }, [clinicId, therapist?.id, today, sessions]);
+
+  // Load patient summary when opened
+  useEffect(() => {
+    if (!summaryPatient) { setSummary(null); return; }
+    setSummaryLoading(true);
+    (async () => {
+      try {
+        const [p, v] = await Promise.all([
+          supabase
+            .from("patients")
+            .select("first_name, last_name, name, dob, gender, allergies, chronic_conditions, medication_history")
+            .eq("id", summaryPatient.patient_id)
+            .maybeSingle(),
+          supabase
+            .from("visits")
+            .select("visit_date, chief_complaint, clinical_notes(soap_notes, created_at)")
+            .eq("patient_id", summaryPatient.patient_id)
+            .order("visit_date", { ascending: false })
+            .limit(3),
+        ]);
+        setSummary({ patient: p.data, visits: v.data ?? [] });
+      } finally {
+        setSummaryLoading(false);
+      }
+    })();
+  }, [summaryPatient]);
+
 
   useEffect(() => {
     if (!clinicId) return;
@@ -215,6 +272,18 @@ export default function TherapistApp() {
           </div>
         ))}
 
+        {/* Analytics */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg border bg-card p-2">
+            <div className="text-[10px] uppercase text-muted-foreground">Today</div>
+            <div className="text-sm font-semibold">{stats.daySessions} sessions · {stats.dayPatients} patients</div>
+          </div>
+          <div className="rounded-lg border bg-card p-2">
+            <div className="text-[10px] uppercase text-muted-foreground">This week</div>
+            <div className="text-sm font-semibold">{stats.weekSessions} sessions · {stats.weekPatients} patients</div>
+          </div>
+        </div>
+
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
           <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" />Not started</span>
           <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-orange-500" />In progress</span>
@@ -224,6 +293,7 @@ export default function TherapistApp() {
         <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-2 text-[11px] text-blue-800">
           💡 You can start any unassigned therapy. It auto-assigns to you when started.
         </div>
+
 
         {/* My sessions */}
         <section>
@@ -241,7 +311,7 @@ export default function TherapistApp() {
                     busy={busyId === s.id}
                     onStart={() => doStart(s)}
                     onUpload={() => openUpload(s)}
-                    onComplete={() => complete(s)}
+                    onComplete={() => complete(s)} onSummary={() => setSummaryPatient(s)}
                   />
                 </li>
               ))}
@@ -260,7 +330,7 @@ export default function TherapistApp() {
                     busy={busyId === s.id}
                     onStart={() => doStart(s)}
                     onUpload={() => openUpload(s)}
-                    onComplete={() => complete(s)}
+                    onComplete={() => complete(s)} onSummary={() => setSummaryPatient(s)}
                   />
                 </li>
               ))}
@@ -268,15 +338,64 @@ export default function TherapistApp() {
           </section>
         )}
       </main>
+
+      <Dialog open={!!summaryPatient} onOpenChange={(o) => !o && setSummaryPatient(null)}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Patient summary</DialogTitle>
+          </DialogHeader>
+          {summaryLoading || !summary ? (
+            <div className="py-6 flex justify-center"><Loader2 className="h-4 w-4 animate-spin" /></div>
+          ) : (
+            <div className="space-y-3 text-sm">
+              <div>
+                <div className="font-semibold">
+                  {summary.patient?.name || `${summary.patient?.first_name ?? ""} ${summary.patient?.last_name ?? ""}`.trim()}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {summary.patient?.gender ?? ""}{summary.patient?.dob ? ` · DOB ${summary.patient.dob}` : ""}
+                </div>
+              </div>
+              {summary.patient?.allergies && (
+                <div><div className="text-[10px] uppercase text-muted-foreground">Allergies</div><div>{summary.patient.allergies}</div></div>
+              )}
+              {summary.patient?.chronic_conditions && (
+                <div><div className="text-[10px] uppercase text-muted-foreground">Chronic conditions</div><div>{summary.patient.chronic_conditions}</div></div>
+              )}
+              {summary.patient?.medication_history && (
+                <div><div className="text-[10px] uppercase text-muted-foreground">Medications</div><div className="whitespace-pre-wrap">{summary.patient.medication_history}</div></div>
+              )}
+              <div className="pt-2 border-t">
+                <div className="text-[10px] uppercase text-muted-foreground mb-1">Recent visits</div>
+                {summary.visits.length === 0 && <div className="text-xs text-muted-foreground">No visits recorded.</div>}
+                {summary.visits.map((v: any, i: number) => (
+                  <div key={i} className="mb-2 rounded-md border p-2">
+                    <div className="text-[11px] text-muted-foreground">{v.visit_date}</div>
+                    {v.chief_complaint && <div className="text-xs"><b>CC:</b> {v.chief_complaint}</div>}
+                    {v.clinical_notes?.[0]?.soap_notes && (
+                      <div className="mt-1 text-xs whitespace-pre-wrap">
+                        {Object.entries(v.clinical_notes[0].soap_notes)
+                          .filter(([k, val]) => k !== "_template" && val)
+                          .map(([k, val]) => `${k}: ${val}`).join("\n")}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
 
 function SessionCard({
-  s, busy, onStart, onUpload, onComplete,
+  s, busy, onStart, onUpload, onComplete, onSummary,
 }: {
   s: Session; busy: boolean;
-  onStart: () => void; onUpload: () => void; onComplete: () => void;
+  onStart: () => void; onUpload: () => void; onComplete: () => void; onSummary: () => void;
 }) {
   const nm = s.patients?.name || `${s.patients?.first_name ?? ""} ${s.patients?.last_name ?? ""}`.trim() || "Patient";
   const total = s.treatment_plan_items?.total_sessions ?? null;
@@ -288,7 +407,12 @@ function SessionCard({
   return (
     <Card className={tone}>
       <CardContent className="p-3 space-y-2">
-        <div className="text-xs text-muted-foreground">{nm}</div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-xs text-muted-foreground truncate">{nm}</div>
+          <button onClick={onSummary} className="text-[10px] text-primary underline inline-flex items-center gap-1">
+            <FileText className="h-3 w-3" /> Summary
+          </button>
+        </div>
         <div className="font-display font-semibold text-sm">{s.service_name}</div>
         <div className="text-[11px] text-muted-foreground">
           {sessLabel}{s.room ? ` · ${s.room}` : ""}

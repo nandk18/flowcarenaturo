@@ -853,7 +853,7 @@ export default function SalesPatientDetail() {
               patientId={patient.id}
               treatmentEnabled={treatmentEnabled}
               notes={clinicalNotes}
-              editable={fromConsult}
+              editable
               onReload={loadClinicalNotes}
             />
           </TabsContent>
@@ -993,6 +993,7 @@ function ClinicalNotesTab({
         medications: firstRx?.medications ?? [],
         follow_up_date: firstRx?.follow_up_date ?? null,
         prescription_notes: firstRx?.notes ?? null,
+        doctor_id: selected.doctor_id ?? null,
       }
     : null;
 
@@ -1073,9 +1074,9 @@ function ClinicalNotesTab({
                   {new Date(selected.created_at).toLocaleTimeString()} · {selected.doctor_name ?? "Doctor"}
                 </p>
               </div>
-              {editable && editVisit && (firstNote || firstRx) && (
+              {editable && editVisit && (
                 <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
-                  <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" /> {firstNote || firstRx ? "Edit" : "Add note"}
                 </Button>
               )}
             </div>
@@ -1243,11 +1244,6 @@ function ClinicalNotesTab({
               </div>
             )}
 
-            {!editable && (
-              <p className="text-[11px] text-muted-foreground border-t pt-3">
-                Read-only view. Editing happens in Consult.
-              </p>
-            )}
           </div>
         )}
       </section>

@@ -25,6 +25,7 @@ type EditableVisit = {
   medications: any;
   follow_up_date: string | null;
   prescription_notes: string | null;
+  doctor_id?: string | null;
 };
 
 type Props = {
@@ -73,17 +74,27 @@ export default function EditVisitSheet({ open, onClose, visit, onSaved }: Props)
     if (!visit) return;
     setSaving(true);
     try {
-      // Update clinical notes
+      // Update or create clinical notes
+      const cleanedSoap: Record<string, any> = { _template: templateName };
+      for (const f of fields) {
+        if (soap[f.key] !== undefined) cleanedSoap[f.key] = soap[f.key];
+      }
       if (visit.clinical_notes_id) {
-        const cleanedSoap: Record<string, any> = { _template: templateName };
-        for (const f of fields) {
-          if (soap[f.key] !== undefined) cleanedSoap[f.key] = soap[f.key];
-        }
         const { error: notesErr } = await supabase
           .from("clinical_notes")
           .update({ soap_notes: cleanedSoap })
           .eq("id", visit.clinical_notes_id);
         if (notesErr) throw notesErr;
+      } else if (visit.doctor_id) {
+        const { error: insErr } = await supabase
+          .from("clinical_notes")
+          .insert({
+            visit_id: visit.id,
+            doctor_id: visit.doctor_id,
+            soap_notes: cleanedSoap,
+            template_name: templateName,
+          });
+        if (insErr) throw insErr;
       }
 
       // Update prescription
@@ -133,7 +144,7 @@ export default function EditVisitSheet({ open, onClose, visit, onSaved }: Props)
           </div>
 
           {/* Clinical Notes */}
-          {visit.clinical_notes_id && (
+          {(visit.clinical_notes_id || visit.doctor_id) && (
             <div className="space-y-3">
               <Label className="text-sm font-semibold">Clinical Notes</Label>
               {fields.map(field => (
