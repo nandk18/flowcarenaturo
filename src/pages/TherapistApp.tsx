@@ -6,9 +6,10 @@ import { useTherapistAuth } from "@/hooks/useTherapistAuth";
 import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Play, CheckCircle2, LogOut, Camera, AlertTriangle, X } from "lucide-react";
+import { Loader2, Play, CheckCircle2, LogOut, Camera, AlertTriangle, X, FileText } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, startOfWeek } from "date-fns";
 import { ensureTherapistPushSubscription, removeTherapistPushSubscription } from "@/lib/therapistPush";
 import { sendReviewLinkForSession } from "@/lib/therapistReview";
 
