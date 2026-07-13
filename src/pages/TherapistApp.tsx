@@ -358,7 +358,12 @@ function SessionCard({
   return (
     <Card className={tone}>
       <CardContent className="p-3 space-y-2">
-        <div className="text-xs text-muted-foreground">{nm}</div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-xs text-muted-foreground truncate">{nm}</div>
+          <button onClick={onSummary} className="text-[10px] text-primary underline inline-flex items-center gap-1">
+            <FileText className="h-3 w-3" /> Summary
+          </button>
+        </div>
         <div className="font-display font-semibold text-sm">{s.service_name}</div>
         <div className="text-[11px] text-muted-foreground">
           {sessLabel}{s.room ? ` · ${s.room}` : ""}
