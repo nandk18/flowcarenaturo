@@ -343,10 +343,10 @@ export default function TherapistApp() {
 }
 
 function SessionCard({
-  s, busy, onStart, onUpload, onComplete,
+  s, busy, onStart, onUpload, onComplete, onSummary,
 }: {
   s: Session; busy: boolean;
-  onStart: () => void; onUpload: () => void; onComplete: () => void;
+  onStart: () => void; onUpload: () => void; onComplete: () => void; onSummary: () => void;
 }) {
   const nm = s.patients?.name || `${s.patients?.first_name ?? ""} ${s.patients?.last_name ?? ""}`.trim() || "Patient";
   const total = s.treatment_plan_items?.total_sessions ?? null;
