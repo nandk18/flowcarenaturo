@@ -311,7 +311,7 @@ export default function TherapistApp() {
                     busy={busyId === s.id}
                     onStart={() => doStart(s)}
                     onUpload={() => openUpload(s)}
-                    onComplete={() => complete(s)}
+                    onComplete={() => complete(s)} onSummary={() => setSummaryPatient(s)}
                   />
                 </li>
               ))}
@@ -330,7 +330,7 @@ export default function TherapistApp() {
                     busy={busyId === s.id}
                     onStart={() => doStart(s)}
                     onUpload={() => openUpload(s)}
-                    onComplete={() => complete(s)}
+                    onComplete={() => complete(s)} onSummary={() => setSummaryPatient(s)}
                   />
                 </li>
               ))}
