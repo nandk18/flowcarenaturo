@@ -91,6 +91,58 @@ export default function TherapistApp() {
     void ensureTherapistPushSubscription(therapist.id, clinicId);
   }, [clinicId, therapist?.id]);
 
+  // Analytics: patients/sessions completed today & this week
+  useEffect(() => {
+    if (!clinicId || !therapist?.id) return;
+    const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("therapy_sessions")
+          .select("patient_id, session_date")
+          .eq("clinic_id", clinicId)
+          .eq("therapist_id", therapist.id)
+          .eq("status", "completed")
+          .gte("session_date", weekStart);
+        const rows = data ?? [];
+        const dayRows = rows.filter((r: any) => r.session_date === today);
+        setStats({
+          daySessions: dayRows.length,
+          dayPatients: new Set(dayRows.map((r: any) => r.patient_id)).size,
+          weekSessions: rows.length,
+          weekPatients: new Set(rows.map((r: any) => r.patient_id)).size,
+        });
+      } catch {}
+    })();
+  }, [clinicId, therapist?.id, today, sessions]);
+
+  // Load patient summary when opened
+  useEffect(() => {
+    if (!summaryPatient) { setSummary(null); return; }
+    setSummaryLoading(true);
+    (async () => {
+      try {
+        const [p, v] = await Promise.all([
+          supabase
+            .from("patients")
+            .select("first_name, last_name, name, dob, gender, allergies, chronic_conditions, medication_history")
+            .eq("id", summaryPatient.patient_id)
+            .maybeSingle(),
+          supabase
+            .from("visits")
+            .select("visit_date, chief_complaint, clinical_notes(soap_notes, created_at)")
+            .eq("patient_id", summaryPatient.patient_id)
+            .order("visit_date", { ascending: false })
+            .limit(3),
+        ]);
+        setSummary({ patient: p.data, visits: v.data ?? [] });
+      } finally {
+        setSummaryLoading(false);
+      }
+    })();
+  }, [summaryPatient]);
+
+
   useEffect(() => {
     if (!clinicId) return;
     const channel = supabase
