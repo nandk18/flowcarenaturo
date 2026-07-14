@@ -101,18 +101,25 @@ export default function TherapistApp() {
       try {
         const { data } = await supabase
           .from("therapy_sessions")
-          .select("patient_id, session_date")
+          .select("patient_id, session_date, service_name, completed_at, patients(first_name, last_name, name)")
           .eq("clinic_id", clinicId)
           .eq("therapist_id", therapist.id)
           .eq("status", "completed")
           .gte("session_date", weekStart);
-        const rows = data ?? [];
-        const dayRows = rows.filter((r: any) => r.session_date === today);
+        const rows = (data ?? []).map((r: any) => ({
+          patient_id: r.patient_id,
+          session_date: r.session_date,
+          service_name: r.service_name,
+          completed_at: r.completed_at,
+          patient_name: r.patients?.name || `${r.patients?.first_name ?? ""} ${r.patients?.last_name ?? ""}`.trim() || "Patient",
+        }));
+        setStatsRows(rows);
+        const dayRows = rows.filter((r) => r.session_date === today);
         setStats({
           daySessions: dayRows.length,
-          dayPatients: new Set(dayRows.map((r: any) => r.patient_id)).size,
+          dayPatients: new Set(dayRows.map((r) => r.patient_id)).size,
           weekSessions: rows.length,
-          weekPatients: new Set(rows.map((r: any) => r.patient_id)).size,
+          weekPatients: new Set(rows.map((r) => r.patient_id)).size,
         });
       } catch {}
     })();
@@ -276,14 +283,16 @@ export default function TherapistApp() {
 
         {/* Analytics */}
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-lg border bg-card p-2">
+          <button type="button" onClick={() => setStatsRange("day")} className="rounded-lg border bg-card p-2 text-left hover:bg-muted transition">
             <div className="text-[10px] uppercase text-muted-foreground">Today</div>
             <div className="text-sm font-semibold">{stats.daySessions} sessions · {stats.dayPatients} patients</div>
-          </div>
-          <div className="rounded-lg border bg-card p-2">
+            <div className="text-[10px] text-primary mt-0.5">Tap to view</div>
+          </button>
+          <button type="button" onClick={() => setStatsRange("week")} className="rounded-lg border bg-card p-2 text-left hover:bg-muted transition">
             <div className="text-[10px] uppercase text-muted-foreground">This week</div>
             <div className="text-sm font-semibold">{stats.weekSessions} sessions · {stats.weekPatients} patients</div>
-          </div>
+            <div className="text-[10px] text-primary mt-0.5">Tap to view</div>
+          </button>
         </div>
 
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
