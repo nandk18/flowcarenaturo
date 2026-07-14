@@ -213,9 +213,9 @@ export default function AdminDashboard() {
       const active = rows.filter((s) => s.status !== "cancelled");
       if (active.length === 0) return "cancelled";
       if (active.every((s) => s.status === "completed")) return "completed";
-      if (active.some((s) => s.status === "in_progress")) return "in_progress";
-      if (active.some((s) => s.status === "completed")) return "in_progress";
-      return "booked";
+      // Once a therapy_session exists for the appointment, it is on the Board even
+      // if the therapist has not pressed Start yet (`not_started`).
+      return "in_progress";
     },
     [txSessions],
   );
