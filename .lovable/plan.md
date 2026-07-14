@@ -1,32 +1,70 @@
-## Fix 1 — Clinical Dashboard treatment icon stuck on "Start Treatment"
+## Overview
 
-**Root cause**
-`AdminDashboard.getTxDisplay` links each appointment to its therapy sessions by `appointment_id`. When `createTherapySession` finds an existing same-day session (dedup path in `src/lib/createTherapySession.ts`, lines 63-90), it returns that row without ever writing the current `appointmentId` onto it. So the new "Start Treatment" click succeeds on the Board side, but the dashboard finds zero sessions for `appt.id` and keeps showing **Booked / Start Treatment**.
+Five fixes: three are tightly related to the current therapist-only PWA (flicker, stale cache after publish, wrong install target/icon). Two are UX additions on the Treatment Board and Therapist App.
 
-**Fix**
-In `src/lib/createTherapySession.ts` dedup branch:
-- Include `appointment_id` in the existing-session select.
-- If `appointmentId` is provided and the existing row's `appointment_id` is `NULL`, update the row to attach it before returning (single-writer wins; we never overwrite a different appointment).
+---
 
-That alone lets the realtime `therapy_sessions` subscription in `AdminDashboard` re-render the card as **On Board / In Progress** exactly like it used to.
+## 1 + 2 + 5. Whole-app PWA with your FlowCare logo, no more flicker/stale cache
 
-No change to Board, Therapist app, or dedup semantics.
+Root cause of #1 and #2: the current service worker (`vite-plugin-pwa` + Workbox) precaches the built JS/CSS and serves navigations from cache. When a new version publishes, the old SW keeps serving stale HTML/chunks until the browser revalidates — that shows up as flicker (old → new swap on reload) and "only updates after clearing cache". The current manifest also scopes the installable app to `/therapist-login` only, which is why "Add to Home Screen" always lands there.
 
-## Fix 2 — "Edit" in Clinical Notes opens SOAP fields, should be freeform
+**Icon asset**
+- Upload `user-uploads://3e4b329d-…JPG` via `lovable-assets` and save it into `public/` as `flowcare-icon-512.png` (also generate/downscale a 192×192 variant `flowcare-icon-192.png` and a `favicon.png`).
+- Replace `index.html` favicon + `apple-touch-icon` + `theme-color` + `apple-mobile-web-app-title` to point at the new FlowCare icon and name.
+- Keep `public/therapist-icon-512.png` untouched for backward compatibility, but stop referencing it.
 
-**Root cause**
-`src/components/doctor/EditVisitSheet.tsx` (lines 62-63, 143-156) always renders the field list from `TEMPLATE_FIELDS[templateName]`, defaulting to "SOAP Notes". There is no freeform option, so notes originally captured in SOAP always reappear as SOAP boxes when the user just wants to append a paragraph.
+**Manifest — cover the whole app**
+Rewrite `public/manifest.webmanifest`:
+- `name: "FlowCare"`, `short_name: "FlowCare"`
+- `start_url: "/"`, `scope: "/"`, `id: "/"`
+- `display: "standalone"`, `theme_color`, `background_color`
+- Icons: 192 + 512 (`any`) and 512 (`maskable`) all pointing at the new FlowCare asset
 
-**Fix (UI-only, no data migration)**
-In `EditVisitSheet.tsx`:
-- Add a small "Format" toggle at the top of the Clinical Notes section: **Freeform · Structured (<templateName>)**. Default to **Freeform** when the sheet opens from the patient page.
-- Freeform mode: one `<Textarea>` seeded with the existing notes flattened (`label: value` per non-empty field, joined by blank lines). On save, persist as `{ _template: "Freeform", notes: "<text>" }` into `clinical_notes.soap_notes` (and `template_name: "Freeform"` on insert).
-- Structured mode: existing per-field editor unchanged, so consult-side editing keeps working.
-- Register "Freeform" in `src/lib/templateFields.tsx` (`TEMPLATE_FIELDS["Freeform"] = [{ key: "notes", label: "Notes" }]`) so `renderClinicalNotes` displays the paragraph cleanly wherever notes are read.
+**Service worker — stop the stale-cache/flicker loop**
+Update `vite.config.ts` VitePWA config:
+- Keep `registerType: "autoUpdate"`, keep `injectRegister: null` (wrapper stays the single registrar).
+- **HTML is always NetworkFirst with a short timeout**, and precached HTML is disabled so a new deploy is picked up on the next navigation instead of served from precache. Remove `html` from `globPatterns` (keep `js,css,ico,png,svg,webmanifest`) and set `navigateFallback: null` so navigations always hit the network first.
+- Add `cleanupOutdatedCaches: true` and `skipWaiting: true` + `clientsClaim: true` so the new SW activates immediately after a publish (no more "refresh twice to see the new version").
+- Runtime cache stays: NetworkFirst for navigations (2s timeout), CacheFirst only for hashed built assets.
 
-No changes to consult workspace, prescriptions, or PDF generation.
+**Wrapper (`src/lib/registerSW.ts`)** — already guards preview/iframe correctly; no logic change needed. It will now register the whole-app SW in production only.
 
-## Files touched
-- `src/lib/createTherapySession.ts` — backfill `appointment_id` on dedup.
-- `src/components/doctor/EditVisitSheet.tsx` — add Freeform/Structured toggle, default Freeform.
-- `src/lib/templateFields.tsx` — register "Freeform" template.
+Expected result: installed FlowCare app opens at `/` with the new logo; published site picks up new versions on the next navigation without a manual cache clear; the double-render flicker on load stops because HTML is no longer served from precache.
+
+---
+
+## 3. Treatment Board status chips are clickable filters (default: Not started)
+
+In `src/pages/TreatmentBoard.tsx`:
+- Add `statusFilter` state (`"not_started" | "in_progress" | "completed" | "all"`), default `"not_started"`.
+- Convert the three status headers/badges (Not started / In progress / Completed) into buttons with `aria-pressed`, active-state styling using existing status tint tokens.
+- Filter the rendered patient/session groups by `statusFilter` (keep "cancelled" hidden as today). Show a small "Showing: Not started" pill with a clear/all toggle.
+- Keep the live clock, elapsed timers, and therapist picker untouched.
+
+---
+
+## 4. Therapist analytics — click count to see patients
+
+In `src/pages/TherapistApp.tsx` stats strip:
+- Wrap the "Today" and "This week" tiles in buttons.
+- On click, open a Dialog listing the distinct patients behind that number: name, session count in the period, last service, last completion time. Data comes from the same completed-session query already used for the counts (extend the select to include `patient_id, patients(full_name)`, then group in-memory).
+- Reuse the existing Summary dialog styling; no new RPCs.
+
+---
+
+## Technical details
+
+Files changed:
+- `public/manifest.webmanifest` — full-app scope, FlowCare name + icons
+- `public/flowcare-icon-192.png`, `public/flowcare-icon-512.png`, `public/favicon.png` — new icon set from the uploaded logo (via `lovable-assets` for the source, copied into `public/` for SW/manifest access)
+- `index.html` — favicon, apple-touch-icon, apple-mobile-web-app-title = "FlowCare", theme color, manifest link stays
+- `vite.config.ts` — Workbox: drop `html` from precache globs, `navigateFallback: null`, `cleanupOutdatedCaches`, `skipWaiting`, `clientsClaim`
+- `src/pages/TreatmentBoard.tsx` — clickable status filter chips with `not_started` default
+- `src/pages/TherapistApp.tsx` — clickable stat tiles + patient-detail dialog
+
+No DB migrations, no new RPCs, no auth changes.
+
+## Notes / caveats
+
+- Users who already installed the therapist PWA from `/therapist-login` will still open there until their OS refreshes the manifest (iOS/Android cache `start_url` at install time). They'll need to reinstall to land on `/`. New installs pick up the new manifest immediately.
+- The SW change fixes flicker/stale cache for all future deploys, but the *current* stale version on a user's machine only clears after one more navigation once the new SW activates (that's the whole point of `skipWaiting` + dropping HTML from precache).
