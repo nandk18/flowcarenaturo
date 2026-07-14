@@ -186,13 +186,35 @@ export default function AdminDashboard() {
   const getTxDisplay = useCallback(
     (a: Appt): "booked" | "in_progress" | "completed" | "cancelled" => {
       if (a.status === "cancelled") return "cancelled";
-      const rows = txSessions.filter((s) => s.appointment_id === a.id);
-      if (rows.length === 0) return "booked"; // no sessions yet → treatment hasn't started
+      // Primary match: sessions directly linked to this appointment.
+      let rows = txSessions.filter((s) => s.appointment_id === a.id);
+      // Fallback match: same patient + one of this appointment's treatment services,
+      // and NOT already linked to a different appointment. Covers the case where a
+      // dedup'd session lost its appointment_id backfill (e.g. RLS blocked the
+      // update, or the session was pre-seeded by schedule_plan_sessions and another
+      // appointment claimed it first).
+      if (rows.length === 0) {
+        const treatmentServiceIds = new Set(
+          (a.services ?? [])
+            .filter((s) => (s.invoice_services?.service_type ?? "consultation") === "treatment")
+            .map((s) => s.service_id),
+        );
+        if (treatmentServiceIds.size > 0) {
+          rows = txSessions.filter(
+            (s) =>
+              s.patient_id === a.patient_id &&
+              s.service_id &&
+              treatmentServiceIds.has(s.service_id) &&
+              (s.appointment_id === null || s.appointment_id === a.id),
+          );
+        }
+      }
+      if (rows.length === 0) return "booked";
       const active = rows.filter((s) => s.status !== "cancelled");
       if (active.length === 0) return "cancelled";
       if (active.every((s) => s.status === "completed")) return "completed";
       if (active.some((s) => s.status === "in_progress")) return "in_progress";
-      if (active.some((s) => s.status === "completed")) return "in_progress"; // partial done
+      if (active.some((s) => s.status === "completed")) return "in_progress";
       return "booked";
     },
     [txSessions],
