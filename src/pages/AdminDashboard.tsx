@@ -121,7 +121,7 @@ export default function AdminDashboard() {
         supabase.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", profile.clinic_id),
         supabase
           .from("therapy_sessions")
-          .select("appointment_id, status")
+          .select("appointment_id, status, patient_id, service_id")
           .eq("clinic_id", profile.clinic_id)
           .eq("session_date", today),
       ]);
