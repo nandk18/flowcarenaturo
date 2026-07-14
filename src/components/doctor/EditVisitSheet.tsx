@@ -171,18 +171,46 @@ export default function EditVisitSheet({ open, onClose, visit, onSaved }: Props)
           {/* Clinical Notes */}
           {(visit.clinical_notes_id || visit.doctor_id) && (
             <div className="space-y-3">
-              <Label className="text-sm font-semibold">Clinical Notes</Label>
-              {fields.map(field => (
-                <div key={field.key} className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">{field.label}</Label>
-                  <Textarea
-                    value={soap[field.key] || ""}
-                    onChange={e => setSoap(prev => ({ ...prev, [field.key]: e.target.value }))}
-                    rows={3}
-                    className="rounded-lg text-sm"
-                  />
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold">Clinical Notes</Label>
+                <div className="inline-flex rounded-md border bg-muted/50 p-0.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setFormat("freeform")}
+                    className={`rounded px-2 py-1 ${format === "freeform" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                  >
+                    Freeform
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormat("structured")}
+                    className={`rounded px-2 py-1 ${format === "structured" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                  >
+                    Structured ({templateName})
+                  </button>
                 </div>
-              ))}
+              </div>
+              {format === "freeform" ? (
+                <Textarea
+                  value={freeformNotes}
+                  onChange={e => setFreeformNotes(e.target.value)}
+                  rows={10}
+                  className="rounded-lg text-sm"
+                  placeholder="Write clinical notes freely..."
+                />
+              ) : (
+                fields.map(field => (
+                  <div key={field.key} className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">{field.label}</Label>
+                    <Textarea
+                      value={soap[field.key] || ""}
+                      onChange={e => setSoap(prev => ({ ...prev, [field.key]: e.target.value }))}
+                      rows={3}
+                      className="rounded-lg text-sm"
+                    />
+                  </div>
+                ))
+              )}
             </div>
           )}
 
