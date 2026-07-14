@@ -43,7 +43,7 @@ type Visit = {
   status: string;
 };
 
-type TxSession = { appointment_id: string | null; status: string };
+type TxSession = { appointment_id: string | null; status: string; patient_id: string; service_id: string | null };
 
 type DisplayStatus = "waiting" | "scheduled" | "in_progress" | "completed" | "cancelled";
 
