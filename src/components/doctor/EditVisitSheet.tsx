@@ -45,13 +45,30 @@ export default function EditVisitSheet({ open, onClose, visit, onSaved }: Props)
   const [followUpDate, setFollowUpDate] = useState("");
   const [prescriptionNotes, setPrescriptionNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [format, setFormat] = useState<"freeform" | "structured">("freeform");
+  const [freeformNotes, setFreeformNotes] = useState("");
 
   const templateName = soap._template || visit?.soap_notes?._template || "SOAP Notes";
   const fields = TEMPLATE_FIELDS[templateName] || TEMPLATE_FIELDS["SOAP Notes"];
 
   useEffect(() => {
     if (open && visit) {
-      setSoap(visit.soap_notes || {});
+      const initialSoap = visit.soap_notes || {};
+      setSoap(initialSoap);
+      // If existing notes were saved as freeform, prefer that; otherwise flatten
+      // structured fields into a labeled paragraph for editing.
+      const existingTpl = initialSoap._template;
+      if (existingTpl === "Freeform" && typeof initialSoap.notes === "string") {
+        setFreeformNotes(initialSoap.notes);
+      } else {
+        const tplFields = TEMPLATE_FIELDS[existingTpl] || TEMPLATE_FIELDS["SOAP Notes"];
+        const flattened = tplFields
+          .filter((f) => initialSoap[f.key] && String(initialSoap[f.key]).trim())
+          .map((f) => `${f.label}: ${String(initialSoap[f.key]).trim()}`)
+          .join("\n\n");
+        setFreeformNotes(flattened);
+      }
+      setFormat("freeform");
       const meds = Array.isArray(visit.medications) && visit.medications.length > 0
         ? visit.medications.map((m: any) => ({
             name: m.name || "", dosage: m.dosage || "",
@@ -75,9 +92,17 @@ export default function EditVisitSheet({ open, onClose, visit, onSaved }: Props)
     setSaving(true);
     try {
       // Update or create clinical notes
-      const cleanedSoap: Record<string, any> = { _template: templateName };
-      for (const f of fields) {
-        if (soap[f.key] !== undefined) cleanedSoap[f.key] = soap[f.key];
+      let cleanedSoap: Record<string, any>;
+      let saveTemplateName: string;
+      if (format === "freeform") {
+        saveTemplateName = "Freeform";
+        cleanedSoap = { _template: "Freeform", notes: freeformNotes };
+      } else {
+        saveTemplateName = templateName;
+        cleanedSoap = { _template: templateName };
+        for (const f of fields) {
+          if (soap[f.key] !== undefined) cleanedSoap[f.key] = soap[f.key];
+        }
       }
       if (visit.clinical_notes_id) {
         const { error: notesErr } = await supabase
@@ -92,7 +117,7 @@ export default function EditVisitSheet({ open, onClose, visit, onSaved }: Props)
             visit_id: visit.id,
             doctor_id: visit.doctor_id,
             soap_notes: cleanedSoap,
-            template_name: templateName,
+            template_name: saveTemplateName,
           });
         if (insErr) throw insErr;
       }
