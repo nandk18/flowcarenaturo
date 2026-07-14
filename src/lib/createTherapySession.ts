@@ -78,10 +78,14 @@ export async function createTherapySession(
     // Backfill appointment_id when this dedup'd session isn't yet linked to any
     // appointment, so the Clinical Dashboard can flip its card to "On Board".
     if (appointmentId && !(existing as any).appointment_id) {
-      await supabase
+      const { error: backfillErr } = await supabase
         .from("therapy_sessions")
         .update({ appointment_id: appointmentId })
-        .eq("id", (existing as any).id);
+        .eq("id", (existing as any).id)
+        .is("appointment_id", null); // guard: only claim when still unlinked
+      if (backfillErr) {
+        console.error("[createTherapySession] appointment_id backfill failed", backfillErr);
+      }
     }
     return {
       ok: true,
