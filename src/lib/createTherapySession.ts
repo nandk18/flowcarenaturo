@@ -65,7 +65,7 @@ export async function createTherapySession(
     : await (async () => {
         const { data: existingRows } = await supabase
           .from("therapy_sessions")
-          .select("id, service_id, service_name, session_number, treatment_plan_id, treatment_plan_item_id")
+          .select("id, service_id, service_name, session_number, treatment_plan_id, treatment_plan_item_id, appointment_id")
           .eq("clinic_id", clinicId)
           .eq("patient_id", patientId)
           .eq("session_date", sessionDate)
@@ -75,6 +75,14 @@ export async function createTherapySession(
         );
       })();
   if (existing) {
+    // Backfill appointment_id when this dedup'd session isn't yet linked to any
+    // appointment, so the Clinical Dashboard can flip its card to "On Board".
+    if (appointmentId && !(existing as any).appointment_id) {
+      await supabase
+        .from("therapy_sessions")
+        .update({ appointment_id: appointmentId })
+        .eq("id", (existing as any).id);
+    }
     return {
       ok: true,
       data: {
