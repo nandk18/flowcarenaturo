@@ -61,6 +61,8 @@ export default function TherapistApp() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [stats, setStats] = useState<{ dayPatients: number; daySessions: number; weekPatients: number; weekSessions: number }>({ dayPatients: 0, daySessions: 0, weekPatients: 0, weekSessions: 0 });
+  const [statsRows, setStatsRows] = useState<Array<{ patient_id: string; session_date: string; service_name: string; completed_at: string | null; patient_name: string }>>([]);
+  const [statsRange, setStatsRange] = useState<"day" | "week" | null>(null);
   const [summaryPatient, setSummaryPatient] = useState<Session | null>(null);
   const [summary, setSummary] = useState<any>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
