@@ -398,6 +398,43 @@ export default function TherapistApp() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!statsRange} onOpenChange={(o) => !o && setStatsRange(null)}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{statsRange === "day" ? "Today's patients" : "This week's patients"}</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const rows = statsRange === "day" ? statsRows.filter((r) => r.session_date === today) : statsRows;
+            const byPatient = new Map<string, { name: string; count: number; last: string; lastAt: string | null }>();
+            for (const r of rows) {
+              const cur = byPatient.get(r.patient_id);
+              if (!cur) byPatient.set(r.patient_id, { name: r.patient_name, count: 1, last: r.service_name, lastAt: r.completed_at });
+              else {
+                cur.count += 1;
+                if (r.completed_at && (!cur.lastAt || r.completed_at > cur.lastAt)) { cur.lastAt = r.completed_at; cur.last = r.service_name; }
+              }
+            }
+            const list = Array.from(byPatient.entries()).sort((a, b) => (b[1].lastAt ?? "").localeCompare(a[1].lastAt ?? ""));
+            if (list.length === 0) return <div className="py-6 text-center text-sm text-muted-foreground">No completed sessions yet.</div>;
+            return (
+              <ul className="divide-y">
+                {list.map(([pid, info]) => (
+                  <li key={pid} className="py-2 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium text-sm truncate">{info.name}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">
+                        Last: {info.last}{info.lastAt ? ` · ${format(new Date(info.lastAt), "MMM d, h:mm a")}` : ""}
+                      </div>
+                    </div>
+                    <div className="text-xs font-semibold text-primary shrink-0">{info.count} session{info.count > 1 ? "s" : ""}</div>
+                  </li>
+                ))}
+              </ul>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
