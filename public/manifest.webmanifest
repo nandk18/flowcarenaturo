@@ -1,15 +1,17 @@
 {
-  "name": "FlowCare Therapist",
-  "short_name": "Therapist",
-  "description": "Therapist session app for FlowCare",
-  "start_url": "/therapist-login",
+  "name": "FlowCare",
+  "short_name": "FlowCare",
+  "description": "FlowCare — AI-powered clinic management",
+  "id": "/",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0f172a",
+  "background_color": "#f5f5f5",
   "theme_color": "#0f766e",
   "icons": [
-    { "src": "/therapist-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/therapist-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "/flowcare-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/flowcare-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/flowcare-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
