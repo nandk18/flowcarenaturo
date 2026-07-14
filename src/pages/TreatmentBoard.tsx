@@ -80,6 +80,7 @@ export default function TreatmentBoard() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [capOpen, setCapOpen] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<"not_started" | "in_progress" | "completed" | "all">("not_started");
 
   const [futureSessions, setFutureSessions] = useState<{ id: string; session_date: string; service_name: string; patient_id: string }[]>([]);
   const [showFuture, setShowFuture] = useState(false);
@@ -266,21 +267,23 @@ export default function TreatmentBoard() {
   const grouped = useMemo(() => {
     const byPatient = new Map<string, Session[]>();
     for (const s of sessions) {
+      // Apply status filter (cancelled always hidden).
+      if (s.status === "cancelled") continue;
+      if (statusFilter !== "all" && s.status !== statusFilter) continue;
       const arr = byPatient.get(s.patient_id) ?? [];
       arr.push(s);
       byPatient.set(s.patient_id, arr);
     }
     const rank = (s: Session) => (s.status === "in_progress" ? 0 : s.status === "not_started" ? 1 : 2);
     const entries = Array.from(byPatient.entries())
-      // Hide patient groups where every session for today is cancelled (empty box).
-      .filter(([, list]) => list.some((s) => s.status !== "cancelled"));
+      .filter(([, list]) => list.length > 0);
     entries.sort((a, b) => {
       const ra = Math.min(...a[1].map(rank));
       const rb = Math.min(...b[1].map(rank));
       return ra - rb;
     });
     return entries;
-  }, [sessions]);
+  }, [sessions, statusFilter]);
 
 
   if (flagLoading) return <DashboardLayout title="Treatment Board"><div className="p-6"><Loader2 className="h-5 w-5 animate-spin" /></div></DashboardLayout>;
@@ -307,11 +310,12 @@ export default function TreatmentBoard() {
           </Button>
         </div>
 
-        {/* Summary bar */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <StatCard tone="red" label="Not Started" count={summary.ns.length} names={summary.ns.map(patientNameOf)} />
-          <StatCard tone="orange" label="In Progress" count={summary.ip.length} names={summary.ip.map(patientNameOf)} />
-          <StatCard tone="green" label="Completed" count={summary.cp.length} names={summary.cp.map(patientNameOf)} />
+        {/* Summary bar (clickable filters) */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+          <StatCard tone="red" label="Not Started" count={summary.ns.length} names={summary.ns.map(patientNameOf)} active={statusFilter === "not_started"} onClick={() => setStatusFilter("not_started")} />
+          <StatCard tone="orange" label="In Progress" count={summary.ip.length} names={summary.ip.map(patientNameOf)} active={statusFilter === "in_progress"} onClick={() => setStatusFilter("in_progress")} />
+          <StatCard tone="green" label="Completed" count={summary.cp.length} names={summary.cp.map(patientNameOf)} active={statusFilter === "completed"} onClick={() => setStatusFilter("completed")} />
+          <StatCard tone="gray" label="All" count={summary.ns.length + summary.ip.length + summary.cp.length} names={[]} active={statusFilter === "all"} onClick={() => setStatusFilter("all")} />
         </div>
 
         {/* Idle banner */}
@@ -441,20 +445,27 @@ export default function TreatmentBoard() {
   );
 }
 
-function StatCard({ tone, label, count, names }: { tone: "red" | "orange" | "green"; label: string; count: number; names: string[] }) {
+function StatCard({ tone, label, count, names, active, onClick }: { tone: "red" | "orange" | "green" | "gray"; label: string; count: number; names: string[]; active?: boolean; onClick?: () => void }) {
   const tones = {
     red: "bg-red-500/10 border-red-500/30 text-red-700",
     orange: "bg-orange-500/10 border-orange-500/30 text-orange-700",
     green: "bg-emerald-500/10 border-emerald-500/30 text-emerald-700",
+    gray: "bg-muted border-border text-foreground",
   }[tone];
+  const ring = active ? "ring-2 ring-offset-1 ring-primary" : "hover:brightness-95";
   return (
-    <div className={`rounded-xl border p-3 ${tones}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={!!active}
+      className={`w-full text-left rounded-xl border p-3 transition ${tones} ${ring}`}
+    >
       <div className="text-[11px] font-semibold uppercase tracking-wide">{label}</div>
       <div className="mt-1 text-2xl font-bold">{count}</div>
       <div className="mt-1 text-[11px] line-clamp-2 opacity-80">
         {names.length === 0 ? "—" : Array.from(new Set(names)).join(", ")}
       </div>
-    </div>
+    </button>
   );
 }
 

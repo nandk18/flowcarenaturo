@@ -61,6 +61,8 @@ export default function TherapistApp() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [stats, setStats] = useState<{ dayPatients: number; daySessions: number; weekPatients: number; weekSessions: number }>({ dayPatients: 0, daySessions: 0, weekPatients: 0, weekSessions: 0 });
+  const [statsRows, setStatsRows] = useState<Array<{ patient_id: string; session_date: string; service_name: string; completed_at: string | null; patient_name: string }>>([]);
+  const [statsRange, setStatsRange] = useState<"day" | "week" | null>(null);
   const [summaryPatient, setSummaryPatient] = useState<Session | null>(null);
   const [summary, setSummary] = useState<any>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -99,18 +101,25 @@ export default function TherapistApp() {
       try {
         const { data } = await supabase
           .from("therapy_sessions")
-          .select("patient_id, session_date")
+          .select("patient_id, session_date, service_name, completed_at, patients(first_name, last_name, name)")
           .eq("clinic_id", clinicId)
           .eq("therapist_id", therapist.id)
           .eq("status", "completed")
           .gte("session_date", weekStart);
-        const rows = data ?? [];
-        const dayRows = rows.filter((r: any) => r.session_date === today);
+        const rows = (data ?? []).map((r: any) => ({
+          patient_id: r.patient_id,
+          session_date: r.session_date,
+          service_name: r.service_name,
+          completed_at: r.completed_at,
+          patient_name: r.patients?.name || `${r.patients?.first_name ?? ""} ${r.patients?.last_name ?? ""}`.trim() || "Patient",
+        }));
+        setStatsRows(rows);
+        const dayRows = rows.filter((r) => r.session_date === today);
         setStats({
           daySessions: dayRows.length,
-          dayPatients: new Set(dayRows.map((r: any) => r.patient_id)).size,
+          dayPatients: new Set(dayRows.map((r) => r.patient_id)).size,
           weekSessions: rows.length,
-          weekPatients: new Set(rows.map((r: any) => r.patient_id)).size,
+          weekPatients: new Set(rows.map((r) => r.patient_id)).size,
         });
       } catch {}
     })();
@@ -274,14 +283,16 @@ export default function TherapistApp() {
 
         {/* Analytics */}
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-lg border bg-card p-2">
+          <button type="button" onClick={() => setStatsRange("day")} className="rounded-lg border bg-card p-2 text-left hover:bg-muted transition">
             <div className="text-[10px] uppercase text-muted-foreground">Today</div>
             <div className="text-sm font-semibold">{stats.daySessions} sessions · {stats.dayPatients} patients</div>
-          </div>
-          <div className="rounded-lg border bg-card p-2">
+            <div className="text-[10px] text-primary mt-0.5">Tap to view</div>
+          </button>
+          <button type="button" onClick={() => setStatsRange("week")} className="rounded-lg border bg-card p-2 text-left hover:bg-muted transition">
             <div className="text-[10px] uppercase text-muted-foreground">This week</div>
             <div className="text-sm font-semibold">{stats.weekSessions} sessions · {stats.weekPatients} patients</div>
-          </div>
+            <div className="text-[10px] text-primary mt-0.5">Tap to view</div>
+          </button>
         </div>
 
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
@@ -384,6 +395,43 @@ export default function TherapistApp() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!statsRange} onOpenChange={(o) => !o && setStatsRange(null)}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{statsRange === "day" ? "Today's patients" : "This week's patients"}</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const rows = statsRange === "day" ? statsRows.filter((r) => r.session_date === today) : statsRows;
+            const byPatient = new Map<string, { name: string; count: number; last: string; lastAt: string | null }>();
+            for (const r of rows) {
+              const cur = byPatient.get(r.patient_id);
+              if (!cur) byPatient.set(r.patient_id, { name: r.patient_name, count: 1, last: r.service_name, lastAt: r.completed_at });
+              else {
+                cur.count += 1;
+                if (r.completed_at && (!cur.lastAt || r.completed_at > cur.lastAt)) { cur.lastAt = r.completed_at; cur.last = r.service_name; }
+              }
+            }
+            const list = Array.from(byPatient.entries()).sort((a, b) => (b[1].lastAt ?? "").localeCompare(a[1].lastAt ?? ""));
+            if (list.length === 0) return <div className="py-6 text-center text-sm text-muted-foreground">No completed sessions yet.</div>;
+            return (
+              <ul className="divide-y">
+                {list.map(([pid, info]) => (
+                  <li key={pid} className="py-2 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium text-sm truncate">{info.name}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">
+                        Last: {info.last}{info.lastAt ? ` · ${format(new Date(info.lastAt), "MMM d, h:mm a")}` : ""}
+                      </div>
+                    </div>
+                    <div className="text-xs font-semibold text-primary shrink-0">{info.count} session{info.count > 1 ? "s" : ""}</div>
+                  </li>
+                ))}
+              </ul>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 

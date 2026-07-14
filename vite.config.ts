@@ -26,17 +26,19 @@ export default defineConfig(({ mode }) => ({
       manifest: false,
       includeAssets: ["therapist-icon-512.png", "favicon.png"],
       workbox: {
-        navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/~oauth/, /^\/functions\//, /^\/api\//],
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
+        navigateFallback: null,
+        globPatterns: ["**/*.{js,css,ico,png,svg,webmanifest}"],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === "navigate",
             handler: "NetworkFirst",
             options: {
               cacheName: "html-nav",
-              networkTimeoutSeconds: 4,
+              networkTimeoutSeconds: 2,
               expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 },
             },
           },
