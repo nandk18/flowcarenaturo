@@ -1,6 +1,9 @@
 import React from "react";
 
 export const TEMPLATE_FIELDS: Record<string, Array<{ key: string; label: string }>> = {
+  "Freeform": [
+    { key: "notes", label: "Notes" },
+  ],
   "SOAP Notes": [
     { key: "subjective", label: "Subjective" },
     { key: "objective", label: "Objective" },
