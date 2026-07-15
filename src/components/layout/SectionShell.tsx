@@ -234,7 +234,7 @@ export default function SectionShell({
           )}
           {headerRight && <div className="ml-auto flex items-center gap-2">{headerRight}</div>}
         </header>
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 overflow-auto p-4 pb-safe safe-x sm:p-6 lg:p-8 no-bounce">{children}</main>
       </div>
       <SessionTimeoutWarning
         open={showWarning}
