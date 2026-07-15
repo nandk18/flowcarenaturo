@@ -6,6 +6,7 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { QUERY_CACHE_KEY, readLastPage } from "@/lib/persistedState";
 import { useLastPageTracker } from "@/hooks/useLastPage";
+import { useManifestForRoute } from "@/hooks/useManifestForRoute";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Auth from "./pages/Auth";
@@ -118,6 +119,7 @@ function AppRoutes() {
   const path = location.pathname;
 
   useLastPageTracker();
+  useManifestForRoute();
 
 
   useEffect(() => {

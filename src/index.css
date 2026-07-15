@@ -95,15 +95,29 @@
     @apply border-border;
   }
 
+  html, body {
+    overscroll-behavior: none;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    overscroll-behavior-y: contain;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  }
+
+  /* Native-app feel on touch devices: bigger tap targets */
+  @media (pointer: coarse) {
+    button, [role="button"], a.btn, .tap-target {
+      min-height: 44px;
+    }
   }
 }
 
@@ -119,5 +133,29 @@
   }
   .shadow-elevated {
     box-shadow: var(--shadow-elevated);
+  }
+
+  /* Safe-area helpers — respect the iOS notch / home-bar / Android insets */
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-x {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+  .min-h-screen-safe {
+    min-height: 100svh;
+  }
+
+  /* Non-selectable app chrome (nav bars, headers, buttons) */
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Scroll containers that shouldn't chain to the document */
+  .no-bounce {
+    overscroll-behavior: contain;
   }
 }
