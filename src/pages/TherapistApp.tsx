@@ -241,9 +241,9 @@ export default function TherapistApp() {
   const visibleIdle = idle.filter((i) => !dismissedIdle.has(i.patient_id));
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-safe">
       <header
-        className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 text-white"
+        className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 text-white safe-top safe-x no-select"
         style={{ background: therapist.therapist_color ?? "hsl(var(--primary))" }}
       >
         <div className="min-w-0">

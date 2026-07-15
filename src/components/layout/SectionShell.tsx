@@ -219,7 +219,7 @@ export default function SectionShell({
     <SidebarProvider defaultOpen={defaultOpen} style={SHELL_STYLE}>
       <InnerSidebar navGroups={navGroups} accent={accent} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-3 backdrop-blur sm:px-4">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-3 backdrop-blur safe-top safe-x no-select sm:px-4">
           <SidebarTrigger />
           {title && (
             <div className="flex min-w-0 flex-1 items-center">
