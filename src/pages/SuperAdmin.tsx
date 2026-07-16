@@ -72,12 +72,20 @@ export default function SuperAdmin() {
             <p className="text-xs text-slate-400">Platform Management Dashboard</p>
           </div>
         </div>
-        <button
-          onClick={async () => { await signOut(); navigate("/login"); }}
-          className="text-xs text-slate-400 hover:text-white border border-slate-700 rounded-lg px-3 py-1.5"
-        >
-          Sign Out
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate("/super-admin/analytics")}
+            className="text-xs bg-teal-600 text-white rounded-lg px-3 py-1.5 hover:bg-teal-700"
+          >
+            📊 Platform Analytics
+          </button>
+          <button
+            onClick={async () => { await signOut(); navigate("/login"); }}
+            className="text-xs text-slate-400 hover:text-white border border-slate-700 rounded-lg px-3 py-1.5"
+          >
+            Sign Out
+          </button>
+        </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
