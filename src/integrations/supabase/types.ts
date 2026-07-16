@@ -2787,6 +2787,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _analytics_can_access: { Args: { p_clinic_id: string }; Returns: boolean }
       adjust_petty_cash: {
         Args: { p_clinic_id: string; p_delta: number }
         Returns: number
@@ -2804,6 +2805,30 @@ export type Database = {
       admin_set_therapist_pin: {
         Args: { p_pin: string; p_therapist_profile_id: string }
         Returns: boolean
+      }
+      analytics_appointments: {
+        Args: { p_clinic_id: string; p_from: string; p_to: string }
+        Returns: Json
+      }
+      analytics_patients: {
+        Args: { p_clinic_id: string; p_from: string; p_to: string }
+        Returns: Json
+      }
+      analytics_platform_overview: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
+      analytics_revenue: {
+        Args: { p_clinic_id: string; p_from: string; p_to: string }
+        Returns: Json
+      }
+      analytics_therapists: {
+        Args: { p_clinic_id: string; p_from: string; p_to: string }
+        Returns: Json
+      }
+      analytics_treatments: {
+        Args: { p_clinic_id: string; p_from: string; p_to: string }
+        Returns: Json
       }
       auto_assign_sessions: {
         Args: { p_clinic_id: string; p_date: string }
