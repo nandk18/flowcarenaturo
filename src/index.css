@@ -91,8 +91,21 @@
 }
 
 @layer base {
+  :root {
+    --vh: 1vh;
+  }
+
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  html, body {
+    overscroll-behavior-y: none; /* stop Android pull-to-refresh eating scroll */
   }
 
   body {
@@ -100,11 +113,23 @@
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    -webkit-tap-highlight-color: transparent;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  }
+
+  /* Every scroll container gets Android-safe scrolling */
+  main,
+  [data-scroll],
+  .scrollable,
+  [class*="overflow-auto"],
+  [class*="overflow-y-auto"],
+  [class*="overflow-scroll"],
+  [class*="overflow-y-scroll"] {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
   }
 
   /* Native-app feel on touch devices: bigger tap targets */
@@ -139,6 +164,15 @@
   .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
   .min-h-screen-safe {
     min-height: 100svh;
+    min-height: calc(var(--vh, 1vh) * 100);
+  }
+  .h-app {
+    height: 100svh;
+    height: calc(var(--vh, 1vh) * 100);
+  }
+  .min-h-app {
+    min-height: 100svh;
+    min-height: calc(var(--vh, 1vh) * 100);
   }
 
   /* Non-selectable app chrome (nav bars, headers, buttons) */
