@@ -34,26 +34,14 @@ export default defineConfig(({ mode }) => ({
         "therapist-apple-touch.png",
         "manifest-admin.webmanifest",
         "manifest-therapist.webmanifest",
-        "offline.html",
       ],
       workbox: {
-        navigateFallback: "/offline.html",
-        navigateFallbackDenylist: [/^\/\.lovable\/oauth\//, /^\/~oauth/],
-        globPatterns: ["**/*.{js,css,ico,png,svg,webmanifest,html}"],
+        globPatterns: ["**/*.{js,css,ico,png,svg,webmanifest}"],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
         runtimeCaching: [
-          {
-            urlPattern: ({ request }) => request.mode === "navigate",
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "html-nav",
-              networkTimeoutSeconds: 2,
-              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 },
-            },
-          },
           {
             urlPattern: ({ url, sameOrigin }) => sameOrigin && /\.(?:js|css|woff2?|png|svg|jpg|jpeg)$/.test(url.pathname),
             handler: "CacheFirst",
