@@ -47,6 +47,18 @@
 
   <body>
     <div id="root"></div>
+    <script>
+      // Android Chrome: real viewport height (100vh includes URL bar)
+      (function () {
+        function setVH() {
+          var vh = window.innerHeight * 0.01;
+          document.documentElement.style.setProperty('--vh', vh + 'px');
+        }
+        setVH();
+        window.addEventListener('resize', setVH);
+        window.addEventListener('orientationchange', setVH);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
