@@ -104,10 +104,6 @@
     -webkit-text-size-adjust: 100%;
   }
 
-  html, body {
-    overscroll-behavior-y: none; /* stop Android pull-to-refresh eating scroll */
-  }
-
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
@@ -119,25 +115,13 @@
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Space Grotesk', 'Inter', system-ui, sans-serif;
   }
 
-  /* Every scroll container gets Android-safe scrolling */
-  main,
-  [data-scroll],
-  .scrollable,
-  [class*="overflow-auto"],
-  [class*="overflow-y-auto"],
-  [class*="overflow-scroll"],
-  [class*="overflow-y-scroll"] {
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
-    overscroll-behavior: contain;
-  }
-
   /* Native-app feel on touch devices: bigger tap targets */
   @media (pointer: coarse) {
     button, [role="button"], a.btn, .tap-target {
       min-height: 44px;
     }
   }
+
 }
 
 @layer utilities {
