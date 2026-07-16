@@ -241,7 +241,7 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
       </aside>
 
       {/* RIGHT: detail */}
-      <section className="lg:col-span-7 rounded-2xl border bg-card p-6 shadow-sm">
+      <section className="lg:col-span-7 min-w-0 rounded-2xl border bg-card p-6 shadow-sm">
         {!selected ? (
           <div className="flex h-64 items-center justify-center text-muted-foreground text-sm">
             Select an invoice to view
