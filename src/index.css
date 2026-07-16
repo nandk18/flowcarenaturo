@@ -95,18 +95,12 @@
     @apply border-border;
   }
 
-  html, body {
-    overscroll-behavior: none;
-  }
-
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    overscroll-behavior-y: contain;
   }
 
   h1, h2, h3, h4, h5, h6 {
