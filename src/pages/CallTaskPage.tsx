@@ -373,7 +373,7 @@ export default function CallTaskPage() {
               { key: "done", label: "Done Today", count: doneCount, tone: "bg-green-100 text-green-700 border-green-200 data-[active=true]:bg-green-600 data-[active=true]:text-white data-[active=true]:border-green-600" },
             ];
             return (
-              <div className="flex flex-wrap gap-2">
+              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
                 {pills.map((p) => (
                   <button
                     key={p.key}
@@ -381,7 +381,7 @@ export default function CallTaskPage() {
                     data-active={statusTab === p.key}
                     onClick={() => setStatusTab(p.key)}
                     className={cn(
-                      "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                      "inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition-colors",
                       p.tone,
                     )}
                   >
@@ -396,7 +396,7 @@ export default function CallTaskPage() {
           })()}
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+            <TabsList className="-mx-4 flex w-auto gap-1 overflow-x-auto px-4 sm:mx-0 sm:grid sm:w-full sm:grid-cols-4 sm:px-0 [&>button]:shrink-0 [&>button]:whitespace-nowrap">
               <TabsTrigger value="appt">
                 <CalendarClock className="mr-1 h-3.5 w-3.5" />
                 Appointment Tomorrow

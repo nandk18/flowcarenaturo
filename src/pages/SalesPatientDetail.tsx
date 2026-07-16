@@ -570,7 +570,13 @@ export default function SalesPatientDetail() {
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`grid w-full max-w-2xl ${treatmentEnabled ? "grid-cols-5" : "grid-cols-4"}`}>
+          <TabsList
+            className={cn(
+              "-mx-4 flex w-auto gap-1 overflow-x-auto px-4 sm:mx-0 sm:grid sm:w-full sm:max-w-2xl sm:px-0",
+              treatmentEnabled ? "sm:grid-cols-5" : "sm:grid-cols-4",
+              "[&>button]:shrink-0 [&>button]:whitespace-nowrap [&>button]:px-3",
+            )}
+          >
             <TabsTrigger value="general">
               <User className="mr-1.5 h-3.5 w-3.5" /> General
             </TabsTrigger>

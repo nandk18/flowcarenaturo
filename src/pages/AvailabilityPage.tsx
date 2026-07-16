@@ -542,7 +542,31 @@ function DayView({
   }
 
   if (reason === "past") {
-    return <Card className="shadow-card"><CardContent className="py-10 text-center text-sm text-muted-foreground">This date is in the past.</CardContent></Card>;
+    return (
+      <Card className="shadow-card">
+        <CardContent className="space-y-3 py-5">
+          <div className="rounded-md border border-muted bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            Past date — read only
+          </div>
+          {activeAppts.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">No appointments on this date.</div>
+          ) : (
+            <div className="space-y-2">
+              {activeAppts
+                .slice()
+                .sort((a, b) => (a.appointment_time ?? "").localeCompare(b.appointment_time ?? ""))
+                .map((a) => renderApptRow(a))}
+            </div>
+          )}
+          {cancelledAppts.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Cancelled</div>
+              {cancelledAppts.map((a) => renderApptRow(a))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
   }
   if (reason === "exception") {
     return (
