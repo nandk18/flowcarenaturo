@@ -487,8 +487,8 @@ function InvoiceDetail({ invoice, onChanged, patientId, clinicId, autoOpenPicker
         <div className="flex items-center justify-between mb-2">
           <h4 className="font-semibold text-sm">Line Items</h4>
         </div>
-        <div className="rounded-lg border overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="rounded-lg border overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-muted/40">
               <tr className="text-left">
                 <th className="px-3 py-2 font-medium">Name</th>
