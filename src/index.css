@@ -101,14 +101,20 @@
   }
 
   html {
+    height: 100%;
     -webkit-text-size-adjust: 100%;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    min-height: 100%;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100%;
   }
 
   h1, h2, h3, h4, h5, h6 {
