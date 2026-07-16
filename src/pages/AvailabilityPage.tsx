@@ -580,7 +580,7 @@ function DayView({
     return <Card className="shadow-card"><CardContent className="py-10 text-center text-sm text-muted-foreground">Doctor is not scheduled on this day.</CardContent></Card>;
   }
 
-  const renderApptRow = (a: Appt) => (
+  function renderApptRow(a: Appt) { return (
     <div
       key={a.id}
       className="flex flex-1 flex-wrap items-center gap-2 cursor-pointer"
@@ -623,7 +623,7 @@ function DayView({
         </>
       )}
     </div>
-  );
+  ); }
 
   return (
     <Card className="shadow-card"><CardContent className="p-3">
