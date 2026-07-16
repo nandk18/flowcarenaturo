@@ -231,7 +231,7 @@ export default function AppShell({
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <InnerSidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-3 backdrop-blur safe-top safe-x no-select sm:px-4">
           <SidebarTrigger />
           {title && (
@@ -240,7 +240,7 @@ export default function AppShell({
             </h1>
           )}
         </header>
-        <main className="flex-1 overflow-auto p-4 pb-safe safe-x sm:p-6 lg:p-8 no-bounce">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4 pb-safe safe-x sm:p-6 lg:p-8 no-bounce">{children}</main>
       </div>
       <SessionTimeoutWarning
         open={showWarning}
