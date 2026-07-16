@@ -184,9 +184,9 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
   const selected = invoices.find((i) => i.id === selectedId) ?? null;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-10">
+    <div className="grid gap-4 lg:grid-cols-10 min-w-0">
       {/* LEFT: invoice list */}
-      <aside className="lg:col-span-3 rounded-2xl border bg-card p-4 shadow-sm">
+      <aside className="lg:col-span-3 min-w-0 rounded-2xl border bg-card p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-display text-sm font-semibold flex items-center gap-1.5">
             <Receipt className="h-4 w-4" /> Invoices
@@ -241,7 +241,7 @@ export default function PatientInvoicesTab({ patientId, clinicId }: Props) {
       </aside>
 
       {/* RIGHT: detail */}
-      <section className="lg:col-span-7 rounded-2xl border bg-card p-6 shadow-sm">
+      <section className="lg:col-span-7 min-w-0 rounded-2xl border bg-card p-6 shadow-sm">
         {!selected ? (
           <div className="flex h-64 items-center justify-center text-muted-foreground text-sm">
             Select an invoice to view
