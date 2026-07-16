@@ -55,6 +55,7 @@ import TherapistScorecards from "./pages/TherapistScorecards";
 import { TherapistAuthProvider } from "./hooks/useTherapistAuth";
 
 import SuperAdmin from "./pages/SuperAdmin";
+import SuperAdminAnalytics from "./pages/SuperAdminAnalytics";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import DataProcessingAgreement from "./pages/DataProcessingAgreement";
@@ -269,6 +270,8 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/super-admin" element={<SuperAdmin />} />
+        <Route path="/super-admin/analytics" element={<SuperAdminAnalytics />} />
+        <Route path="/super-admin/analytics/:clinicId" element={<SuperAdminAnalytics />} />
         <Route path="*" element={<Navigate to="/super-admin" replace />} />
       </Routes>
     );
