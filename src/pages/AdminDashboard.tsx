@@ -336,8 +336,8 @@ export default function AdminDashboard() {
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold">Clinical Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Today's appointments and consultations</p>
+        <h1 className="font-display text-xl font-bold sm:text-2xl">Clinical Dashboard</h1>
+        <p className="text-xs text-muted-foreground sm:text-sm">Today's appointments and consultations</p>
       </div>
 
       {fetchError && (
@@ -354,11 +354,11 @@ export default function AdminDashboard() {
         <StatCard icon={Users} label="Total Patients" value={totalPatients} color="text-primary" />
       </div>
 
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="inline-flex rounded-lg border bg-muted/50 p-1">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="inline-flex w-full sm:w-auto rounded-lg border bg-muted/50 p-1">
           <button
             onClick={() => setMode("consult")}
-            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
               mode === "consult" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -367,7 +367,7 @@ export default function AdminDashboard() {
           </button>
           <button
             onClick={() => setMode("treatment")}
-            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
               mode === "treatment" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -375,10 +375,13 @@ export default function AdminDashboard() {
             <Badge variant="outline" className="ml-1 h-5 px-1.5 text-[10px]">{treatmentAppts.length}</Badge>
           </button>
         </div>
-        <Button onClick={() => setBookOpen(true)}>
-          <Plus className="mr-1 h-4 w-4" /> Walk-in / Book Appointment
+        <Button onClick={() => setBookOpen(true)} className="w-full sm:w-auto">
+          <Plus className="mr-1 h-4 w-4" />
+          <span className="sm:hidden">Book</span>
+          <span className="hidden sm:inline">Walk-in / Book Appointment</span>
         </Button>
       </div>
+
 
       {mode === "consult" ? (
         <ConsultationTabs
