@@ -677,43 +677,45 @@ function TreatmentTabs({
             const canModify = display === "booked";
             return (
               <Card key={appt.id} className="shadow-card">
-                <CardContent className="flex items-center gap-3 p-3">
-                  <span className="font-mono text-xs font-bold text-primary w-14">
-                    {appt.appointment_time?.substring(0, 5)}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      {appt.patient && (
-                        <PatientLink patientId={appt.patient.id} className="truncate">
-                          {appt.patient.name}
-                        </PatientLink>
-                      )}
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] ${
-                          isCompleted
-                            ? "bg-success/15 text-success border-success/30"
-                            : isInProgress
-                            ? "bg-orange-500/15 text-orange-700 border-orange-500/30"
-                            : "bg-info/15 text-info border-info/30"
-                        }`}
-                      >
-                        {isCompleted ? "Completed" : isInProgress ? "On Board" : "Booked"}
-                      </Badge>
+                <CardContent className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:gap-3">
+                  <div className="flex items-start gap-2 min-w-0 flex-1 sm:items-center sm:gap-3">
+                    <span className="font-mono text-xs font-bold text-primary w-12 shrink-0 sm:w-14">
+                      {appt.appointment_time?.substring(0, 5)}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        {appt.patient && (
+                          <PatientLink patientId={appt.patient.id} className="truncate">
+                            {appt.patient.name}
+                          </PatientLink>
+                        )}
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] ${
+                            isCompleted
+                              ? "bg-success/15 text-success border-success/30"
+                              : isInProgress
+                              ? "bg-orange-500/15 text-orange-700 border-orange-500/30"
+                              : "bg-info/15 text-info border-info/30"
+                          }`}
+                        >
+                          {isCompleted ? "Completed" : isInProgress ? "On Board" : "Booked"}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {svcNames.length > 0 ? svcNames.join(", ") : "Treatment"}
+                        {appt.notes && ` · 📝 ${appt.notes}`}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {svcNames.length > 0 ? svcNames.join(", ") : "Treatment"}
-                      {appt.notes && ` · 📝 ${appt.notes}`}
-                    </p>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center justify-end gap-1.5 shrink-0">
                     {isCompleted ? (
-                      <Button size="sm" variant="outline" onClick={() => onView(appt)}>
-                        <Eye className="mr-1 h-3 w-3" /> View
+                      <Button size="sm" variant="outline" onClick={() => onView(appt)} className="whitespace-nowrap">
+                        <Eye className="h-3 w-3 sm:mr-1" /> <span className="hidden sm:inline">View</span>
                       </Button>
                     ) : isInProgress ? (
-                      <Button size="sm" variant="outline" onClick={() => onView(appt)}>
-                        <Activity className="mr-1 h-3 w-3" /> On Board
+                      <Button size="sm" variant="outline" onClick={() => onView(appt)} className="whitespace-nowrap">
+                        <Activity className="h-3 w-3 sm:mr-1" /> <span className="hidden sm:inline">On Board</span><span className="sm:hidden">Board</span>
                       </Button>
                     ) : (
                       <>
@@ -727,14 +729,15 @@ function TreatmentTabs({
                             </Button>
                           </>
                         )}
-                        <Button size="sm" onClick={() => onStartTreatment(appt)}>
-                          <Play className="mr-1 h-3 w-3" /> Start Treatment
+                        <Button size="sm" onClick={() => onStartTreatment(appt)} className="whitespace-nowrap">
+                          <Play className="h-3 w-3 sm:mr-1" /> <span className="hidden sm:inline">Start Treatment</span><span className="sm:hidden">Start</span>
                         </Button>
                       </>
                     )}
                   </div>
                 </CardContent>
               </Card>
+
             );
           })}
         </div>
