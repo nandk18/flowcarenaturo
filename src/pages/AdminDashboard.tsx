@@ -548,30 +548,32 @@ function ConsultationTabs({
             const canModify = display === "scheduled" || display === "waiting" || display === "in_progress";
             return (
               <Card key={appt.id} className="shadow-card">
-                <CardContent className="flex items-center gap-3 p-3">
-                  <span className="font-mono text-xs font-bold text-primary w-14">
-                    {appt.appointment_time?.substring(0, 5)}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      {appt.patient && (
-                        <PatientLink patientId={appt.patient.id} className="truncate">
-                          {appt.patient.name}
-                        </PatientLink>
-                      )}
-                      <Badge variant="outline" className={`text-[10px] ${statusStyle(display)}`}>
-                        {statusLabel(display)}
-                      </Badge>
+                <CardContent className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:gap-3">
+                  <div className="flex items-start gap-2 min-w-0 flex-1 sm:items-center sm:gap-3">
+                    <span className="font-mono text-xs font-bold text-primary w-12 shrink-0 sm:w-14">
+                      {appt.appointment_time?.substring(0, 5)}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        {appt.patient && (
+                          <PatientLink patientId={appt.patient.id} className="truncate">
+                            {appt.patient.name}
+                          </PatientLink>
+                        )}
+                        <Badge variant="outline" className={`text-[10px] ${statusStyle(display)}`}>
+                          {statusLabel(display)}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {formatDoctorName(appt.doctor?.name)}
+                        {appt.reason && ` · ${appt.reason}`}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {formatDoctorName(appt.doctor?.name)}
-                      {appt.reason && ` · ${appt.reason}`}
-                    </p>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center justify-end gap-1.5 shrink-0">
                     {display === "completed" ? (
-                      <Button size="sm" variant="outline" onClick={() => handleAction(appt)}>
-                        <Eye className="mr-1 h-3 w-3" /> View Summary
+                      <Button size="sm" variant="outline" onClick={() => handleAction(appt)} className="whitespace-nowrap">
+                        <Eye className="h-3 w-3 sm:mr-1" /> <span className="hidden sm:inline">View Summary</span>
                       </Button>
                     ) : display === "cancelled" ? null : (
                       <>
@@ -585,11 +587,11 @@ function ConsultationTabs({
                             </Button>
                           </>
                         )}
-                        <Button size="sm" variant={display === "in_progress" ? "outline" : "default"} onClick={() => handleAction(appt)}>
+                        <Button size="sm" variant={display === "in_progress" ? "outline" : "default"} onClick={() => handleAction(appt)} className="whitespace-nowrap">
                           {display === "in_progress" ? (
-                            <><Play className="mr-1 h-3 w-3" /> Continue</>
+                            <><Play className="h-3 w-3 sm:mr-1" /> <span className="hidden sm:inline">Continue</span></>
                           ) : (
-                            <><ArrowRight className="mr-1 h-3 w-3" /> Start Consultation</>
+                            <><ArrowRight className="h-3 w-3 sm:mr-1" /> <span className="hidden sm:inline">Start Consultation</span><span className="sm:hidden">Start</span></>
                           )}
                         </Button>
                       </>
@@ -597,6 +599,7 @@ function ConsultationTabs({
                   </div>
                 </CardContent>
               </Card>
+
             );
           })}
         </div>
