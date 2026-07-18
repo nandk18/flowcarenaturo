@@ -185,6 +185,9 @@ export default function CareCallPage() {
           </ul>
         </section>
       )}
+        </>
+      )}
     </DashboardLayout>
   );
 }
+
