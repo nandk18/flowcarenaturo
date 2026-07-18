@@ -1,0 +1,2 @@
+CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA extensions;
+GRANT USAGE ON SCHEMA cron TO postgres;
