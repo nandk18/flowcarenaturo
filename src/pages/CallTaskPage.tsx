@@ -735,7 +735,10 @@ export default function CallTaskPage() {
               onCountsChange={(c) => setLeadCounts(c)}
             />
           )}
+          </>
+          )}
         </div>
+
       )}
 
       <Sheet open={showDone} onOpenChange={setShowDone}>
