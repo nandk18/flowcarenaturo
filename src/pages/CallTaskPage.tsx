@@ -652,7 +652,7 @@ export default function CallTaskPage() {
                   .filter((r) => {
                     const informed = isInformed(r.notes);
                     const day = r.called_at.slice(0, 10);
-                    if (statusTab === "done") return informed && day === today;
+                    if ((statusTab as string) === "done") return informed && day === today;
                     if (statusTab === "overdue") return !informed && day < today;
                     return !informed && day === today;
                   })
