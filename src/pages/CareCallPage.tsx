@@ -97,15 +97,30 @@ export default function CareCallPage() {
     load();
   };
 
+  const refreshGaps = async () => {
+    if (!clinicId) return;
+    const { data, error } = await (supabase as any).rpc("flag_treatment_gap_care_calls", { p_clinic_id: clinicId });
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${data ?? 0} patient${data === 1 ? "" : "s"} flagged for follow-up`);
+    load();
+  };
+
   return (
     <DashboardLayout title="Care Call">
       {!clinicId ? (
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">Loading clinic...</div>
-      ) : rows.length === 0 ? (
+      ) : (
+        <>
+          <div className="mb-3 flex justify-end">
+            <Button size="sm" variant="outline" onClick={refreshGaps}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refresh 10-day gaps
+            </Button>
+          </div>
+          {rows.length === 0 ? (
         <div className="rounded-2xl border bg-card p-10 text-center">
           <HeartHandshake className="mx-auto h-10 w-10 text-amber-500" />
           <p className="mt-3 font-display text-sm font-semibold">No care calls pending</p>
-          <p className="mt-1 text-xs text-muted-foreground">First-visit follow-ups will appear here automatically.</p>
+          <p className="mt-1 text-xs text-muted-foreground">First-visit and 10-day treatment-gap follow-ups appear here automatically.</p>
         </div>
       ) : (
         <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
@@ -115,7 +130,7 @@ export default function CareCallPage() {
               Care Call
               <span className="ml-2 rounded-full bg-amber-600 px-2 py-0.5 text-[10px] font-bold text-white">{rows.length}</span>
             </h2>
-            <span className="text-xs text-amber-800">First-visit follow-ups</span>
+            <span className="text-xs text-amber-800">First visits & 10-day treatment gaps</span>
           </header>
           <ul className="divide-y">
             {rows.map((r) => {
