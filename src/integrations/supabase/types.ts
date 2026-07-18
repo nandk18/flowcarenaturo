@@ -2875,6 +2875,11 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      flag_all_treatment_gap_care_calls: { Args: never; Returns: number }
+      flag_treatment_gap_care_calls: {
+        Args: { p_clinic_id: string }
+        Returns: number
+      }
       get_all_capacities: {
         Args: { p_clinic_id: string; p_date: string }
         Returns: {

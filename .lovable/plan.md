@@ -1,40 +1,45 @@
-# Plan: Clinical Dashboard mobile + Analytics therapist count fix
+## Current state (verified)
 
-## 1. Clinical Dashboard mobile view (`src/pages/AdminDashboard.tsx`)
+- `src/lib/careCall.ts` already flags care calls, but only for **first-visit** patients with no follow-up within 2 days. Called from consultation/appointment completion paths.
+- `care_call_required` / `care_call_due_date` / `care_call_done` live on `appointments`. `CareCallPage.tsx` and `CallTaskPage.tsx` already render any appointment where `care_call_required=true AND care_call_done=false`.
+- There is **no** logic that flags returning treatment patients who then disappear. Treatment gaps are invisible to the Care Call list today.
 
-Root cause: the appointment rows in `ConsultationTabs` and `TreatmentTabs` use a single horizontal flex row with a fixed time column, patient name/status badge, doctor/service line, and up to 3 action buttons ("Reschedule", "Cancel", "Start Consultation" / "Start Treatment"). At 390 px the long labels ("Start Consultation", "Walk-in / Book Appointment") push everything sideways, squishing the patient name and clipping actions. The top toolbar also has a wide primary button on the same row as the mode switcher.
+## What to add
 
-Changes (presentation only, no logic):
+A daily "treatment gap" sweep that flags patients who completed a therapy session ≥10 days ago and have nothing (session or appointment) since.
 
-- **Row layout**: Restructure each appointment `Card` to be a two-row layout on mobile and revert to a single row on `sm:` and above.
-  - Row A: time badge + patient name + status badge (wrap-safe with `flex-wrap`, `min-w-0`, `truncate`).
-  - Row B: service/doctor line, then a right-aligned action cluster.
-  - Use `flex-col sm:flex-row sm:items-center` on the outer `CardContent`.
-- **Action buttons**: Add `whitespace-nowrap`; hide text labels on mobile via `<span className="hidden sm:inline">Start Consultation</span>` (keep icon visible so mobile shows compact icon-only buttons). Applies to "Start Consultation", "Continue", "Start Treatment", "View Summary", "On Board", "View".
-- **Top toolbar** (lines 357–381): change to `flex-col gap-2 sm:flex-row sm:items-center sm:justify-between`; shrink the primary button label on mobile to "Book" (icon + short label) while keeping full label at `sm:`.
-- **StatCard grid**: keep `grid-cols-2 md:grid-cols-4` but tighten `StatCard` on mobile (smaller icon container, `text-lg` value on mobile, `p-3 sm:p-4`) so 2 cards fit cleanly at 390 px.
-- **Page header**: reduce `text-2xl` → `text-xl sm:text-2xl` and add `px-1` safe padding if needed.
+### 1. New RPC `flag_treatment_gap_care_calls(p_clinic_id uuid)`
 
-No changes to data fetching, status logic, or handlers.
+Security-definer, clinic-scoped. For each patient in the clinic:
 
-## 2. Analytics — therapist completed count inflated
+1. Find their **latest completed** `therapy_sessions` row (`status='completed'`).
+2. Skip if `completed_at > now() - interval '10 days'`.
+3. Skip if the patient has any non-cancelled `therapy_sessions` OR non-cancelled `appointments` with a date **after** that last completed session (i.e. they came back or are already scheduled).
+4. Skip if any existing appointment for that patient already has `care_call_required=true AND care_call_done=false` (avoid duplicates).
+5. Otherwise, mark the **appointment** tied to that last completed session (fallback: most recent appointment for the patient) with:
+   - `care_call_required = true`
+   - `care_call_due_date = CURRENT_DATE` (overdue-styled after that day, matching existing UI)
+   
+Returns the number of patients newly flagged.
 
-Root cause (verified by reading `analytics_therapists` in the DB): the RPC LEFT JOINs `therapy_sessions` **and** `therapy_session_reviews` in the same `FROM` clause and then `COUNT(ts.*) FILTER (WHERE ts.status='completed')`. Because both joins hang off `profiles`, Postgres produces a Cartesian product per therapist: N sessions × M reviews rows. Every session is counted M times (and every review N times), so `completed`, `cancelled`, `unique_patients`, `avg_minutes`, `reviews_count`, and `reviews_sent` all inflate whenever a therapist has any reviews in the range.
+### 2. Daily schedule via `pg_cron` + `pg_net`
 
-Fix: rewrite `public.analytics_therapists` to aggregate sessions and reviews in **separate CTEs** and join the pre-aggregated results to `profiles`. Structure:
+Insert one cron job per clinic is overkill — instead schedule a wrapper `flag_all_treatment_gap_care_calls()` that loops clinics and calls the RPC. Run daily at 08:00 clinic-local (use UTC 02:30 as a safe default; user can tune).
 
-```text
-sess  = SELECT therapist_id, count/filter aggregates FROM therapy_sessions ... GROUP BY therapist_id
-rev   = SELECT therapist_id, avg(rating), count(...) FROM therapy_session_reviews ... GROUP BY therapist_id
-per   = SELECT p.*, sess.*, rev.* FROM profiles p LEFT JOIN sess LEFT JOIN rev WHERE p.is_therapist ...
-```
+### 3. Manual trigger
 
-Everything else (return shape, security check, ordering by completed desc) stays identical, so `AnalyticsView` and `SuperAdminAnalytics` need no changes.
+Add a small "Refresh gaps" button on `CareCallPage.tsx` that calls the RPC for the current clinic so admins don't have to wait for cron on first rollout / backfill.
 
-Delivered via one Supabase migration replacing the function definition.
+### 4. WhatsApp copy
 
-## Verification
+The existing `care_call` template works for both cases. No change unless you want a distinct "we miss you" tone for gaps — can add a `care_call_gap` template later if desired.
 
-- Build/typecheck run automatically.
-- Manually sanity-check: pick one therapist with reviews and confirm the returned `completed` matches `SELECT count(*) FROM therapy_sessions WHERE therapist_id=… AND status='completed' AND session_date BETWEEN …`.
-- On mobile 390 px preview, confirm appointment rows no longer horizontally clip and buttons remain tappable.
+## Files touched
+
+- New migration: RPCs `flag_treatment_gap_care_calls`, `flag_all_treatment_gap_care_calls`, and the `cron.schedule(...)` call (via the insert tool since it embeds project URL + anon key).
+- `src/pages/CareCallPage.tsx`: add "Refresh gaps" button wired to the RPC.
+
+## Open questions
+
+1. Gap threshold — confirm **10 days** (some clinics use 7).
+2. Should the flag be cleared automatically if the patient books/completes something after being flagged? (Recommended: yes — same sweep can set `care_call_done=true` if a newer visit exists.)
