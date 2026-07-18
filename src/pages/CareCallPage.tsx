@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import PatientLink from "@/components/PatientLink";
-import { MessageCircle, HeartHandshake } from "lucide-react";
+import { MessageCircle, HeartHandshake, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInCalendarDays } from "date-fns";
 import { cn } from "@/lib/utils";
