@@ -780,10 +780,30 @@ function outcomeStyle(o: string) {
     case "no_answer": return "bg-gray-100 text-gray-700 border-gray-200";
     case "follow_up": return "bg-blue-100 text-blue-700 border-blue-200";
     case "not_interested": return "bg-red-100 text-red-700 border-red-200";
-    case "booked": return "bg-green-100 text-green-700 border-green-200";
+    case "cancelled": return "bg-red-100 text-red-700 border-red-200";
+    case "booked":
+    case "confirmed":
+    case "rebooked":
+    case "doing_well":
+    case "informed": return "bg-green-100 text-green-700 border-green-200";
+    case "rescheduled":
+    case "needs_follow_up": return "bg-amber-100 text-amber-700 border-amber-200";
     default: return "bg-muted text-muted-foreground border-border";
   }
 }
 function outcomeLabel(o: string) {
-  return ({ no_answer: "No Answer", follow_up: "Follow Up", not_interested: "Not Interested", booked: "Booked" } as any)[o] ?? o;
+  return ({
+    no_answer: "No Answer",
+    follow_up: "Follow Up",
+    not_interested: "Not Interested",
+    booked: "Booked",
+    confirmed: "Confirmed",
+    rescheduled: "Rescheduled",
+    cancelled: "Cancelled",
+    rebooked: "Rebooked",
+    informed: "Informed",
+    doing_well: "Doing Well",
+    needs_follow_up: "Needs Follow-up",
+  } as any)[o] ?? o.replace(/_/g, " ");
 }
+
