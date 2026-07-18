@@ -490,7 +490,7 @@ export default function CallTaskPage() {
                 {tomorrowAppts
                   .filter((a) => {
                     const called = !!calledMap[a.patient_id];
-                    if (statusTab === "done") return called;
+                    if ((statusTab as string) === "done") return called;
                     if (statusTab === "overdue") return false;
                     return !called;
                   })
