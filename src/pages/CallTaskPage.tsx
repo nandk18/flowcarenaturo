@@ -395,6 +395,7 @@ export default function CallTaskPage() {
             );
           })()}
 
+          {statusTab !== "done" && (
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
             <TabsList className="-mx-4 flex w-auto gap-1 overflow-x-auto px-4 sm:mx-0 sm:grid sm:w-full sm:grid-cols-4 sm:px-0 [&>button]:shrink-0 [&>button]:whitespace-nowrap">
               <TabsTrigger value="appt">
@@ -423,6 +424,58 @@ export default function CallTaskPage() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
+          )}
+
+          {statusTab === "done" && (
+            <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
+              <header className="flex items-center justify-between border-b bg-green-50 px-4 py-3">
+                <h2 className="font-display text-sm font-semibold text-green-900 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Done Today
+                  <span className="ml-2 rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-bold text-white">{doneCalls.length}</span>
+                </h2>
+                <span className="text-xs text-green-800">All calls logged today</span>
+              </header>
+              {doneCalls.length === 0 ? (
+                <p className="p-6 text-center text-sm text-muted-foreground">No calls logged today yet</p>
+              ) : (
+                <ul className="divide-y">
+                  {doneCalls.map((c) => {
+                    const cleanNotes = (c.notes ?? "")
+                      .replace(INFORMED_PREFIX_RE, "")
+                      .replace(/^\[[^\]]+\]\s*/, "");
+                    return (
+                      <li key={c.id} className="px-4 py-3 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {c.patient ? (
+                            <PatientLink patientId={c.patient.id} className="text-sm font-semibold">
+                              {c.patient.name}
+                            </PatientLink>
+                          ) : (
+                            <span className="text-sm">—</span>
+                          )}
+                          {c.outcome && (
+                            <Badge variant="outline" className={cn("text-[10px] capitalize", outcomeStyle(c.outcome))}>
+                              {outcomeLabel(c.outcome)}
+                            </Badge>
+                          )}
+                          <span className="ml-auto text-xs text-muted-foreground">{format(new Date(c.called_at), "h:mm a")}</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                          {c.caller_name && <span>by {c.caller_name}</span>}
+                        </div>
+                        {cleanNotes && <p className="text-xs text-muted-foreground">{cleanNotes}</p>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {statusTab !== "done" && (
+          <>
+
 
           {activeTab === "appt" && tomorrowAppts.length > 0 && (
             <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
