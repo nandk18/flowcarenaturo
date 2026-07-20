@@ -102,6 +102,8 @@ const isPublicRoute = (path: string) =>
   path === "/dpa" ||
   path === "/security" ||
   path === "/.lovable/oauth/consent" ||
+  path === "/therapist-login" ||
+  path === "/treatment/therapist" ||
   path.startsWith("/invoice/") ||
   path.startsWith("/rx/") ||
   path.startsWith("/s/") ||
@@ -243,6 +245,9 @@ function AppRoutes() {
         <Route path="/login" element={<Auth />} />
         <Route path="/rx/:prescriptionId" element={<PrescriptionViewer />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        {/* Therapist PWA uses its own PIN auth — must be reachable without a Supabase session */}
+        <Route path="/therapist-login" element={<TherapistLogin />} />
+        <Route path="/treatment/therapist" element={<TherapistApp />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );

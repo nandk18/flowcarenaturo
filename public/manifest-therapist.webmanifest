@@ -10,8 +10,8 @@
   "background_color": "#e6fffb",
   "theme_color": "#0f766e",
   "icons": [
-   { "src": "/flowcare-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/flowcare-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/flowcare-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "/therapist-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/therapist-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/therapist-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

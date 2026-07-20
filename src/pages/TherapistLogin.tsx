@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTherapistAuth } from "@/hooks/useTherapistAuth";
-import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Delete, LogOut } from "lucide-react";
@@ -19,7 +19,7 @@ type Therapist = {
 export default function TherapistLogin() {
   const { profile } = useAuth();
   const clinicId = profile?.clinic_id;
-  const { enabled, loading: flagLoading } = useTreatmentEnabled();
+  
   const { therapist, signInWithPin, signOut } = useTherapistAuth();
   const navigate = useNavigate();
 
@@ -75,8 +75,8 @@ export default function TherapistLogin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin]);
 
-  if (flagLoading) return <div className="p-6"><Loader2 className="h-5 w-5 animate-spin" /></div>;
-  if (!enabled) return <Navigate to="/dashboard" replace />;
+  // NOTE: no treatment-enabled gate here — this page must work without an
+  // admin Supabase session so therapists can install/open the PWA directly.
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 safe-top safe-bottom safe-x">
