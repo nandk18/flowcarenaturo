@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { createTherapySession } from "@/lib/createTherapySession";
 import { sendReviewLinkForSession } from "@/lib/therapistReview";
+import { todayLocalISO } from "@/lib/utils";
 
 type Session = {
   id: string;
