@@ -1,27 +1,59 @@
-## Root cause
+## What I found
 
-`index.html` hardcodes `<link rel="manifest" href="/manifest-admin.webmanifest">`. The React hook `useManifestForRoute` only swaps this link after the app mounts. On Android Chrome, when a user opens the browser menu on `/therapist-login`, Chrome often reads the manifest that was in the DOM at initial page load (the admin one) — especially when the app was just opened from a cold tab, or when the swap hasn't run yet. Result: "Add to Home Screen" installs the admin app pointing at `/home` even though the URL bar shows `/therapist-login`.
+The published `/therapist-login` page is rendering the therapist sign-in screen, and the therapist manifest file itself is correct:
 
-The manifest `id` is also derived at initial load, so both installs end up sharing the admin `id` and Chrome treats it as the already-installed admin app.
+- `manifest-therapist.webmanifest` has name `FlowCare Therapist`
+- `start_url` is `/therapist-login`
+- icons point to therapist icon files
 
-## Fix
+But the initial HTML still contains the admin manifest first:
 
-Swap the manifest link and apple-touch metadata in `index.html` **before React loads**, using a tiny inline script that reads `location.pathname`. Keep the React hook as a fallback for client-side navigation.
+```html
+<link rel="manifest" href="/manifest-admin.webmanifest" />
+```
 
-Changes in `index.html` only:
+Then JavaScript changes it to the therapist manifest. This is fragile for Chrome/Safari Add to Home Screen because install detection can read the manifest before or independently of that JavaScript mutation. That explains why the install dialog still uses `FlowCare` and `/home`.
 
-1. Keep `<link rel="manifest" href="/manifest-admin.webmanifest">` as default.
-2. Add an inline `<script>` in `<head>` (runs synchronously before `main.tsx`) that, when `location.pathname` starts with `/therapist-login`, `/therapist-app`, `/therapist`, or `/treatment/therapist`:
-   - Rewrites the `manifest` link `href` to `/manifest-therapist.webmanifest`
-   - Rewrites `apple-touch-icon` href to the therapist icon
-   - Updates `apple-mobile-web-app-title` and `<title>` to "FlowCare Therapist"
+## Plan
 
-No manifest file changes, no React changes.
+1. **Stop using one HTML manifest tag for both apps**
+   - Remove the hardcoded admin manifest link from `index.html`.
+   - Add a small pre-React script that creates exactly one manifest link before the browser sees a stable manifest choice.
+   - If the path is `/therapist-login`, `/therapist-app`, `/therapist`, or `/treatment/therapist`, create:
+     ```html
+     <link rel="manifest" href="/manifest-therapist.webmanifest">
+     ```
+   - Otherwise create:
+     ```html
+     <link rel="manifest" href="/manifest-admin.webmanifest">
+     ```
 
-## Verification
+2. **Also set all install metadata before React loads**
+   - Therapist routes get:
+     - title: `FlowCare Therapist`
+     - apple title: `FlowCare Therapist`
+     - apple touch icon: `/therapist-apple-touch.png`
+     - favicon/icon links: therapist icons
+   - Admin routes keep:
+     - title: `FlowCare`
+     - apple title: `FlowCare`
+     - apple touch icon: `/apple-touch-icon.png`
+     - favicon/icon links: FlowCare icons
 
-After deploy, on Android:
-1. Long-press the admin FlowCare icon → uninstall (only needed once, because the OS cached the wrong install from previous attempts).
-2. Open published `/therapist-login` in Chrome → menu → Add to Home Screen.
-3. Confirm the install dialog now says "FlowCare Therapist" and the installed icon opens directly to `/therapist-login`.
-4. Repeat from `/home` to confirm the admin install still works independently.
+3. **Update the React fallback hook to match**
+   - Keep `useManifestForRoute` for client-side navigation.
+   - Include `/treatment/therapist` in its therapist route detection.
+   - Ensure it updates favicon/icon links too, not just manifest + apple icon.
+
+4. **Add a cache-busting query to manifest hrefs**
+   - Use `/manifest-therapist.webmanifest?v=therapist-2` and `/manifest-admin.webmanifest?v=admin-2` in the HTML/hook.
+   - This helps Chrome/Safari discard the old cached manifest that points to `/home`.
+
+5. **Verify against the published route after implementation**
+   - Check `/therapist-login` final DOM manifest href is therapist.
+   - Check fetched therapist manifest still returns `start_url: /therapist-login`.
+   - Confirm the page does not redirect to `/login` before install metadata is selected.
+
+## Important device step after publishing
+
+Because Chrome/Safari and the OS cache installed web app metadata, you may still need to delete the old wrong home-screen icon once before adding it again. After this fix, the browser will be given only the therapist manifest on `/therapist-login`, not the admin manifest first.
