@@ -1,20 +1,29 @@
-## Problem
+## Root cause
 
-On `/tasks/call-task?status=done`, the "Done Today: 3" pill shows the correct count (from `call_logs` today across all sources), but the body shows nothing.
+`public/manifest-therapist.webmanifest` has:
+- `"scope": "/therapist"`
+- `"start_url": "/therapist-login"`
 
-Why: each sub-tab (Appt Tomorrow / Care / Cancelled / Lead) filters its own list by `statusTab`. When `statusTab === "done"`:
-- `appt` shows only tomorrow's appointments already called — usually empty.
-- `care` explicitly returns `false` for `done` (done rows are excluded by the query).
-- `cancel` requires an "informed" marker on the same row.
-- `lead` (the default tab on this URL) delegates to `<CallTask statusFilter="done">`, which filters by `lead_status`, not today's `call_logs` — so today's care/appt/cancel calls never appear.
+`/therapist-login` is **not inside** the `/therapist` scope, so Chrome/Android and iOS silently reject the manifest as invalid and fall back to letting the user install only the admin manifest (which is why "Add to Home Screen" on the therapist login page ends up installing `/home`).
 
-Today's 3 real `call_logs` entries are only reachable via the "Completed Calls Today" side sheet.
+Previously this worked because either the scope was broader or the start_url lived under `/therapist`. The split-manifest change tightened scope without updating start_url.
 
-## Fix — frontend only, in `src/pages/CallTaskPage.tsx`
+A second smaller issue: the therapist app route the login redirects to is `/treatment/therapist`, which is also outside `/therapist` scope, so once installed the app would navigate out-of-scope and lose standalone chrome.
 
-1. When `statusTab === "done"`, render one unified "Done Today" card built from the already-loaded `doneCalls`, and hide the sub-tabs + the four `activeTab === ...` sections.
-2. Each row shows: patient name (`PatientLink`), outcome badge, caller name, time (`h:mm a`), and notes with the `[outcome]` / `[informed:...]` prefix stripped. Empty state: "No calls logged today yet".
-3. Extend `outcomeStyle` / `outcomeLabel` to cover `doing_well`, `needs_follow_up`, `confirmed`, `rescheduled`, `cancelled`, `rebooked`, `informed`, `not_interested` (existing outcomes unchanged).
-4. Leave the side sheet as-is for when `statusTab !== "done"`.
+## Fix
 
-No data-loading or SQL changes; `doneCalls` is already populated by `loadAll` with `patient` and `caller_name`.
+Update `public/manifest-therapist.webmanifest`:
+
+- `"scope": "/"` (keep it broad so both `/therapist-login` and `/treatment/therapist` stay in-scope)
+- Keep `"start_url": "/therapist-login"`
+- Keep `"id": "/?app=therapist"` — the distinct `id` is what tells the browser this is a separate installable app from the admin one, so both icons can coexist on the home screen.
+
+No code changes needed in `useManifestForRoute` — it already swaps the `<link rel="manifest">` correctly when the user is on `/therapist-login`.
+
+## Verification steps for the user after deploy
+
+1. Fully close and reopen the browser on the phone (or use a private tab) to drop the cached manifest.
+2. Visit the published `/therapist-login` URL.
+3. Use browser menu → Add to Home Screen. It should now install as "FlowCare Therapist" alongside the existing "FlowCare" admin icon.
+
+Note: any device that already installed the admin app from `/therapist-login` before this fix will need the admin icon removed once, then reinstall from `/therapist-login`, because the OS cached the wrong manifest against that visit.

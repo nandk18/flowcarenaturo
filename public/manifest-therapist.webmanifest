@@ -4,7 +4,7 @@
   "description": "FlowCare Therapist — session board and patient care",
   "id": "/?app=therapist",
   "start_url": "/therapist-login",
-  "scope": "/therapist",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#e6fffb",
