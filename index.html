@@ -20,7 +20,6 @@
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/flowcare-icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/flowcare-icon-512.png">
-    <link rel="manifest" href="/manifest-admin.webmanifest" />
     <meta name="theme-color" content="#0f766e" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -28,8 +27,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="FlowCare" />
     <script>
-      // Swap manifest + apple metadata BEFORE React mounts so Android Chrome's
-      // "Add to Home Screen" reads the correct manifest on therapist routes.
+      // Create the correct manifest + install metadata BEFORE React mounts so
+      // Chrome/Safari never see the admin manifest first on therapist routes.
       (function () {
         try {
           var p = window.location.pathname || "";
@@ -38,14 +37,30 @@
             p.indexOf("/therapist-app") === 0 ||
             p.indexOf("/therapist") === 0 ||
             p.indexOf("/treatment/therapist") === 0;
-          if (!isTherapist) return;
-          var m = document.querySelector('link[rel="manifest"]');
-          if (m) m.setAttribute("href", "/manifest-therapist.webmanifest");
+          var manifestHref = isTherapist
+            ? "/manifest-therapist.webmanifest?v=therapist-2"
+            : "/manifest-admin.webmanifest?v=admin-2";
+          var title = isTherapist ? "FlowCare Therapist" : "FlowCare";
+          var appleIcon = isTherapist ? "/therapist-apple-touch.png" : "/apple-touch-icon.png";
+          var icon192 = isTherapist ? "/therapist-icon-192.png" : "/flowcare-icon-192.png";
+          var icon512 = isTherapist ? "/therapist-icon-512.png" : "/flowcare-icon-512.png";
+
+          var m = document.createElement("link");
+          m.rel = "manifest";
+          m.href = manifestHref;
+          document.head.appendChild(m);
+
           var a = document.querySelector('link[rel="apple-touch-icon"]');
-          if (a) a.setAttribute("href", "/therapist-apple-touch.png");
+          if (a) a.setAttribute("href", appleIcon);
+          var icons = document.querySelectorAll('link[rel="icon"][sizes]');
+          for (var i = 0; i < icons.length; i++) {
+            var sizes = icons[i].getAttribute("sizes");
+            if (sizes === "192x192") icons[i].setAttribute("href", icon192);
+            if (sizes === "512x512") icons[i].setAttribute("href", icon512);
+          }
           var t = document.querySelector('meta[name="apple-mobile-web-app-title"]');
-          if (t) t.setAttribute("content", "FlowCare Therapist");
-          document.title = "FlowCare Therapist";
+          if (t) t.setAttribute("content", title);
+          document.title = title;
         } catch (e) {}
       })();
     </script>
