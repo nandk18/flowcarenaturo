@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createTherapySession } from "@/lib/createTherapySession";
+import { todayLocalISO } from "@/lib/utils";
 
 export type StartTreatmentService = {
   service_id: string;
@@ -54,7 +55,7 @@ export async function ensureIndividualPlanForServices(params: {
   );
   if (treatmentServices.length === 0) return;
 
-  const today = startDate ?? new Date().toISOString().split("T")[0];
+  const today = startDate ?? todayLocalISO();
 
   // Load all active plan items for this patient (across all active plans) — we'll
   // match by service_id and (when possible) by appointment marker.
@@ -150,7 +151,7 @@ export async function startTreatmentForAppointment(appt: StartTreatmentAppt): Pr
     return { ok: false, error: "No treatment services on this appointment", createdSessions: 0, usedFromPlan: 0, createdIndividual: 0 };
   }
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayLocalISO();
 
   // Idempotency: if sessions already exist for this appointment, just mark in_progress.
   const { data: existingSessions } = await supabase
