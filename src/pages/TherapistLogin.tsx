@@ -75,8 +75,8 @@ export default function TherapistLogin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin]);
 
-  if (flagLoading) return <div className="p-6"><Loader2 className="h-5 w-5 animate-spin" /></div>;
-  if (!enabled) return <Navigate to="/dashboard" replace />;
+  // NOTE: no treatment-enabled gate here — this page must work without an
+  // admin Supabase session so therapists can install/open the PWA directly.
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 safe-top safe-bottom safe-x">
