@@ -68,10 +68,10 @@ export default function TreatmentBoard() {
   const clinicId = profile?.clinic_id;
   const { enabled, loading: flagLoading } = useTreatmentEnabled();
   const navigate = useNavigate();
-  // Use UTC date to match how session_date is stamped on insert (both client
-  // helpers and SQL use UTC). Local-date drift after IST midnight was hiding
-  // today's sessions from the board.
-  const today = new Date().toISOString().split("T")[0];
+  // Use LOCAL date so Board matches Dashboard/Therapist app filters and the
+  // date users see on their clock (evening bookings in IST otherwise fell into
+  // the next UTC day and disappeared from Dashboard/Therapist views).
+  const today = todayLocalISO();
 
   const [sessions, setSessions] = useState<Session[]>([]);
   const [capacities, setCapacities] = useState<Capacity[]>([]);
