@@ -102,6 +102,8 @@ const isPublicRoute = (path: string) =>
   path === "/dpa" ||
   path === "/security" ||
   path === "/.lovable/oauth/consent" ||
+  path === "/therapist-login" ||
+  path === "/treatment/therapist" ||
   path.startsWith("/invoice/") ||
   path.startsWith("/rx/") ||
   path.startsWith("/s/") ||
