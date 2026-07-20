@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { todayLocalISO } from "@/lib/utils";
 
 export type CreateTherapySessionParams = {
   clinicId: string;
