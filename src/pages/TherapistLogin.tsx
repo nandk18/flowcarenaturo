@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTherapistAuth } from "@/hooks/useTherapistAuth";
-import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Delete, LogOut } from "lucide-react";
