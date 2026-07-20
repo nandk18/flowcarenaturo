@@ -19,7 +19,7 @@ type Therapist = {
 export default function TherapistLogin() {
   const { profile } = useAuth();
   const clinicId = profile?.clinic_id;
-  const { enabled, loading: flagLoading } = useTreatmentEnabled();
+  
   const { therapist, signInWithPin, signOut } = useTherapistAuth();
   const navigate = useNavigate();
 
