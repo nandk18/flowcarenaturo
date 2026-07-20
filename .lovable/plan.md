@@ -1,29 +1,27 @@
 ## Root cause
 
-`public/manifest-therapist.webmanifest` has:
-- `"scope": "/therapist"`
-- `"start_url": "/therapist-login"`
+`index.html` hardcodes `<link rel="manifest" href="/manifest-admin.webmanifest">`. The React hook `useManifestForRoute` only swaps this link after the app mounts. On Android Chrome, when a user opens the browser menu on `/therapist-login`, Chrome often reads the manifest that was in the DOM at initial page load (the admin one) — especially when the app was just opened from a cold tab, or when the swap hasn't run yet. Result: "Add to Home Screen" installs the admin app pointing at `/home` even though the URL bar shows `/therapist-login`.
 
-`/therapist-login` is **not inside** the `/therapist` scope, so Chrome/Android and iOS silently reject the manifest as invalid and fall back to letting the user install only the admin manifest (which is why "Add to Home Screen" on the therapist login page ends up installing `/home`).
-
-Previously this worked because either the scope was broader or the start_url lived under `/therapist`. The split-manifest change tightened scope without updating start_url.
-
-A second smaller issue: the therapist app route the login redirects to is `/treatment/therapist`, which is also outside `/therapist` scope, so once installed the app would navigate out-of-scope and lose standalone chrome.
+The manifest `id` is also derived at initial load, so both installs end up sharing the admin `id` and Chrome treats it as the already-installed admin app.
 
 ## Fix
 
-Update `public/manifest-therapist.webmanifest`:
+Swap the manifest link and apple-touch metadata in `index.html` **before React loads**, using a tiny inline script that reads `location.pathname`. Keep the React hook as a fallback for client-side navigation.
 
-- `"scope": "/"` (keep it broad so both `/therapist-login` and `/treatment/therapist` stay in-scope)
-- Keep `"start_url": "/therapist-login"`
-- Keep `"id": "/?app=therapist"` — the distinct `id` is what tells the browser this is a separate installable app from the admin one, so both icons can coexist on the home screen.
+Changes in `index.html` only:
 
-No code changes needed in `useManifestForRoute` — it already swaps the `<link rel="manifest">` correctly when the user is on `/therapist-login`.
+1. Keep `<link rel="manifest" href="/manifest-admin.webmanifest">` as default.
+2. Add an inline `<script>` in `<head>` (runs synchronously before `main.tsx`) that, when `location.pathname` starts with `/therapist-login`, `/therapist-app`, `/therapist`, or `/treatment/therapist`:
+   - Rewrites the `manifest` link `href` to `/manifest-therapist.webmanifest`
+   - Rewrites `apple-touch-icon` href to the therapist icon
+   - Updates `apple-mobile-web-app-title` and `<title>` to "FlowCare Therapist"
 
-## Verification steps for the user after deploy
+No manifest file changes, no React changes.
 
-1. Fully close and reopen the browser on the phone (or use a private tab) to drop the cached manifest.
-2. Visit the published `/therapist-login` URL.
-3. Use browser menu → Add to Home Screen. It should now install as "FlowCare Therapist" alongside the existing "FlowCare" admin icon.
+## Verification
 
-Note: any device that already installed the admin app from `/therapist-login` before this fix will need the admin icon removed once, then reinstall from `/therapist-login`, because the OS cached the wrong manifest against that visit.
+After deploy, on Android:
+1. Long-press the admin FlowCare icon → uninstall (only needed once, because the OS cached the wrong install from previous attempts).
+2. Open published `/therapist-login` in Chrome → menu → Add to Home Screen.
+3. Confirm the install dialog now says "FlowCare Therapist" and the installed icon opens directly to `/therapist-login`.
+4. Repeat from `/home` to confirm the admin install still works independently.
