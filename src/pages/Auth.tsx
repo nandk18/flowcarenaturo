@@ -44,6 +44,7 @@ export default function Auth() {
   const [searchParams] = useSearchParams();
   const sessionExpired = searchParams.get("reason") === "session_expired";
   const deletionRequested = searchParams.get("reason") === "deletion_requested";
+  const clinicDisabled = searchParams.get("reason") === "clinic_disabled";
   const authError = searchParams.get("error");
 
   const handleLogin = async (e: React.FormEvent) => {
