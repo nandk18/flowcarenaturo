@@ -1,29 +1,102 @@
-## Root cause (verified)
+# Super Admin: All-Clinic Analytics + Access Toggle
 
-Sessions created after ~6:30 PM IST get stamped with **tomorrow's UTC date**, but the Clinical Dashboard and Therapist app query by **local date**, so the session becomes invisible everywhere except the Board (which also uses UTC).
+Currently there are **zero** super_admin accounts in the database, and the `clinics` table has no "active/disabled" flag. Super admin routes already exist (`/super-admin`, `/super-admin/analytics`) but the dashboard doesn't yet show activity per clinic or let you disable clinics.
 
-Confirmed in code:
+## 1. Create the first super admin
 
-- `src/lib/createTherapySession.ts:55` — `params.date ?? new Date().toISOString().split("T")[0]` → **UTC date**
-- `src/lib/treatmentStart.ts:57,153` — same `toISOString().split("T")[0]` → **UTC date**
-- `src/pages/TreatmentBoard.tsx:73` — `new Date().toISOString().split("T")[0]` → **UTC date** (matches insert, that's why Board shows it)
-- `src/pages/AdminDashboard.tsx:103` — `format(new Date(), "yyyy-MM-dd")` → **local date** (misses evening sessions → stuck on "Start Treatment")
-- `src/pages/TherapistApp.tsx:56` — `format(new Date(), "yyyy-MM-dd")` → **local date** (misses evening sessions → therapist sees nothing)
+Since there are no super admins yet, the only safe way to create one is via a database migration that promotes an existing signed-up user.
 
-The morning works because UTC date == local date until ~18:30 IST.
+Flow:
 
-## Fix
+- You sign up normally at `/auth` with the email you want to use as super admin (e.g. `you@flowcare.com`).
+- I run a migration that flips that user's `profiles.role` and `user_roles.role` to `super_admin`, and clears their `clinic_id` so they aren't tied to any clinic.
+- On next login, `authRedirect.ts` already routes `super_admin` to `/super-admin`.
 
-Standardize the entire treatment module on **local `yyyy-MM-dd`** (which is what "today" means to the clinic and what the schedule-picker already uses):
+I'll ask you for the exact email before running the migration.
 
-1. `src/lib/createTherapySession.ts` — replace the UTC default with a local-date helper.
-2. `src/lib/treatmentStart.ts` — same replacement in `ensureIndividualPlanForServices` and `startTreatmentForAppointment`.
-3. `src/pages/TreatmentBoard.tsx` — switch the `today` variable and the "add therapy" `date` argument from UTC to local.
-4. Add one shared helper `todayLocalISO()` in `src/lib/utils.ts` and reuse it in the four files above (plus a light audit of other `toISOString().split("T")[0]` call sites in the treatment flow to keep them consistent).
+## 2. Add "disabled" flag to clinics
 
-No schema changes, no RLS changes — this is a pure client-side date-normalization fix.
+New migration:
 
-## Verification
+- Add `clinics.is_active boolean not null default true` and `disabled_at timestamptz`, `disabled_reason text`.
+- Add RLS: only `super_admin` can update these columns.
+- Add a login gate: in `src/lib/authRedirect.ts` and `src/hooks/useAuth.tsx`, if the signed-in admin's `clinic.is_active = false`, sign them out and redirect to `/login?reason=clinic_disabled` with a friendly banner in `Auth.tsx`.
+- Therapist login (`verify_therapist_pin` RPC) also rejects when the clinic is disabled.
 
-- Simulate an evening session by inserting a `therapy_sessions` row with `session_date` = local today and confirm Dashboard flips to "On Board" and Therapist app shows it.
-- Re-check that a genuine future-dated session (tomorrow local) still appears only in the Board's "upcoming" list, not today.
+## 3. Rebuild Super Admin dashboard
+
+Rewrite `src/pages/SuperAdmin.tsx` around a **per-clinic activity table** (replacing the current labs-first layout):
+
+```text
+Clinic              Status    Users  Patients  Visits(7d)  Appts(7d)  Revenue(30d)  Last active     Actions
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Naturo Wellness     ● Active    5     342        87           64        ₹1,24,500     2m ago         [Analytics] [Disable]
+Green Leaf Clinic   ○ Disabled  3     120        0            0         ₹0            3d ago         [Analytics] [Enable]
+```
+
+- One row per clinic with live counters (patients, visits last 7d, appointments last 7d, revenue last 30d, last audit-log timestamp = "what they're doing now").
+- Status pill driven by `is_active`.
+- **Single-click toggle**: an "Enable/Disable" button calls a new `super_admin_set_clinic_active(clinic_id, active, reason)` RPC (SECURITY DEFINER, checks `has_role(auth.uid(), 'super_admin')`). Confirms via a small dialog when disabling.
+- "Analytics" button opens the existing `/super-admin/analytics/:clinicId` drill-down (already built).
+
+## 4. "What are they doing" live feed
+
+Add a second tab **Live Activity** on the super admin dashboard:
+
+- Reads the existing `audit_logs` table across all clinics (already global), joined with `clinics.name`.
+- Shows the last 100 events with clinic, user, action, resource, timestamp.
+- Filter dropdown by clinic and by action type.
+- Auto-refresh every 30s.
+
+## Technical details
+
+**Migration 1 — promote user + clinic flag:**
+
+```sql
+alter table public.clinics
+  add column if not exists is_active boolean not null default true,
+  add column if not exists disabled_at timestamptz,
+  add column if not exists disabled_reason text;
+
+create policy "Super admin can update clinic status"
+  on public.clinics for update
+  using (public.has_role(auth.uid(),'super_admin'))
+  with check (public.has_role(auth.uid(),'super_admin'));
+
+create or replace function public.super_admin_set_clinic_active(
+  p_clinic_id uuid, p_active boolean, p_reason text default null
+) returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not public.has_role(auth.uid(),'super_admin') then
+    raise exception 'Super admin required';
+  end if;
+  update public.clinics
+     set is_active = p_active,
+         disabled_at = case when p_active then null else now() end,
+         disabled_reason = case when p_active then null else p_reason end
+   where id = p_clinic_id;
+end $$;
+grant execute on function public.super_admin_set_clinic_active(uuid,boolean,text) to authenticated;
+```
+
+**Migration 2 — promote your user (run after you tell me the email):**
+
+```sql
+update public.profiles set role='super_admin', clinic_id=null
+ where user_id=(select id from auth.users where email='<YOUR_EMAIL>');
+insert into public.user_roles(user_id, role)
+ select id, 'super_admin' from auth.users where email='<YOUR_EMAIL>'
+ on conflict (user_id, role) do nothing;
+```
+
+**Migration 3 — clinic-summary RPC** for the dashboard table (aggregates counts + last audit timestamp per clinic in a single query).
+
+**Frontend files touched:**
+
+- `src/pages/SuperAdmin.tsx` — rebuild with Clinics table + Live Activity tab + disable toggle.
+- `src/lib/authRedirect.ts` + `src/pages/Auth.tsx` — block sign-in for disabled clinics.
+- `src/hooks/useAuth.tsx` — re-check `is_active` on session load and sign out if flipped.
+
+## Open question before I start
+
+**What email should become the first super admin?** (It must be an account you've already signed up with at `/auth`, or I can create it now via Supabase Auth admin — either works, just tell me which.)  -> nandhakice@gmail.com
