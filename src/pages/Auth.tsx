@@ -44,6 +44,7 @@ export default function Auth() {
   const [searchParams] = useSearchParams();
   const sessionExpired = searchParams.get("reason") === "session_expired";
   const deletionRequested = searchParams.get("reason") === "deletion_requested";
+  const clinicDisabled = searchParams.get("reason") === "clinic_disabled";
   const authError = searchParams.get("error");
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -133,6 +134,14 @@ export default function Auth() {
             <p className="text-sm text-foreground">
               Your account deletion request has been received. Your data will be permanently
               deleted within 30 days.
+            </p>
+          </div>
+        )}
+        {clinicDisabled && (
+          <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-foreground">
+              Your clinic access has been disabled by the administrator. Please contact support.
             </p>
           </div>
         )}

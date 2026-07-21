@@ -35,11 +35,16 @@ export async function ensureProfileAndGetPostAuthRoute(userId: string) {
 
   const { data: clinic, error: clinicError } = await supabase
     .from("clinics")
-    .select("onboarding_complete")
+    .select("onboarding_complete, is_active")
     .eq("id", profile.clinic_id)
     .maybeSingle();
 
   if (clinicError) throw clinicError;
+
+  if (clinic && (clinic as any).is_active === false) {
+    await supabase.auth.signOut();
+    return "/login?reason=clinic_disabled";
+  }
 
   return clinic?.onboarding_complete ? "/dashboard" : "/onboarding";
 }

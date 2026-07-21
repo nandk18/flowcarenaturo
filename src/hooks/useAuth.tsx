@@ -87,7 +87,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
       if (data) {
-        setProfile(data as UserProfile);
+        const prof = data as UserProfile;
+        if (prof.role === "admin" && prof.clinic_id) {
+          const { data: clinic } = await supabase
+            .from("clinics")
+            .select("is_active")
+            .eq("id", prof.clinic_id)
+            .maybeSingle();
+          if (clinic && (clinic as any).is_active === false) {
+            await supabase.auth.signOut();
+            setSession(null);
+            setProfile(null);
+            window.location.href = "/login?reason=clinic_disabled";
+            return;
+          }
+        }
+        setProfile(prof);
         return;
       }
 
