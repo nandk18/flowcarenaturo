@@ -137,6 +137,14 @@ export default function Auth() {
             </p>
           </div>
         )}
+        {clinicDisabled && (
+          <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-foreground">
+              Your clinic access has been disabled by the administrator. Please contact support.
+            </p>
+          </div>
+        )}
         {authError && (
           <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 flex items-start gap-2">
             <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
