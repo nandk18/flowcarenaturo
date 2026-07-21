@@ -588,6 +588,8 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string | null
+          disabled_at: string | null
+          disabled_reason: string | null
           email: string | null
           gst_number: string | null
           gst_percentage: number | null
@@ -596,6 +598,7 @@ export type Database = {
           invoice_footer_note: string | null
           invoice_header_note: string | null
           invoice_prefix: string | null
+          is_active: boolean
           letterhead_url: string | null
           logo_url: string | null
           name: string
@@ -610,6 +613,8 @@ export type Database = {
         Insert: {
           address?: string | null
           created_at?: string | null
+          disabled_at?: string | null
+          disabled_reason?: string | null
           email?: string | null
           gst_number?: string | null
           gst_percentage?: number | null
@@ -618,6 +623,7 @@ export type Database = {
           invoice_footer_note?: string | null
           invoice_header_note?: string | null
           invoice_prefix?: string | null
+          is_active?: boolean
           letterhead_url?: string | null
           logo_url?: string | null
           name: string
@@ -632,6 +638,8 @@ export type Database = {
         Update: {
           address?: string | null
           created_at?: string | null
+          disabled_at?: string | null
+          disabled_reason?: string | null
           email?: string | null
           gst_number?: string | null
           gst_percentage?: number | null
@@ -640,6 +648,7 @@ export type Database = {
           invoice_footer_note?: string | null
           invoice_header_note?: string | null
           invoice_prefix?: string | null
+          is_active?: boolean
           letterhead_url?: string | null
           logo_url?: string | null
           name?: string
@@ -2983,6 +2992,42 @@ export type Database = {
       submit_therapy_review: {
         Args: { p_rating: number; p_token: string }
         Returns: Json
+      }
+      super_admin_clinic_summary: {
+        Args: never
+        Returns: {
+          appts_7d: number
+          clinic_id: string
+          clinic_name: string
+          created_at: string
+          disabled_at: string
+          disabled_reason: string
+          is_active: boolean
+          last_activity: string
+          onboarding_complete: boolean
+          patients_count: number
+          revenue_30d: number
+          users_count: number
+          visits_7d: number
+        }[]
+      }
+      super_admin_recent_activity: {
+        Args: { p_limit?: number }
+        Returns: {
+          action: string
+          clinic_id: string
+          clinic_name: string
+          created_at: string
+          id: string
+          resource_name: string
+          resource_type: string
+          user_name: string
+          user_role: string
+        }[]
+      }
+      super_admin_set_clinic_active: {
+        Args: { p_active: boolean; p_clinic_id: string; p_reason?: string }
+        Returns: undefined
       }
       update_sla_breach_days: { Args: never; Returns: undefined }
       validate_patient_form_token: {
