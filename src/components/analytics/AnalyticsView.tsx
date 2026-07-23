@@ -95,6 +95,13 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
     rows.push(["Completed", tre.totals?.completed]);
     rows.push(["Cancelled", tre.totals?.cancelled]);
     rows.push([]);
+    rows.push([]);
+    rows.push(["Operations (current)"]);
+    rows.push(["Overdue calls (total)", ovd?.overdue_calls ?? 0]);
+    rows.push(["  Overdue care calls", ovd?.overdue_care_calls ?? 0]);
+    rows.push(["  Overdue lead calls", ovd?.overdue_lead_calls ?? 0]);
+    rows.push(["Overdue to-dos", ovd?.overdue_todos ?? 0]);
+    rows.push([]);
     rows.push(["Therapist", "Completed", "Unique patients", "Avg minutes", "Avg rating", "Reviews"]);
     for (const t of (the.therapists || [])) {
       rows.push([t.full_name, t.completed, t.unique_patients, t.avg_minutes ?? "", t.avg_rating ?? "", t.reviews_count]);
