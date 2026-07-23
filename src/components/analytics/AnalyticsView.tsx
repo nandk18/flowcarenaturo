@@ -159,6 +159,8 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
             <KpiCard label="Therapy sessions" value={num(tt.total)} sub={`${num(tt.completed)} done · ${num(tt.cancelled)} cancelled`} icon={Activity} tone="accent" />
             <KpiCard label="Unique patients treated" value={num(tt.unique_patients)} icon={Users} tone="success" />
             <KpiCard label="Reviews received" value={num((the?.therapists || []).reduce((s: number, t: any) => s + (t.reviews_count || 0), 0))} icon={Star} tone="warning" />
+            <KpiCard label="Overdue calls" value={num(ovd?.overdue_calls)} sub={`${num(ovd?.overdue_care_calls)} care · ${num(ovd?.overdue_lead_calls)} leads`} icon={PhoneCall} tone={ovd?.overdue_calls ? "danger" : "success"} />
+            <KpiCard label="Overdue to-dos" value={num(ovd?.overdue_todos)} sub="Past due date" icon={ListTodo} tone={ovd?.overdue_todos ? "danger" : "success"} />
           </div>
 
           <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Revenue over time</CardTitle></CardHeader><CardContent>
