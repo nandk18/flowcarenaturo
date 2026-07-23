@@ -28,3 +28,6 @@ export const fetchTherapists = (clinicId: string | null, from: string, to: strin
 
 export const fetchPlatformOverview = (from: string, to: string) =>
   rpc("analytics_platform_overview", { p_from: from, p_to: to });
+
+export const fetchOverdueCounts = (clinicId: string | null) =>
+  rpc("analytics_overdue_counts", { p_clinic_id: clinicId });

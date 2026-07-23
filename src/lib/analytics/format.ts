@@ -34,7 +34,8 @@ export function toCSV(rows: (string | number | null | undefined)[][]): string {
 }
 
 export function downloadCSV(name: string, csv: string) {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  // Prepend UTF-8 BOM so Excel/Windows decode ₹ and other UTF-8 chars correctly.
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = `${name}-${format(new Date(), "yyyy-MM-dd")}.csv`;

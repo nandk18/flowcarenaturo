@@ -12,10 +12,11 @@ import {
 import { toast } from "sonner";
 import {
   fetchRevenue, fetchPatients, fetchAppointments,
-  fetchTreatments, fetchTherapists,
+  fetchTreatments, fetchTherapists, fetchOverdueCounts,
 } from "@/lib/analytics/api";
 import { RANGES, Range, dateRange, inr, num, DOW_NAMES, downloadCSV, toCSV } from "@/lib/analytics/format";
 import { KpiCard } from "./KpiCard";
+import { PhoneCall, ListTodo } from "lucide-react";
 
 const COLORS = [
   "hsl(var(--primary))", "hsl(var(--accent))", "#f59e0b", "#ef4444",
@@ -40,6 +41,7 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
   const [app, setApp] = useState<any>(null);
   const [tre, setTre] = useState<any>(null);
   const [the, setThe] = useState<any>(null);
+  const [ovd, setOvd] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,15 +49,16 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
     (async () => {
       setLoading(true);
       try {
-        const [r, p, a, t, h] = await Promise.all([
+        const [r, p, a, t, h, o] = await Promise.all([
           fetchRevenue(clinicId, start, end),
           fetchPatients(clinicId, start, end),
           fetchAppointments(clinicId, start, end),
           fetchTreatments(clinicId, start, end),
           fetchTherapists(clinicId, start, end),
+          fetchOverdueCounts(clinicId).catch(() => ({ overdue_calls: 0, overdue_todos: 0 })),
         ]);
         if (cancelled) return;
-        setRev(r); setPat(p); setApp(a); setTre(t); setThe(h);
+        setRev(r); setPat(p); setApp(a); setTre(t); setThe(h); setOvd(o);
       } catch (e: any) {
         if (!cancelled) toast.error(e.message || "Failed to load analytics");
       } finally {
@@ -91,6 +94,13 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
     rows.push(["Total", tre.totals?.total]);
     rows.push(["Completed", tre.totals?.completed]);
     rows.push(["Cancelled", tre.totals?.cancelled]);
+    rows.push([]);
+    rows.push([]);
+    rows.push(["Operations (current)"]);
+    rows.push(["Overdue calls (total)", ovd?.overdue_calls ?? 0]);
+    rows.push(["  Overdue care calls", ovd?.overdue_care_calls ?? 0]);
+    rows.push(["  Overdue lead calls", ovd?.overdue_lead_calls ?? 0]);
+    rows.push(["Overdue to-dos", ovd?.overdue_todos ?? 0]);
     rows.push([]);
     rows.push(["Therapist", "Completed", "Unique patients", "Avg minutes", "Avg rating", "Reviews"]);
     for (const t of (the.therapists || [])) {
@@ -156,6 +166,8 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
             <KpiCard label="Therapy sessions" value={num(tt.total)} sub={`${num(tt.completed)} done · ${num(tt.cancelled)} cancelled`} icon={Activity} tone="accent" />
             <KpiCard label="Unique patients treated" value={num(tt.unique_patients)} icon={Users} tone="success" />
             <KpiCard label="Reviews received" value={num((the?.therapists || []).reduce((s: number, t: any) => s + (t.reviews_count || 0), 0))} icon={Star} tone="warning" />
+            <KpiCard label="Overdue calls" value={num(ovd?.overdue_calls)} sub={`${num(ovd?.overdue_care_calls)} care · ${num(ovd?.overdue_lead_calls)} leads`} icon={PhoneCall} tone={ovd?.overdue_calls ? "danger" : "success"} />
+            <KpiCard label="Overdue to-dos" value={num(ovd?.overdue_todos)} sub="Past due date" icon={ListTodo} tone={ovd?.overdue_todos ? "danger" : "success"} />
           </div>
 
           <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Revenue over time</CardTitle></CardHeader><CardContent>
