@@ -41,6 +41,7 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
   const [app, setApp] = useState<any>(null);
   const [tre, setTre] = useState<any>(null);
   const [the, setThe] = useState<any>(null);
+  const [ovd, setOvd] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,15 +49,16 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
     (async () => {
       setLoading(true);
       try {
-        const [r, p, a, t, h] = await Promise.all([
+        const [r, p, a, t, h, o] = await Promise.all([
           fetchRevenue(clinicId, start, end),
           fetchPatients(clinicId, start, end),
           fetchAppointments(clinicId, start, end),
           fetchTreatments(clinicId, start, end),
           fetchTherapists(clinicId, start, end),
+          fetchOverdueCounts(clinicId).catch(() => ({ overdue_calls: 0, overdue_todos: 0 })),
         ]);
         if (cancelled) return;
-        setRev(r); setPat(p); setApp(a); setTre(t); setThe(h);
+        setRev(r); setPat(p); setApp(a); setTre(t); setThe(h); setOvd(o);
       } catch (e: any) {
         if (!cancelled) toast.error(e.message || "Failed to load analytics");
       } finally {
