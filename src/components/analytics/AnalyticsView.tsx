@@ -12,10 +12,11 @@ import {
 import { toast } from "sonner";
 import {
   fetchRevenue, fetchPatients, fetchAppointments,
-  fetchTreatments, fetchTherapists,
+  fetchTreatments, fetchTherapists, fetchOverdueCounts,
 } from "@/lib/analytics/api";
 import { RANGES, Range, dateRange, inr, num, DOW_NAMES, downloadCSV, toCSV } from "@/lib/analytics/format";
 import { KpiCard } from "./KpiCard";
+import { PhoneCall, ListTodo } from "lucide-react";
 
 const COLORS = [
   "hsl(var(--primary))", "hsl(var(--accent))", "#f59e0b", "#ef4444",
