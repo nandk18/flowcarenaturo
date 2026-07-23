@@ -2819,6 +2819,7 @@ export type Database = {
         Args: { p_clinic_id: string; p_from: string; p_to: string }
         Returns: Json
       }
+      analytics_overdue_counts: { Args: { p_clinic_id: string }; Returns: Json }
       analytics_patients: {
         Args: { p_clinic_id: string; p_from: string; p_to: string }
         Returns: Json
