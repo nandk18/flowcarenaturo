@@ -20,6 +20,8 @@ import {
 import { cn, formatDoctorName } from "@/lib/utils";
 import { buildMessage } from "@/lib/messageTemplates";
 import { openWhatsApp } from "@/lib/whatsapp";
+import WhatsAppStatus from "@/components/appointments/WhatsAppStatus";
+
 import PatientLink from "@/components/PatientLink";
 import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
 import CancelAppointmentModal from "@/components/appointments/CancelAppointmentModal";
