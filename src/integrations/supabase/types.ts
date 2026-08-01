@@ -2791,6 +2791,59 @@ export type Database = {
           },
         ]
       }
+      whatsapp_messages: {
+        Row: {
+          appointment_id: string | null
+          clinic_id: string | null
+          created_at: string
+          error: string | null
+          event: string
+          id: string
+          patient_id: string | null
+          status: string
+          template_sid: string | null
+          to_phone: string | null
+          twilio_sid: string | null
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          error?: string | null
+          event: string
+          id?: string
+          patient_id?: string | null
+          status?: string
+          template_sid?: string | null
+          to_phone?: string | null
+          twilio_sid?: string | null
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          error?: string | null
+          event?: string
+          id?: string
+          patient_id?: string | null
+          status?: string
+          template_sid?: string | null
+          to_phone?: string | null
+          twilio_sid?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
