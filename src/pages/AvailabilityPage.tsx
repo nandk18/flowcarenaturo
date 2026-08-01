@@ -20,6 +20,8 @@ import {
 import { cn, formatDoctorName } from "@/lib/utils";
 import { buildMessage } from "@/lib/messageTemplates";
 import { openWhatsApp } from "@/lib/whatsapp";
+import WhatsAppStatus from "@/components/appointments/WhatsAppStatus";
+
 import PatientLink from "@/components/PatientLink";
 import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
 import CancelAppointmentModal from "@/components/appointments/CancelAppointmentModal";
@@ -362,6 +364,8 @@ export default function AvailabilityPage() {
             )}
             {detailAppt.reason && <p className="mt-1 text-xs text-muted-foreground">Reason: {detailAppt.reason}</p>}
             <p className="mt-1 text-xs uppercase tracking-wide text-red-700">Status: {detailAppt.status}</p>
+            <WhatsAppStatus appointmentId={detailAppt.id} />
+
             <div className="mt-4 flex flex-wrap justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => setDetailAppt(null)}>Close</Button>
               {detailAppt.patient?.phone && detailAppt.status !== "cancelled" && (
