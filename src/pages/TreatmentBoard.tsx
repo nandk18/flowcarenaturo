@@ -594,7 +594,7 @@ function SessionRow({
               </Button>
             )}
           </div>
-          <div className="col-span-2">
+          <div className="mt-2">
             <WhatsAppStatus therapySessionId={s.id} />
           </div>
         </div>
