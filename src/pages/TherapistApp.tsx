@@ -511,6 +511,7 @@ function SessionCard({
               {s.completed_at && ` → ${format(new Date(s.completed_at), "h:mm a")}`}
               {s.started_at && s.completed_at && ` · ${Math.max(0, Math.round((new Date(s.completed_at).getTime() - new Date(s.started_at).getTime()) / 60000))} min ✓`}
             </div>
+            <WhatsAppStatus therapySessionId={s.id} />
             <Button
               size="sm"
               variant="outline"

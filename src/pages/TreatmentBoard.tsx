@@ -594,6 +594,9 @@ function SessionRow({
               </Button>
             )}
           </div>
+          <div className="col-span-2">
+            <WhatsAppStatus therapySessionId={s.id} />
+          </div>
         </div>
       </li>
     );
