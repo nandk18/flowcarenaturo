@@ -8,21 +8,32 @@ const EVENT_LABEL: Record<string, string> = {
   booked: "Booking confirmation",
   rescheduled: "Reschedule notice",
   cancelled: "Cancellation notice",
+  reminder: "Reminder",
+  review: "Review link",
 };
 
-/** Shows whether the automated Twilio WhatsApp message went out for an appointment. */
-export default function WhatsAppStatus({ appointmentId }: { appointmentId: string }) {
+/** Shows whether the automated Twilio WhatsApp message went out for an appointment or therapy session. */
+export default function WhatsAppStatus({
+  appointmentId,
+  therapySessionId,
+}: {
+  appointmentId?: string;
+  therapySessionId?: string;
+}) {
   const [rows, setRows] = useState<Row[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await (supabase as any)
+        let q = (supabase as any)
           .from("whatsapp_messages")
           .select("event, status, error, created_at")
-          .eq("appointment_id", appointmentId)
           .order("created_at", { ascending: false });
+        if (appointmentId) q = q.eq("appointment_id", appointmentId);
+        else if (therapySessionId) q = q.eq("therapy_session_id", therapySessionId);
+        else return;
+        const { data } = await q;
         if (!cancelled) setRows((data as Row[]) ?? []);
       } catch {
         // non-critical
@@ -31,7 +42,7 @@ export default function WhatsAppStatus({ appointmentId }: { appointmentId: strin
     return () => {
       cancelled = true;
     };
-  }, [appointmentId]);
+  }, [appointmentId, therapySessionId]);
 
   if (!rows.length) return null;
 

@@ -7,11 +7,14 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID") ?? "";
 const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN") ?? "";
 const TWILIO_WHATSAPP_FROM = Deno.env.get("TWILIO_WHATSAPP_FROM") ?? "";
+const PUBLIC_URL = Deno.env.get("PUBLIC_URL") ?? Deno.env.get("SITE_URL") ?? "https://flowcarenaturo.lovable.app";
 
 const TEMPLATES: Record<string, string> = {
   booked: Deno.env.get("TWILIO_TEMPLATE_BOOKED") ?? "",
   rescheduled: Deno.env.get("TWILIO_TEMPLATE_RESCHEDULED") ?? "",
   cancelled: Deno.env.get("TWILIO_TEMPLATE_CANCELLED") ?? "",
+  reminder: Deno.env.get("TWILIO_TEMPLATE_REMINDER") ?? "",
+  review: Deno.env.get("TWILIO_TEMPLATE_REVIEW") ?? "",
 };
 
 const json = (body: unknown, status = 200) =>
@@ -53,6 +56,12 @@ function fmtDate(d: string | null | undefined): string {
   return y && m && day ? `${day}/${m}/${y}` : String(d);
 }
 
+/** Build the WhatsApp sender number with the whatsapp: prefix. */
+function fromWhatsapNumber(): string {
+  const num = TWILIO_WHATSAPP_FROM.startsWith("+") ? TWILIO_WHATSAPP_FROM : "+" + TWILIO_WHATSAPP_FROM;
+  return `whatsapp:${num}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -60,13 +69,21 @@ Deno.serve(async (req) => {
   let logId: string | null = null;
 
   try {
-    const { appointment_id, event } = (await req.json()) as {
+    const payload = (await req.json()) as {
       appointment_id?: string;
+      therapy_session_id?: string;
       event?: string;
     };
+    const { appointment_id, therapy_session_id, event } = payload;
 
-    if (!appointment_id || !event || !(event in TEMPLATES)) {
-      return json({ error: "appointment_id and a valid event are required" }, 400);
+    if (!event || !(event in TEMPLATES)) {
+      return json({ error: "a valid event is required" }, 400);
+    }
+    if (event === "review" && !therapy_session_id) {
+      return json({ error: "therapy_session_id is required for review event" }, 400);
+    }
+    if (["booked", "rescheduled", "cancelled", "reminder"].includes(event) && !appointment_id) {
+      return json({ error: "appointment_id is required for this event" }, 400);
     }
 
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_WHATSAPP_FROM) {
@@ -78,71 +95,167 @@ Deno.serve(async (req) => {
       return json({ skipped: true, reason: `no template configured for "${event}"` });
     }
 
-    // Load appointment context
-    const { data: appt, error: apptErr } = await sb
-      .from("appointments")
-      .select("id, clinic_id, patient_id, doctor_id, appointment_date, appointment_time, status")
-      .eq("id", appointment_id)
-      .maybeSingle();
+    let to: string | null = null;
+    let variables: Record<string, string> = {};
+    let clinicId: string | null = null;
+    let patientId: string | null = null;
+    let logApptId: string | null = appointment_id ?? null;
+    let logSessionId: string | null = therapy_session_id ?? null;
 
-    if (apptErr) throw new Error(`appointment lookup failed: ${apptErr.message}`);
-    if (!appt) return json({ skipped: true, reason: "appointment not found" });
+    // ------------------------------------------------------------------
+    // REMINDER: same context as a booked appointment
+    // ------------------------------------------------------------------
+    if (event === "reminder") {
+      const { data: appt, error: apptErr } = await sb
+        .from("appointments")
+        .select("id, clinic_id, patient_id, doctor_id, appointment_date, appointment_time, status")
+        .eq("id", appointment_id!)
+        .maybeSingle();
 
-    // Skip duplicates: already sent this event for this appointment
-    const { data: existing } = await sb
-      .from("whatsapp_messages")
-      .select("id")
-      .eq("appointment_id", appointment_id)
-      .eq("event", event)
-      .eq("status", "sent")
-      .limit(1);
-    if (existing && existing.length) {
-      return json({ skipped: true, reason: "already sent" });
+      if (apptErr) throw new Error(`appointment lookup failed: ${apptErr.message}`);
+      if (!appt) return json({ skipped: true, reason: "appointment not found" });
+
+      const [{ data: patient }, { data: clinic }, { data: doctor }] = await Promise.all([
+        appt.patient_id
+          ? sb.from("patients").select("id, name, first_name, last_name, phone").eq("id", appt.patient_id).maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        appt.clinic_id ? sb.from("clinics").select("name").eq("id", appt.clinic_id).maybeSingle() : Promise.resolve({ data: null } as any),
+        appt.doctor_id ? sb.from("doctors").select("name").eq("id", appt.doctor_id).maybeSingle() : Promise.resolve({ data: null } as any),
+      ]);
+
+      const patientName =
+        (patient?.name || `${patient?.first_name ?? ""} ${patient?.last_name ?? ""}`.trim()) || "Patient";
+      const clinicName = clinic?.name || "the clinic";
+      const doctorName = doctor?.name || "your practitioner";
+      to = toE164(patient?.phone);
+
+      if (!to) {
+        return json({ skipped: true, reason: "patient has no valid phone number" });
+      }
+
+      clinicId = appt.clinic_id;
+      patientId = appt.patient_id;
+      variables = {
+        "1": patientName,
+        "2": clinicName,
+        "3": fmtDate(appt.appointment_date),
+        "4": fmtTime(appt.appointment_time),
+        "5": doctorName,
+      };
     }
 
-    const [{ data: patient }, { data: clinic }, { data: doctor }] = await Promise.all([
-      appt.patient_id
-        ? sb
-            .from("patients")
-            .select("id, name, first_name, last_name, phone")
-            .eq("id", appt.patient_id)
-            .maybeSingle()
-        : Promise.resolve({ data: null } as any),
-      appt.clinic_id
-        ? sb.from("clinics").select("name").eq("id", appt.clinic_id).maybeSingle()
-        : Promise.resolve({ data: null } as any),
-      appt.doctor_id
-        ? sb.from("doctors").select("name").eq("id", appt.doctor_id).maybeSingle()
-        : Promise.resolve({ data: null } as any),
-    ]);
+    // ------------------------------------------------------------------
+    // REVIEW: therapy session completed -> send review link
+    // ------------------------------------------------------------------
+    else if (event === "review") {
+      const { data: session, error: sessionErr } = await sb
+        .from("therapy_sessions")
+        .select("id, clinic_id, patient_id, therapist_id, service_id, service_name, session_date")
+        .eq("id", therapy_session_id!)
+        .maybeSingle();
 
-    const patientName =
-      (patient?.name ||
-        `${patient?.first_name ?? ""} ${patient?.last_name ?? ""}`.trim()) ||
-      "Patient";
-    const clinicName = clinic?.name || "the clinic";
-    const doctorName = doctor?.name || "your practitioner";
-    const to = toE164(patient?.phone);
+      if (sessionErr) throw new Error(`therapy session lookup failed: ${sessionErr.message}`);
+      if (!session) return json({ skipped: true, reason: "therapy session not found" });
 
-    if (!to) {
-      return json({ skipped: true, reason: "patient has no valid phone number" });
+      const [{ data: review }, { data: patient }, { data: clinic }, { data: therapist }] = await Promise.all([
+        sb.from("therapy_session_reviews").select("id, token").eq("session_id", session.id).maybeSingle(),
+        session.patient_id
+          ? sb.from("patients").select("id, name, first_name, last_name, phone").eq("id", session.patient_id).maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        session.clinic_id ? sb.from("clinics").select("name").eq("id", session.clinic_id).maybeSingle() : Promise.resolve({ data: null } as any),
+        session.therapist_id
+          ? sb.from("profiles").select("full_name").eq("id", session.therapist_id).maybeSingle()
+          : Promise.resolve({ data: null } as any),
+      ]);
+
+      if (!review?.token) {
+        return json({ skipped: true, reason: "review link not ready" });
+      }
+
+      const patientName =
+        (patient?.name || `${patient?.first_name ?? ""} ${patient?.last_name ?? ""}`.trim()) || "Patient";
+      const clinicName = clinic?.name || "our clinic";
+      const therapistName = therapist?.full_name || "your therapist";
+      to = toE164(patient?.phone);
+
+      if (!to) {
+        return json({ skipped: true, reason: "patient has no valid phone number" });
+      }
+
+      clinicId = session.clinic_id;
+      patientId = session.patient_id;
+      logApptId = session.appointment_id ?? null;
+      variables = {
+        "1": patientName,
+        "2": clinicName,
+        "3": session.service_name || "your therapy",
+        "4": therapistName,
+        "5": `${PUBLIC_URL}/review/${review.token}`,
+      };
     }
 
-    const variables = {
-      "1": patientName,
-      "2": clinicName,
-      "3": fmtDate(appt.appointment_date),
-      "4": fmtTime(appt.appointment_time),
-      "5": doctorName,
-    };
+    // ------------------------------------------------------------------
+    // BOOKED / RESCHEDULED / CANCELLED: existing appointment flow
+    // ------------------------------------------------------------------
+    else {
+      const { data: appt, error: apptErr } = await sb
+        .from("appointments")
+        .select("id, clinic_id, patient_id, doctor_id, appointment_date, appointment_time, status")
+        .eq("id", appointment_id!)
+        .maybeSingle();
+
+      if (apptErr) throw new Error(`appointment lookup failed: ${apptErr.message}`);
+      if (!appt) return json({ skipped: true, reason: "appointment not found" });
+
+      // Skip duplicates: already sent this event for this appointment
+      const { data: existing } = await sb
+        .from("whatsapp_messages")
+        .select("id")
+        .eq("appointment_id", appointment_id!)
+        .eq("event", event)
+        .eq("status", "sent")
+        .limit(1);
+      if (existing && existing.length) {
+        return json({ skipped: true, reason: "already sent" });
+      }
+
+      const [{ data: patient }, { data: clinic }, { data: doctor }] = await Promise.all([
+        appt.patient_id
+          ? sb.from("patients").select("id, name, first_name, last_name, phone").eq("id", appt.patient_id).maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        appt.clinic_id ? sb.from("clinics").select("name").eq("id", appt.clinic_id).maybeSingle() : Promise.resolve({ data: null } as any),
+        appt.doctor_id ? sb.from("doctors").select("name").eq("id", appt.doctor_id).maybeSingle() : Promise.resolve({ data: null } as any),
+      ]);
+
+      const patientName =
+        (patient?.name || `${patient?.first_name ?? ""} ${patient?.last_name ?? ""}`.trim()) || "Patient";
+      const clinicName = clinic?.name || "the clinic";
+      const doctorName = doctor?.name || "your practitioner";
+      to = toE164(patient?.phone);
+
+      if (!to) {
+        return json({ skipped: true, reason: "patient has no valid phone number" });
+      }
+
+      clinicId = appt.clinic_id;
+      patientId = appt.patient_id;
+      variables = {
+        "1": patientName,
+        "2": clinicName,
+        "3": fmtDate(appt.appointment_date),
+        "4": fmtTime(appt.appointment_time),
+        "5": doctorName,
+      };
+    }
 
     // Create pending log row
     const { data: logRow } = await sb
       .from("whatsapp_messages")
       .insert({
-        clinic_id: appt.clinic_id,
-        appointment_id: appt.id,
-        patient_id: appt.patient_id,
+        clinic_id: clinicId,
+        appointment_id: logApptId,
+        therapy_session_id: logSessionId,
+        patient_id: patientId,
         event,
         to_phone: to,
         template_sid: contentSid,
@@ -154,7 +267,7 @@ Deno.serve(async (req) => {
 
     const form = new URLSearchParams({
       To: `whatsapp:${to}`,
-      From: `whatsapp:${TWILIO_WHATSAPP_FROM.startsWith("+") ? TWILIO_WHATSAPP_FROM : "+" + TWILIO_WHATSAPP_FROM}`,
+      From: fromWhatsapNumber(),
       ContentSid: contentSid,
       ContentVariables: JSON.stringify(variables),
     });
@@ -165,8 +278,7 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          Authorization:
-            "Basic " + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`),
+          Authorization: "Basic " + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`),
         },
         body: form,
       },

@@ -2802,6 +2802,7 @@ export type Database = {
           patient_id: string | null
           status: string
           template_sid: string | null
+          therapy_session_id: string | null
           to_phone: string | null
           twilio_sid: string | null
           updated_at: string
@@ -2816,6 +2817,7 @@ export type Database = {
           patient_id?: string | null
           status?: string
           template_sid?: string | null
+          therapy_session_id?: string | null
           to_phone?: string | null
           twilio_sid?: string | null
           updated_at?: string
@@ -2830,11 +2832,19 @@ export type Database = {
           patient_id?: string | null
           status?: string
           template_sid?: string | null
+          therapy_session_id?: string | null
           to_phone?: string | null
           twilio_sid?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_whatsapp_messages_therapy_session"
+            columns: ["therapy_session_id"]
+            isOneToOne: false
+            referencedRelation: "therapy_sessions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "whatsapp_messages_appointment_id_fkey"
             columns: ["appointment_id"]
@@ -3037,6 +3047,7 @@ export type Database = {
         Args: { p_clinic_id: string }
         Returns: undefined
       }
+      send_due_appointment_reminders: { Args: never; Returns: undefined }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       start_therapy_session: {

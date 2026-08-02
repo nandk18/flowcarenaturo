@@ -1,44 +1,90 @@
-## First: rotate that Twilio auth token
+## Goal
 
-You pasted your live Twilio auth token in chat. Treat it as compromised — rotate it in the Twilio Console before we wire anything up. I'll store the new one as a project secret (never in code).
+Extend the existing Twilio WhatsApp automation to send:
+1. A 2-hour appointment reminder for **all** appointment types.
+2. A therapist review link immediately when a therapy session is marked **completed**.
 
-## Do you need the Twilio template?
+Both messages are business-initiated, so they must use approved Twilio Content Templates and server-side sending only.
 
-Yes, for WhatsApp. Twilio/Meta only allow free-form text inside a 24-hour window after the patient messages you. An appointment confirmation is business-initiated, so it must use an **approved Content Template** (`ContentSid` + `ContentVariables`) — we can't write our own message body. Your existing template with 5 variables (name, clinic, date, time, doctor) fits the "created" case. We'll need **three** templates total (created / rescheduled / cancelled), or one generic template reused with different variable text.
+## Twilio Content Templates to create
 
-Also: `+19786447802` looks like the Twilio **sandbox** number. In sandbox, every recipient must first send `join <code>` to that number, and templates are limited. Production sending needs a WhatsApp Business sender approved in Twilio. The build works either way; sandbox just limits who receives.
+### Template A: Appointment reminder
+**Body:** `Hi {{1}}, reminder: appointment at {{2}} on {{3}} at {{4}} with {{5}}. See you soon!`
 
-## What gets built
+**Variables:**
+1. `patient_name`
+2. `clinic_name`
+3. `appointment_date` (DD/MM/YYYY)
+4. `appointment_time` (hh:mm AM/PM)
+5. `doctor_name`
 
-**1. Secrets**
-- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` (rotated), `TWILIO_WHATSAPP_FROM`
-- `TWILIO_TEMPLATE_BOOKED`, `TWILIO_TEMPLATE_RESCHEDULED`, `TWILIO_TEMPLATE_CANCELLED` (ContentSids)
+**Suggested Twilio template name:** `flowcare_appointment_reminder`
 
-**2. Edge function `send-appointment-whatsapp`**
-- Input: `appointment_id`, `event` (`booked` | `rescheduled` | `cancelled`)
-- Loads patient phone, clinic name, doctor name, date, time
-- Normalizes phone to E.164 (`+91…`), skips silently if missing/invalid
-- POSTs form-encoded to `https://api.twilio.com/2010-04-01/Accounts/{SID}/Messages.json` with `To=whatsapp:+…`, `From`, `ContentSid`, `ContentVariables`
-- Logs Twilio's status + body on failure and returns it (no silent 500s)
+### Template B: Therapist review request
+**Body:** `Hi {{1}}, thank you for choosing {{2}}. How was your {{3}} session with {{4}}? Please rate your experience: {{5}}`
 
-**3. Message log table `whatsapp_messages`**
-- `appointment_id`, `patient_id`, `clinic_id`, `event`, `to_phone`, `template_sid`, `twilio_sid`, `status`, `error`
-- Clinic-scoped read access for staff; writes from the edge function only
-- Gives you a visible audit trail and prevents duplicate sends
+**Variables:**
+1. `patient_name`
+2. `clinic_name`
+3. `service_name`
+4. `therapist_name`
+5. `review_link` (full URL — declare as URL type in Twilio)
 
-**4. Automatic server-side trigger**
-- Postgres trigger on `appointments`: fires on INSERT, on date/time change (rescheduled), and on status → cancelled
-- Uses `pg_net` (already enabled in this project for therapist push) to call the edge function asynchronously, so booking never blocks or fails if Twilio is down
-- Guards: skip if patient has no phone, skip if a successful message for the same appointment+event already exists in the log
+**Suggested Twilio template name:** `flowcare_therapist_review`
 
-**5. Admin visibility**
-- Small "WhatsApp sent / failed" indicator on the appointment detail dialog so staff can see whether the patient was notified
+## Implementation plan
 
-## Technical notes
-- Twilio requires `application/x-www-form-urlencoded`; `ContentVariables` is a JSON **string** (`{"1":"Nandha",...}`) inside that form body — the JSON in your curl was unquoted and would have failed.
-- Auth is HTTP Basic (`SID:AUTH_TOKEN`), built server-side only — never from the browser.
-- Existing `wa.me` click-to-chat buttons stay as-is; this is a separate automated path.
+### 1. Secrets / config
+Add three new project secrets after the Twilio templates are approved:
+- `TWILIO_TEMPLATE_REMINDER` — ContentSid for the reminder template.
+- `TWILIO_TEMPLATE_REVIEW` — ContentSid for the review template.
+- (Optional) `REMINDER_HOURS_BEFORE` default `2` if we want the lead time configurable.
+
+### 2. Extend `whatsapp_messages`
+Add a nullable `therapy_session_id uuid` column with FK to `therapy_sessions.id` so review sends can be logged and deduped separately from appointment sends. Keep `appointment_id` nullable for review-only sends.
+
+### 3. Appointment reminder scheduler
+Create a new Postgres function `send_due_appointment_reminders()` that:
+- Looks at `appointments` where `appointment_date + appointment_time` is within the next ~2 hours (configurable window).
+- Skips rows with `status = 'cancelled'`.
+- Skips rows that already have a `whatsapp_messages` row with `event = 'reminder'` and `status = 'sent'`.
+- For each due appointment, calls the existing `send-appointment-whatsapp` Edge Function via `pg_net` with `{ appointment_id, event: "reminder" }`.
+
+Schedule this function to run every 15 minutes. Prefer `pg_cron` if the extension is enabled; otherwise use the existing `background_jobs` queue + a lightweight Edge Function scheduler.
+
+### 4. Therapy review link trigger
+Extend the existing `create_review_on_session_complete` trigger (or add a companion AFTER UPDATE trigger on `therapy_sessions`) so that when `status` changes to `completed`:
+- Ensure the `therapy_session_reviews` row exists (the current trigger already creates it).
+- Call `send-appointment-whatsapp` via `pg_net` with `{ therapy_session_id, event: "review" }`.
+- Guard against duplicate sends by checking `whatsapp_messages` for an existing `event = 'review'` + `therapy_session_id` sent row.
+
+### 5. Update `send-appointment-whatsapp` Edge Function
+Add handlers for the two new events:
+
+**`reminder`**:
+- Load appointment, patient, clinic, doctor — same as `booked` flow.
+- Use Template A variables.
+- Log to `whatsapp_messages` with `event = 'reminder'`.
+
+**`review`**:
+- Load `therapy_sessions` + `therapy_session_reviews` by `therapy_session_id`.
+- Load patient, clinic, therapist, service name.
+- Build review URL: `${PUBLIC_URL}/review/${token}`.
+- Use Template B variables.
+- Log to `whatsapp_messages` with `event = 'review'` and `therapy_session_id`.
+
+### 6. UI status indicators
+- In the appointment detail dialog on Availability, show a "Reminder sent" badge if a `reminder` row exists in `whatsapp_messages`.
+- In the Treatment Board / Therapist App, show a "Review sent" badge on completed sessions when a `review` row exists.
+
+### 7. Testing
+- Create the Twilio templates and wait for Meta approval.
+- Set the new ContentSids as secrets.
+- Book a test appointment ~2 hours out and verify the reminder fires within the 15-minute scheduler window.
+- Mark a therapy session completed and verify the review link is sent.
+- Confirm both appear in `whatsapp_messages` with correct `status` and no duplicate rows.
 
 ## What I need from you before building
-1. The rotated auth token (I'll ask for it via the secret prompt).
-2. ContentSids for the reschedule and cancel templates — or say "reuse the booked template" and I'll pass adapted variable text.
+1. Create the two Twilio Content Templates with the exact bodies above and paste the approved `ContentSid` values here.
+2. Confirm the public URL for review links (`https://flowcarenaturo.lovable.app/review/<token>` is correct).
+3. Confirm the rotated `TWILIO_AUTH_TOKEN` is already stored as a project secret (the previous token was compromised).

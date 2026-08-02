@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { createTherapySession } from "@/lib/createTherapySession";
 import { sendReviewLinkForSession } from "@/lib/therapistReview";
 import { todayLocalISO } from "@/lib/utils";
+import WhatsAppStatus from "@/components/appointments/WhatsAppStatus";
 
 type Session = {
   id: string;
@@ -592,6 +593,9 @@ function SessionRow({
                 <Star className="h-3 w-3 mr-1" /> Send review
               </Button>
             )}
+          </div>
+          <div className="mt-2">
+            <WhatsAppStatus therapySessionId={s.id} />
           </div>
         </div>
       </li>
