@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { createTherapySession } from "@/lib/createTherapySession";
 import { sendReviewLinkForSession } from "@/lib/therapistReview";
 import { todayLocalISO } from "@/lib/utils";
+import WhatsAppStatus from "@/components/appointments/WhatsAppStatus";
 
 type Session = {
   id: string;

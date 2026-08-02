@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { format, startOfWeek } from "date-fns";
 import { ensureTherapistPushSubscription, removeTherapistPushSubscription } from "@/lib/therapistPush";
 import { sendReviewLinkForSession } from "@/lib/therapistReview";
+import WhatsAppStatus from "@/components/appointments/WhatsAppStatus";
 
 type Session = {
   id: string;
