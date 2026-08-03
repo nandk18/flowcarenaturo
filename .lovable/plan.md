@@ -1,90 +1,45 @@
-## Goal
+## 1. Reuse the booked template for reminders
 
-Extend the existing Twilio WhatsApp automation to send:
-1. A 2-hour appointment reminder for **all** appointment types.
-2. A therapist review link immediately when a therapy session is marked **completed**.
+No new Twilio template needed. Change the template map in `send-appointment-whatsapp` so `reminder` falls back to the booked ContentSid when `TWILIO_TEMPLATE_REMINDER` is not set:
 
-Both messages are business-initiated, so they must use approved Twilio Content Templates and server-side sending only.
+```ts
+reminder: Deno.env.get("TWILIO_TEMPLATE_REMINDER") ?? Deno.env.get("TWILIO_TEMPLATE_BOOKED") ?? "",
+```
 
-## Twilio Content Templates to create
+Variables are already identical (name, clinic, date, time, doctor), so nothing else changes. You can still set `TWILIO_TEMPLATE_REMINDER` later if you want a distinct wording.
 
-### Template A: Appointment reminder
-**Body:** `Hi {{1}}, reminder: appointment at {{2}} on {{3}} at {{4}} with {{5}}. See you soon!`
+## 2. New "no follow-up in a week" care message
 
-**Variables:**
-1. `patient_name`
-2. `clinic_name`
-3. `appointment_date` (DD/MM/YYYY)
-4. `appointment_time` (hh:mm AM/PM)
-5. `doctor_name`
+### Twilio Content Template
+**Suggested name:** `flowcare_followup_care`
 
-**Suggested Twilio template name:** `flowcare_appointment_reminder`
-
-### Template B: Therapist review request
-**Body:** `Hi {{1}}, thank you for choosing {{2}}. How was your {{3}} session with {{4}}? Please rate your experience: {{5}}`
+**Body:** `Hi {{1}}, it's been a week since your visit to {{2}}. We hope you're feeling better. Would you like to book your next appointment with {{3}}? Reply to this message and we'll help you schedule.`
 
 **Variables:**
 1. `patient_name`
 2. `clinic_name`
-3. `service_name`
-4. `therapist_name`
-5. `review_link` (full URL — declare as URL type in Twilio)
+3. `doctor_name` (last practitioner seen)
 
-**Suggested Twilio template name:** `flowcare_therapist_review`
+Store the approved ContentSid as secret `TWILIO_TEMPLATE_FOLLOWUP`.
 
-## Implementation plan
+### Edge function
+Add a `followup` event to `send-appointment-whatsapp`:
+- Load the appointment, patient, clinic, doctor (same lookups as `booked`).
+- Skip if a `whatsapp_messages` row with `event = 'followup'` and `status = 'sent'` already exists for that patient in the last 30 days (patient-level dedupe, not just appointment-level, so a patient never gets spammed).
+- Send with the three variables above and log as `event = 'followup'`.
 
-### 1. Secrets / config
-Add three new project secrets after the Twilio templates are approved:
-- `TWILIO_TEMPLATE_REMINDER` — ContentSid for the reminder template.
-- `TWILIO_TEMPLATE_REVIEW` — ContentSid for the review template.
-- (Optional) `REMINDER_HOURS_BEFORE` default `2` if we want the lead time configurable.
+### Scheduler
+New Postgres function `send_due_followup_messages()`:
+- Finds appointments whose `appointment_date` is exactly 7 days ago, `status = 'completed'` (skips cancelled/no-show).
+- Excludes patients who have any non-cancelled appointment dated after that visit (i.e. they already came back or booked ahead).
+- Excludes patients already sent a `followup` message in the last 30 days.
+- Calls the edge function via `pg_net` with `{ appointment_id, event: "followup" }`.
 
-### 2. Extend `whatsapp_messages`
-Add a nullable `therapy_session_id uuid` column with FK to `therapy_sessions.id` so review sends can be logged and deduped separately from appointment sends. Keep `appointment_id` nullable for review-only sends.
+Scheduled with `pg_cron` once daily at 10:00 IST (04:30 UTC) so messages land at a reasonable hour.
 
-### 3. Appointment reminder scheduler
-Create a new Postgres function `send_due_appointment_reminders()` that:
-- Looks at `appointments` where `appointment_date + appointment_time` is within the next ~2 hours (configurable window).
-- Skips rows with `status = 'cancelled'`.
-- Skips rows that already have a `whatsapp_messages` row with `event = 'reminder'` and `status = 'sent'`.
-- For each due appointment, calls the existing `send-appointment-whatsapp` Edge Function via `pg_net` with `{ appointment_id, event: "reminder" }`.
+### UI
+`WhatsAppStatus` gets a `followup: "Follow-up care message"` label, so the badge shows on the appointment detail dialog in Availability alongside the booking/reminder rows.
 
-Schedule this function to run every 15 minutes. Prefer `pg_cron` if the extension is enabled; otherwise use the existing `background_jobs` queue + a lightweight Edge Function scheduler.
-
-### 4. Therapy review link trigger
-Extend the existing `create_review_on_session_complete` trigger (or add a companion AFTER UPDATE trigger on `therapy_sessions`) so that when `status` changes to `completed`:
-- Ensure the `therapy_session_reviews` row exists (the current trigger already creates it).
-- Call `send-appointment-whatsapp` via `pg_net` with `{ therapy_session_id, event: "review" }`.
-- Guard against duplicate sends by checking `whatsapp_messages` for an existing `event = 'review'` + `therapy_session_id` sent row.
-
-### 5. Update `send-appointment-whatsapp` Edge Function
-Add handlers for the two new events:
-
-**`reminder`**:
-- Load appointment, patient, clinic, doctor — same as `booked` flow.
-- Use Template A variables.
-- Log to `whatsapp_messages` with `event = 'reminder'`.
-
-**`review`**:
-- Load `therapy_sessions` + `therapy_session_reviews` by `therapy_session_id`.
-- Load patient, clinic, therapist, service name.
-- Build review URL: `${PUBLIC_URL}/review/${token}`.
-- Use Template B variables.
-- Log to `whatsapp_messages` with `event = 'review'` and `therapy_session_id`.
-
-### 6. UI status indicators
-- In the appointment detail dialog on Availability, show a "Reminder sent" badge if a `reminder` row exists in `whatsapp_messages`.
-- In the Treatment Board / Therapist App, show a "Review sent" badge on completed sessions when a `review` row exists.
-
-### 7. Testing
-- Create the Twilio templates and wait for Meta approval.
-- Set the new ContentSids as secrets.
-- Book a test appointment ~2 hours out and verify the reminder fires within the 15-minute scheduler window.
-- Mark a therapy session completed and verify the review link is sent.
-- Confirm both appear in `whatsapp_messages` with correct `status` and no duplicate rows.
-
-## What I need from you before building
-1. Create the two Twilio Content Templates with the exact bodies above and paste the approved `ContentSid` values here.
-2. Confirm the public URL for review links (`https://flowcarenaturo.lovable.app/review/<token>` is correct).
-3. Confirm the rotated `TWILIO_AUTH_TOKEN` is already stored as a project secret (the previous token was compromised).
+## What I need from you
+1. The ContentSid for `flowcare_followup_care` once approved (secret `TWILIO_TEMPLATE_FOLLOWUP`).
+2. Confirm 7 days after a **completed** appointment is the right trigger (vs. 7 days after any booked appointment, including no-shows).
