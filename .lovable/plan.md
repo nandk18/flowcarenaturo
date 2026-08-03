@@ -13,12 +13,11 @@ Variables are already identical (name, clinic, date, time, doctor), so nothing e
 ### Twilio Content Template
 **Suggested name:** `flowcare_followup_care`
 
-**Body:** `Hi {{1}}, it's been a week since your visit to {{2}}. We hope you're feeling better. Would you like to book your next appointment with {{3}}? Reply to this message and we'll help you schedule.`
+**Body:** `Hi {{1}}, We hope you are doing well. This is a friendly reminder from {{2}} to book your follow-up appointment. If you have not yet scheduled your next appointment, please reply to this message or contact our team to book a convenient time. Thank you, Team {{2}}`
 
 **Variables:**
 1. `patient_name`
 2. `clinic_name`
-3. `doctor_name` (last practitioner seen)
 
 Store the approved ContentSid as secret `TWILIO_TEMPLATE_FOLLOWUP`.
 
