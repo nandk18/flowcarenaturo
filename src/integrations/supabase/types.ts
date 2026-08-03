@@ -3048,6 +3048,7 @@ export type Database = {
         Returns: undefined
       }
       send_due_appointment_reminders: { Args: never; Returns: undefined }
+      send_due_followup_messages: { Args: never; Returns: undefined }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       start_therapy_session: {
