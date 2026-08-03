@@ -159,10 +159,6 @@ Deno.serve(async (req) => {
     // REMINDER: same context as a booked appointment
     // ------------------------------------------------------------------
     else if (event === "reminder") {
-    // ------------------------------------------------------------------
-    // REMINDER: same context as a booked appointment
-    // ------------------------------------------------------------------
-    if (event === "reminder") {
       const { data: appt, error: apptErr } = await sb
         .from("appointments")
         .select("id, clinic_id, patient_id, doctor_id, appointment_date, appointment_time, status")
