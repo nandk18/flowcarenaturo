@@ -10,6 +10,7 @@ const EVENT_LABEL: Record<string, string> = {
   cancelled: "Cancellation notice",
   reminder: "Reminder",
   review: "Review link",
+  followup: "Follow-up care message",
 };
 
 /** Shows whether the automated Twilio WhatsApp message went out for an appointment or therapy session. */
