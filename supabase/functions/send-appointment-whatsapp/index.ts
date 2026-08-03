@@ -105,6 +105,61 @@ Deno.serve(async (req) => {
     let logSessionId: string | null = therapy_session_id ?? null;
 
     // ------------------------------------------------------------------
+    // FOLLOWUP: no return visit a week after a completed appointment
+    // ------------------------------------------------------------------
+    if (event === "followup") {
+      const { data: appt, error: apptErr } = await sb
+        .from("appointments")
+        .select("id, clinic_id, patient_id, doctor_id, appointment_date, status")
+        .eq("id", appointment_id!)
+        .maybeSingle();
+
+      if (apptErr) throw new Error(`appointment lookup failed: ${apptErr.message}`);
+      if (!appt) return json({ skipped: true, reason: "appointment not found" });
+
+      // Patient-level dedupe: no follow-up message in the last 30 days
+      if (appt.patient_id) {
+        const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: recent } = await sb
+          .from("whatsapp_messages")
+          .select("id")
+          .eq("patient_id", appt.patient_id)
+          .eq("event", "followup")
+          .eq("status", "sent")
+          .gte("created_at", since)
+          .limit(1);
+        if (recent && recent.length) {
+          return json({ skipped: true, reason: "follow-up already sent recently" });
+        }
+      }
+
+      const [{ data: patient }, { data: clinic }, { data: doctor }] = await Promise.all([
+        appt.patient_id
+          ? sb.from("patients").select("id, name, first_name, last_name, phone").eq("id", appt.patient_id).maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        appt.clinic_id ? sb.from("clinics").select("name").eq("id", appt.clinic_id).maybeSingle() : Promise.resolve({ data: null } as any),
+        appt.doctor_id ? sb.from("doctors").select("name").eq("id", appt.doctor_id).maybeSingle() : Promise.resolve({ data: null } as any),
+      ]);
+
+      const patientName =
+        (patient?.name || `${patient?.first_name ?? ""} ${patient?.last_name ?? ""}`.trim()) || "Patient";
+      to = toE164(patient?.phone);
+      if (!to) return json({ skipped: true, reason: "patient has no valid phone number" });
+
+      clinicId = appt.clinic_id;
+      patientId = appt.patient_id;
+      variables = {
+        "1": patientName,
+        "2": clinic?.name || "our clinic",
+        "3": doctor?.name || "your practitioner",
+      };
+    }
+
+    // ------------------------------------------------------------------
+    // REMINDER: same context as a booked appointment
+    // ------------------------------------------------------------------
+    else if (event === "reminder") {
+    // ------------------------------------------------------------------
     // REMINDER: same context as a booked appointment
     // ------------------------------------------------------------------
     if (event === "reminder") {
