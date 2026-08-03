@@ -133,12 +133,11 @@ Deno.serve(async (req) => {
         }
       }
 
-      const [{ data: patient }, { data: clinic }, { data: doctor }] = await Promise.all([
+      const [{ data: patient }, { data: clinic }] = await Promise.all([
         appt.patient_id
           ? sb.from("patients").select("id, name, first_name, last_name, phone").eq("id", appt.patient_id).maybeSingle()
           : Promise.resolve({ data: null } as any),
         appt.clinic_id ? sb.from("clinics").select("name").eq("id", appt.clinic_id).maybeSingle() : Promise.resolve({ data: null } as any),
-        appt.doctor_id ? sb.from("doctors").select("name").eq("id", appt.doctor_id).maybeSingle() : Promise.resolve({ data: null } as any),
       ]);
 
       const patientName =
@@ -151,7 +150,6 @@ Deno.serve(async (req) => {
       variables = {
         "1": patientName,
         "2": clinic?.name || "our clinic",
-        "3": doctor?.name || "your practitioner",
       };
     }
 
