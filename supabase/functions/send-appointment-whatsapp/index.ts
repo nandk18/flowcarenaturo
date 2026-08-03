@@ -13,8 +13,10 @@ const TEMPLATES: Record<string, string> = {
   booked: Deno.env.get("TWILIO_TEMPLATE_BOOKED") ?? "",
   rescheduled: Deno.env.get("TWILIO_TEMPLATE_RESCHEDULED") ?? "",
   cancelled: Deno.env.get("TWILIO_TEMPLATE_CANCELLED") ?? "",
-  reminder: Deno.env.get("TWILIO_TEMPLATE_REMINDER") ?? "",
+  // Reminder reuses the booked template (identical variables) unless overridden.
+  reminder: Deno.env.get("TWILIO_TEMPLATE_REMINDER") || Deno.env.get("TWILIO_TEMPLATE_BOOKED") || "",
   review: Deno.env.get("TWILIO_TEMPLATE_REVIEW") ?? "",
+  followup: Deno.env.get("TWILIO_TEMPLATE_FOLLOWUP") ?? "",
 };
 
 const json = (body: unknown, status = 200) =>
