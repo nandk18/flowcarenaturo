@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
     if (event === "review" && !therapy_session_id) {
       return json({ error: "therapy_session_id is required for review event" }, 400);
     }
-    if (["booked", "rescheduled", "cancelled", "reminder"].includes(event) && !appointment_id) {
+    if (["booked", "rescheduled", "cancelled", "reminder", "followup"].includes(event) && !appointment_id) {
       return json({ error: "appointment_id is required for this event" }, 400);
     }
 
