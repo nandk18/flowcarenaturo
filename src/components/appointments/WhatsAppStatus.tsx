@@ -36,7 +36,7 @@ export default function WhatsAppStatus({
       try {
         let q = (supabase as any)
           .from("whatsapp_messages")
-          .select("event, status, error, created_at")
+          .select("event, status, error, created_at, followup_stage")
           .order("created_at", { ascending: false });
         if (appointmentId) q = q.eq("appointment_id", appointmentId);
         else if (therapySessionId) q = q.eq("therapy_session_id", therapySessionId);
