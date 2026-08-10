@@ -70,7 +70,7 @@ export default function WhatsAppStatus({
           >
             <Icon className="mt-0.5 h-3 w-3 shrink-0" />
             <span>
-              {EVENT_LABEL[r.event] ?? r.event}:{" "}
+              {(r.event === "followup" && r.followup_stage ? STAGE_LABEL[r.followup_stage] : EVENT_LABEL[r.event]) ?? r.event}:{" "}
               {ok ? "WhatsApp sent" : pending ? "sending…" : "WhatsApp failed"}
             </span>
           </div>
