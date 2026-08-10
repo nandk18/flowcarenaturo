@@ -4,6 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
 import InvoiceServicesSection from "@/components/billing/InvoiceServicesSection";
+import ChangeSettingsPinCard from "@/components/settings/ChangeSettingsPinCard";
+
 import StoreItemsSection from "@/components/billing/StoreItemsSection";
 import SettingsShell from "@/components/layout/SettingsShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
