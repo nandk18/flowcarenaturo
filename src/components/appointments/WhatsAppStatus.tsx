@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2, AlertTriangle, Clock } from "lucide-react";
 
-type Row = { event: string; status: string; error: string | null; created_at: string };
+type Row = { event: string; status: string; error: string | null; created_at: string; followup_stage: number | null };
 
 const EVENT_LABEL: Record<string, string> = {
   booked: "Booking confirmation",
@@ -12,6 +12,13 @@ const EVENT_LABEL: Record<string, string> = {
   review: "Review link",
   followup: "Follow-up care message",
 };
+
+const STAGE_LABEL: Record<number, string> = {
+  1: "Follow-up reminder 1 (day 10)",
+  2: "Follow-up reminder 2 (day 15)",
+  3: "Final follow-up reminder (day 18)",
+};
+
 
 /** Shows whether the automated Twilio WhatsApp message went out for an appointment or therapy session. */
 export default function WhatsAppStatus({
