@@ -31,3 +31,7 @@ export const fetchPlatformOverview = (from: string, to: string) =>
 
 export const fetchOverdueCounts = (clinicId: string | null) =>
   rpc("analytics_overdue_counts", { p_clinic_id: clinicId });
+
+export const fetchFollowups = (clinicId: string | null, from: string, to: string) =>
+  rpc("analytics_followups", { p_clinic_id: clinicId, p_from: from, p_to: to });
+

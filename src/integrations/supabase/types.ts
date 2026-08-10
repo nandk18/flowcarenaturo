@@ -524,6 +524,44 @@ export type Database = {
           },
         ]
       }
+      clinic_settings_pins: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          failed_attempts: number
+          locked_until: string | null
+          pin_hash: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          failed_attempts?: number
+          locked_until?: string | null
+          pin_hash: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          failed_attempts?: number
+          locked_until?: string | null
+          pin_hash?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_settings_pins_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinical_notes: {
         Row: {
           audio_url: string | null
@@ -2798,6 +2836,7 @@ export type Database = {
           created_at: string
           error: string | null
           event: string
+          followup_stage: number | null
           id: string
           patient_id: string | null
           status: string
@@ -2813,6 +2852,7 @@ export type Database = {
           created_at?: string
           error?: string | null
           event: string
+          followup_stage?: number | null
           id?: string
           patient_id?: string | null
           status?: string
@@ -2828,6 +2868,7 @@ export type Database = {
           created_at?: string
           error?: string | null
           event?: string
+          followup_stage?: number | null
           id?: string
           patient_id?: string | null
           status?: string
@@ -2882,6 +2923,10 @@ export type Database = {
         Args: { p_clinic_id: string; p_from: string; p_to: string }
         Returns: Json
       }
+      analytics_followups: {
+        Args: { p_clinic_id: string; p_from: string; p_to: string }
+        Returns: Json
+      }
       analytics_overdue_counts: { Args: { p_clinic_id: string }; Returns: Json }
       analytics_patients: {
         Args: { p_clinic_id: string; p_from: string; p_to: string }
@@ -2907,6 +2952,7 @@ export type Database = {
         Args: { p_clinic_id: string; p_date: string }
         Returns: number
       }
+      clinic_settings_pin_status: { Args: never; Returns: Json }
       complete_clinic_onboarding: {
         Args: {
           p_clinic_address?: string
@@ -3049,6 +3095,10 @@ export type Database = {
       }
       send_due_appointment_reminders: { Args: never; Returns: undefined }
       send_due_followup_messages: { Args: never; Returns: undefined }
+      set_clinic_settings_pin: {
+        Args: { p_current_pin: string; p_new_pin: string }
+        Returns: Json
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       start_therapy_session: {
@@ -3091,6 +3141,10 @@ export type Database = {
           user_role: string
         }[]
       }
+      super_admin_reset_settings_pin: {
+        Args: { p_clinic_id: string }
+        Returns: Json
+      }
       super_admin_set_clinic_active: {
         Args: { p_active: boolean; p_clinic_id: string; p_reason?: string }
         Returns: undefined
@@ -3100,6 +3154,7 @@ export type Database = {
         Args: { p_token: string }
         Returns: string
       }
+      verify_clinic_settings_pin: { Args: { p_pin: string }; Returns: Json }
       verify_therapist_pin: {
         Args: { p_pin: string; p_therapist_profile_id: string }
         Returns: boolean

@@ -12,11 +12,18 @@ import {
 import { toast } from "sonner";
 import {
   fetchRevenue, fetchPatients, fetchAppointments,
-  fetchTreatments, fetchTherapists, fetchOverdueCounts,
+  fetchTreatments, fetchTherapists, fetchOverdueCounts, fetchFollowups,
 } from "@/lib/analytics/api";
 import { RANGES, Range, dateRange, inr, num, DOW_NAMES, downloadCSV, toCSV } from "@/lib/analytics/format";
 import { KpiCard } from "./KpiCard";
-import { PhoneCall, ListTodo } from "lucide-react";
+import { PhoneCall, ListTodo, MessageCircle } from "lucide-react";
+
+const STAGE_LABEL: Record<number, string> = {
+  1: "1st reminder (day 10)",
+  2: "2nd reminder (day 15)",
+  3: "Final reminder (day 18)",
+};
+
 
 const COLORS = [
   "hsl(var(--primary))", "hsl(var(--accent))", "#f59e0b", "#ef4444",
@@ -42,6 +49,7 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
   const [tre, setTre] = useState<any>(null);
   const [the, setThe] = useState<any>(null);
   const [ovd, setOvd] = useState<any>(null);
+  const [fol, setFol] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,16 +57,18 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
     (async () => {
       setLoading(true);
       try {
-        const [r, p, a, t, h, o] = await Promise.all([
+        const [r, p, a, t, h, o, f] = await Promise.all([
           fetchRevenue(clinicId, start, end),
           fetchPatients(clinicId, start, end),
           fetchAppointments(clinicId, start, end),
           fetchTreatments(clinicId, start, end),
           fetchTherapists(clinicId, start, end),
           fetchOverdueCounts(clinicId).catch(() => ({ overdue_calls: 0, overdue_todos: 0 })),
+          fetchFollowups(clinicId, start, end).catch(() => null),
         ]);
         if (cancelled) return;
-        setRev(r); setPat(p); setApp(a); setTre(t); setThe(h); setOvd(o);
+        setRev(r); setPat(p); setApp(a); setTre(t); setThe(h); setOvd(o); setFol(f);
+
       } catch (e: any) {
         if (!cancelled) toast.error(e.message || "Failed to load analytics");
       } finally {
@@ -106,7 +116,20 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
     for (const t of (the.therapists || [])) {
       rows.push([t.full_name, t.completed, t.unique_patients, t.avg_minutes ?? "", t.avg_rating ?? "", t.reviews_count]);
     }
+    rows.push([]);
+    rows.push(["Treatment package completion"]);
+    rows.push(["Average completion %", Number(tre?.package?.avg_completion ?? 0)]);
+    rows.push(["Plans fully completed", tre?.package?.fully_completed ?? 0]);
+    rows.push(["Plans counted", tre?.package?.plans ?? 0]);
+    rows.push([]);
+    rows.push(["Follow-up conversion", "Sent", "Booked in 7d", "Rate %"]);
+    for (const s of (fol?.by_stage || [])) {
+      rows.push([STAGE_LABEL[s.stage] ?? `Reminder ${s.stage}`, s.sent, s.booked, Number(s.rate ?? 0)]);
+    }
+    rows.push(["Overall", fol?.totals?.sent ?? 0, fol?.totals?.booked ?? 0, Number(fol?.totals?.rate ?? 0)]);
+    rows.push(["Closed after final reminder", fol?.closed?.closed_patients ?? 0]);
     downloadCSV("flowcare-analytics", toCSV(rows));
+
     toast.success("Report downloaded");
   };
 
@@ -185,7 +208,40 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
               </ResponsiveContainer>
             )}
           </CardContent></Card>
+
+          <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Follow-up conversion (WhatsApp)</CardTitle></CardHeader><CardContent>
+            {!fol?.totals?.sent ? <Empty /> : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                  <KpiCard label="Follow-ups sent" value={num(fol.totals.sent)} icon={MessageCircle} />
+                  <KpiCard label="Booked within 7 days" value={num(fol.totals.booked)} tone="success" icon={Calendar} />
+                  <KpiCard label="Conversion rate" value={`${Number(fol.totals.rate ?? 0)}%`} tone="primary" icon={TrendingUp} />
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b text-left text-xs text-muted-foreground">
+                      <th className="py-2">Reminder</th><th className="text-right">Sent</th><th className="text-right">Booked</th><th className="text-right">Rate</th>
+                    </tr></thead>
+                    <tbody>
+                      {(fol.by_stage || []).map((s: any) => (
+                        <tr key={s.stage} className="border-b last:border-0">
+                          <td className="py-2">{STAGE_LABEL[s.stage] ?? `Reminder ${s.stage}`}</td>
+                          <td className="text-right">{num(s.sent)}</td>
+                          <td className="text-right text-emerald-600">{num(s.booked)}</td>
+                          <td className="text-right">{Number(s.rate ?? 0)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {num(fol.closed?.closed_patients)} patient(s) were closed after the final reminder.
+                </p>
+              </div>
+            )}
+          </CardContent></Card>
         </TabsContent>
+
 
         {/* REVENUE */}
         <TabsContent value="revenue" className="space-y-4 mt-4">
@@ -378,7 +434,34 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
               tone="success"
               icon={TrendingUp}
             />
+            <KpiCard
+              label="Package completion"
+              value={`${Number(tre?.package?.avg_completion ?? 0)}%`}
+              sub={`${num(tre?.package?.fully_completed)} of ${num(tre?.package?.plans)} plans finished`}
+              tone="success"
+              icon={TrendingUp}
+            />
           </div>
+          <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Treatment package completion</CardTitle></CardHeader><CardContent>
+            {!tre?.package?.plans ? <Empty /> : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={[
+                  { name: "0–25%", c: tre.package.b0_25 },
+                  { name: "25–50%", c: tre.package.b25_50 },
+                  { name: "50–75%", c: tre.package.b50_75 },
+                  { name: "75–99%", c: tre.package.b75_99 },
+                  { name: "100%", c: tre.package.b100 },
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <Tooltip formatter={(v: any) => `${v} plans`} />
+                  <Bar dataKey="c" fill={COLORS[5]} radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent></Card>
+
           <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Sessions over time</CardTitle></CardHeader><CardContent>
             {(tre?.daily || []).length === 0 ? <Empty /> : (
               <ResponsiveContainer width="100%" height={220}>
