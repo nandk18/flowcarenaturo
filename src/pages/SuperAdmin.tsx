@@ -104,6 +104,19 @@ export default function SuperAdmin() {
     fetchClinics();
   };
 
+  const resetPin = async (row: ClinicRow) => {
+    if (!confirm(`Reset the Settings PIN for ${row.clinic_name}? The clinic will be asked to set a new PIN.`)) return;
+    setBusy(true);
+    const { error } = await (supabase as any).rpc("super_admin_reset_settings_pin", {
+      p_clinic_id: row.clinic_id,
+    });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Settings PIN reset");
+  };
+
+
+
   const filteredActivity = clinicFilter === "all"
     ? activity
     : activity.filter(a => a.clinic_id === clinicFilter);
