@@ -205,6 +205,14 @@ export default function SuperAdmin() {
                         >
                           Analytics
                         </button>
+                        <button
+                          disabled={busy}
+                          onClick={() => resetPin(c)}
+                          className="text-xs px-2.5 py-1 rounded-md bg-slate-800 text-amber-300 hover:bg-slate-700 mr-1.5"
+                        >
+                          Reset PIN
+                        </button>
+
                         {c.is_active ? (
                           <button
                             onClick={() => { setDisableTarget(c); setReason(""); }}
