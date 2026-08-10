@@ -75,8 +75,11 @@ Deno.serve(async (req) => {
       appointment_id?: string;
       therapy_session_id?: string;
       event?: string;
+      stage?: number;
     };
     const { appointment_id, therapy_session_id, event } = payload;
+    const stage = Number(payload.stage) >= 1 ? Math.min(3, Math.floor(Number(payload.stage))) : null;
+
 
     if (!event || !(event in TEMPLATES)) {
       return json({ error: "a valid event is required" }, 400);
@@ -117,21 +120,21 @@ Deno.serve(async (req) => {
       if (apptErr) throw new Error(`appointment lookup failed: ${apptErr.message}`);
       if (!appt) return json({ skipped: true, reason: "appointment not found" });
 
-      // Patient-level dedupe: no follow-up message in the last 30 days
+      // Patient-level dedupe: at most one follow-up per day (stages are 10/15/18 days apart)
       if (appt.patient_id) {
-        const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const since = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
         const { data: recent } = await sb
           .from("whatsapp_messages")
           .select("id")
           .eq("patient_id", appt.patient_id)
           .eq("event", "followup")
-          .eq("status", "sent")
           .gte("created_at", since)
           .limit(1);
         if (recent && recent.length) {
           return json({ skipped: true, reason: "follow-up already sent recently" });
         }
       }
+
 
       const [{ data: patient }, { data: clinic }] = await Promise.all([
         appt.patient_id
@@ -308,9 +311,11 @@ Deno.serve(async (req) => {
         therapy_session_id: logSessionId,
         patient_id: patientId,
         event,
+        followup_stage: event === "followup" ? stage ?? 1 : null,
         to_phone: to,
         template_sid: contentSid,
         status: "pending",
+
       })
       .select("id")
       .maybeSingle();

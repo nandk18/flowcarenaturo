@@ -86,7 +86,8 @@ export default function SettingsShell({
 }) {
   return (
     <SectionShell title={title} navGroups={NAV} accent="purple" headerRight={headerRight}>
-      {children}
+      <SettingsPinGate>{children}</SettingsPinGate>
     </SectionShell>
   );
+
 }
