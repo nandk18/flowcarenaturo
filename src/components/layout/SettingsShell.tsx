@@ -18,6 +18,8 @@ import {
   Wallet,
 } from "lucide-react";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
+import SettingsPinGate from "@/components/settings/SettingsPinGate";
+
 
 const NAV: ShellNavGroup[] = [
   {
