@@ -572,7 +572,9 @@ export default function Settings() {
       {isComingSoon && <ComingSoon label={sectionTitle} />}
 
       <div className="space-y-6 max-w-2xl">
+        {showClinic && <ChangeSettingsPinCard />}
         {/* Clinic Details */}
+
         {showClinic && (
         <Card className="rounded-2xl border-0 shadow-sm">
 
