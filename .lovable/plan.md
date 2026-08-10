@@ -1,44 +1,52 @@
-## 1. Reuse the booked template for reminders
+# Follow-up escalation, new analytics, and a Settings PIN
 
-No new Twilio template needed. Change the template map in `send-appointment-whatsapp` so `reminder` falls back to the booked ContentSid when `TWILIO_TEMPLATE_REMINDER` is not set:
+## 1. Follow-up WhatsApp escalation (10 / 5 / 3 days)
 
-```ts
-reminder: Deno.env.get("TWILIO_TEMPLATE_REMINDER") ?? Deno.env.get("TWILIO_TEMPLATE_BOOKED") ?? "",
-```
+Today one follow-up message goes out 7 days after a completed appointment. Replace that with a three-step escalation counted from the patient's last completed visit:
 
-Variables are already identical (name, clinic, date, time, doctor), so nothing else changes. You can still set `TWILIO_TEMPLATE_REMINDER` later if you want a distinct wording.
+- Day 10 — first follow-up message
+- Day 15 (5 days later) — second message
+- Day 18 (3 days later) — final message
+- After the final message, if the patient still has no confirmed future appointment, set the patient's status to **Closed** (the same "closed" lead status already used in Sales).
 
-## 2. New "no follow-up in a week" care message
+At every step the patient is skipped (and the sequence stops) if they have any non-cancelled appointment dated after the last visit — i.e. they came back or booked ahead.
 
-### Twilio Content Template
-**Suggested name:** `flowcare_followup_care`
+Technical:
+- Add a `followup_stage` (1/2/3) concept: the scheduled Postgres function `send_due_followup_messages()` is rewritten to look at each patient's last completed appointment, count how many `whatsapp_messages` rows with `event = 'followup'` and `status = 'sent'` exist for that patient since that visit, and fire the next stage only when the corresponding day threshold is reached.
+- The dedupe in the edge function changes from "no follow-up in 30 days" to "no follow-up since the last completed visit within the last 24h", so stages can progress.
+- Stage number is stored in the log row so the UI can show "Follow-up 1 of 3".
+- Same Twilio template (`TWILIO_TEMPLATE_FOLLOWUP`, two variables: patient, clinic) is reused for all three stages.
+- Closing sets `patients.lead_status = 'closed'` and writes an audit log entry.
+- Cron stays daily at 10:00 IST.
 
-**Body:** `Hi {{1}}, We hope you are doing well. This is a friendly reminder from {{2}} to book your follow-up appointment. If you have not yet scheduled your next appointment, please reply to this message or contact our team to book a convenient time. Thank you, Team {{2}}`
+## 2. Two new analytics (clinic + super admin)
 
-**Variables:**
-1. `patient_name`
-2. `clinic_name`
+### A. Follow-up conversion rate
+Shows how effective the WhatsApp follow-ups are: for each stage (1, 2, 3) — messages sent, how many of those patients booked an appointment within 7 days of that message, and the conversion %. Plus an overall conversion rate and a "closed without booking" count.
 
-Store the approved ContentSid as secret `TWILIO_TEMPLATE_FOLLOWUP`.
+New RPC `analytics_followups(p_clinic_id, p_from, p_to)` joining `whatsapp_messages` (event = 'followup') to appointments created after the message.
 
-### Edge function
-Add a `followup` event to `send-appointment-whatsapp`:
-- Load the appointment, patient, clinic, doctor (same lookups as `booked`).
-- Skip if a `whatsapp_messages` row with `event = 'followup'` and `status = 'sent'` already exists for that patient in the last 30 days (patient-level dedupe, not just appointment-level, so a patient never gets spammed).
-- Send with the three variables above and log as `event = 'followup'`.
+### B. Treatment package completion %
+For treatment plans active in the range: average completion (sessions completed ÷ total sessions across plan items), a distribution of plans by completion bucket (0-25 / 25-50 / 50-75 / 75-99 / 100%), and count of fully-completed plans.
 
-### Scheduler
-New Postgres function `send_due_followup_messages()`:
-- Finds appointments whose `appointment_date` is exactly 7 days ago, `status = 'completed'` (skips cancelled/no-show).
-- Excludes patients who have any non-cancelled appointment dated after that visit (i.e. they already came back or booked ahead).
-- Excludes patients already sent a `followup` message in the last 30 days.
-- Calls the edge function via `pg_net` with `{ appointment_id, event: "followup" }`.
+Added to the existing `analytics_treatments` RPC output so no extra round-trip.
 
-Scheduled with `pg_cron` once daily at 10:00 IST (04:30 UTC) so messages land at a reasonable hour.
+Both appear as cards/charts in `AnalyticsView`, which is already shared by the clinic Analytics page and the Super Admin analytics view, so they show in both automatically, and are included in CSV export.
 
-### UI
-`WhatsAppStatus` gets a `followup: "Follow-up care message"` label, so the badge shows on the appointment detail dialog in Availability alongside the booking/reminder rows.
+## 3. PIN lock on Settings
+
+One shared clinic PIN. Only users with role **doctor** or **admin** can reach Settings at all; on top of that they must enter the clinic PIN.
+
+Flow:
+- First time: if the clinic has no PIN set, the first doctor/admin who opens Settings is asked to create one (4-6 digits, entered twice). It is hashed with pgcrypto — never stored in plain text.
+- After that: opening Settings shows a PIN keypad dialog. On success, access is unlocked for the rest of the browser session (cleared on sign-out or after 60 minutes of inactivity).
+- Changing the PIN: a "Settings PIN" card inside Settings → Clinic, where a doctor/admin enters the current PIN plus the new one.
+- Super admin reset: a "Reset settings PIN" action per clinic in the Super Admin dashboard, which clears the stored PIN so the clinic's next doctor/admin login re-runs the first-time setup. Every reset is written to the audit log.
+
+Technical:
+- `clinics.settings_pin_hash` column, plus security-definer RPCs `set_clinic_settings_pin(current_pin, new_pin)`, `verify_clinic_settings_pin(pin)`, `clinic_settings_pin_status()` and `super_admin_reset_settings_pin(clinic_id)` — the hash is never selectable by clients.
+- A `SettingsPinGate` wrapper applied in `SettingsShell` / the settings routes so every `/settings/*` page is covered, not just the main one.
+- Rate limit: 5 wrong attempts locks the gate for 5 minutes.
 
 ## What I need from you
-1. The ContentSid for `flowcare_followup_care` once approved (secret `TWILIO_TEMPLATE_FOLLOWUP`).
-2. Confirm 7 days after a **completed** appointment is the right trigger (vs. 7 days after any booked appointment, including no-shows).
+Nothing extra — the existing Twilio follow-up template is reused for all three stages.
