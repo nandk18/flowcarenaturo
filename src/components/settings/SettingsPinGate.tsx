@@ -8,11 +8,23 @@ import { toast } from "sonner";
 
 type Status = { allowed: boolean; is_set: boolean; role?: string } | null;
 
+/**
+ * In-memory unlock flag (never persisted). Stays true while navigating between
+ * Settings pages, and is cleared as soon as the user leaves the Settings area
+ * or reloads the app.
+ */
+let settingsUnlocked = false;
+
 /** Requires a doctor/admin role plus the clinic settings PIN before rendering children. */
 export default function SettingsPinGate({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>(null);
   const [loading, setLoading] = useState(true);
-  const [unlocked, setUnlocked] = useState(false);
+  const [unlocked, setUnlockedState] = useState(settingsUnlocked);
+
+  const setUnlocked = (v: boolean) => {
+    settingsUnlocked = v;
+    setUnlockedState(v);
+  };
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [busy, setBusy] = useState(false);
@@ -32,6 +44,17 @@ export default function SettingsPinGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Clear the unlock as soon as the user navigates outside /settings.
+  useEffect(() => {
+    return () => {
+      setTimeout(() => {
+        if (!window.location.pathname.startsWith("/settings")) {
+          settingsUnlocked = false;
+        }
+      }, 0);
+    };
+  }, []);
 
   const unlock = async () => {
     if (!/^\d{4,6}$/.test(pin)) return toast.error("Enter your 4-6 digit PIN");
