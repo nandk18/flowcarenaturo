@@ -302,6 +302,18 @@ Deno.serve(async (req) => {
       };
     }
 
+    // Clinic-level kill switch (controlled by super admin)
+    if (clinicId) {
+      const { data: clinicFlag } = await sb
+        .from("clinics")
+        .select("whatsapp_enabled")
+        .eq("id", clinicId)
+        .maybeSingle();
+      if (clinicFlag && clinicFlag.whatsapp_enabled === false) {
+        return json({ skipped: true, reason: "WhatsApp messaging is disabled for this clinic" });
+      }
+    }
+
     // Create pending log row
     const { data: logRow } = await sb
       .from("whatsapp_messages")
