@@ -18,6 +18,7 @@ type ClinicRow = {
   clinic_id: string;
   clinic_name: string;
   is_active: boolean;
+  whatsapp_enabled: boolean;
   disabled_at: string | null;
   disabled_reason: string | null;
   created_at: string;
@@ -113,6 +114,20 @@ export default function SuperAdmin() {
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Settings PIN reset");
+  };
+
+  const toggleWhatsapp = async (row: ClinicRow) => {
+    const next = !row.whatsapp_enabled;
+    if (!next && !confirm(`Disable all WhatsApp messages for ${row.clinic_name}?`)) return;
+    setBusy(true);
+    const { error } = await (supabase as any).rpc("super_admin_set_clinic_whatsapp", {
+      p_clinic_id: row.clinic_id,
+      p_enabled: next,
+    });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next ? "WhatsApp enabled" : "WhatsApp disabled");
+    fetchClinics();
   };
 
 
