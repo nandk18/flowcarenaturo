@@ -647,6 +647,7 @@ export type Database = {
           show_logo_on_invoice: boolean
           treatment_enabled: boolean | null
           website: string | null
+          whatsapp_enabled: boolean
         }
         Insert: {
           address?: string | null
@@ -672,6 +673,7 @@ export type Database = {
           show_logo_on_invoice?: boolean
           treatment_enabled?: boolean | null
           website?: string | null
+          whatsapp_enabled?: boolean
         }
         Update: {
           address?: string | null
@@ -697,6 +699,7 @@ export type Database = {
           show_logo_on_invoice?: boolean
           treatment_enabled?: boolean | null
           website?: string | null
+          whatsapp_enabled?: boolean
         }
         Relationships: []
       }
@@ -3125,6 +3128,7 @@ export type Database = {
           revenue_30d: number
           users_count: number
           visits_7d: number
+          whatsapp_enabled: boolean
         }[]
       }
       super_admin_recent_activity: {
@@ -3147,6 +3151,10 @@ export type Database = {
       }
       super_admin_set_clinic_active: {
         Args: { p_active: boolean; p_clinic_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      super_admin_set_clinic_whatsapp: {
+        Args: { p_clinic_id: string; p_enabled: boolean }
         Returns: undefined
       }
       update_sla_breach_days: { Args: never; Returns: undefined }
