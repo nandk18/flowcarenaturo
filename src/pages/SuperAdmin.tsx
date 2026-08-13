@@ -217,6 +217,11 @@ export default function SuperAdmin() {
                             <span className="h-1.5 w-1.5 rounded-full bg-red-400" /> Disabled
                           </span>
                         )}
+                        {!c.whatsapp_enabled && (
+                          <span className="ml-1.5 inline-flex items-center text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">
+                            WhatsApp off
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums">{c.users_count}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{c.patients_count}</td>
@@ -239,6 +244,13 @@ export default function SuperAdmin() {
                           className="text-xs px-2.5 py-1 rounded-md bg-slate-800 text-amber-300 hover:bg-slate-700 mr-1.5"
                         >
                           Reset PIN
+                        </button>
+                        <button
+                          disabled={busy}
+                          onClick={() => toggleWhatsapp(c)}
+                          className={`text-xs px-2.5 py-1 rounded-md mr-1.5 ${c.whatsapp_enabled ? "bg-slate-800 text-emerald-300 hover:bg-slate-700" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+                        >
+                          {c.whatsapp_enabled ? "WhatsApp: On" : "WhatsApp: Off"}
                         </button>
 
                         {c.is_active ? (
