@@ -3128,6 +3128,7 @@ export type Database = {
           revenue_30d: number
           users_count: number
           visits_7d: number
+          whatsapp_enabled: boolean
         }[]
       }
       super_admin_recent_activity: {
