@@ -45,6 +45,17 @@ export default function SettingsPinGate({ children }: { children: ReactNode }) {
     load();
   }, [load]);
 
+  // Clear the unlock as soon as the user navigates outside /settings.
+  useEffect(() => {
+    return () => {
+      setTimeout(() => {
+        if (!window.location.pathname.startsWith("/settings")) {
+          settingsUnlocked = false;
+        }
+      }, 0);
+    };
+  }, []);
+
   const unlock = async () => {
     if (!/^\d{4,6}$/.test(pin)) return toast.error("Enter your 4-6 digit PIN");
     setBusy(true);
