@@ -12,7 +12,7 @@ type Status = { allowed: boolean; is_set: boolean; role?: string } | null;
 export default function SettingsPinGate({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>(null);
   const [loading, setLoading] = useState(true);
-  const [unlocked, setUnlocked] = useState(isSettingsUnlocked());
+  const [unlocked, setUnlocked] = useState(false);
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [busy, setBusy] = useState(false);
@@ -40,7 +40,6 @@ export default function SettingsPinGate({ children }: { children: ReactNode }) {
       const { data, error } = await (supabase as any).rpc("verify_clinic_settings_pin", { p_pin: pin });
       if (error) throw error;
       if (!data?.ok) return toast.error(data?.error || "Incorrect PIN");
-      sessionStorage.setItem(UNLOCK_KEY, String(Date.now()));
       setUnlocked(true);
       setPin("");
     } catch (e: any) {
@@ -61,7 +60,6 @@ export default function SettingsPinGate({ children }: { children: ReactNode }) {
       });
       if (error) throw error;
       if (!data?.ok) return toast.error(data?.error || "Could not set PIN");
-      sessionStorage.setItem(UNLOCK_KEY, String(Date.now()));
       toast.success("Settings PIN created");
       setPin("");
       setConfirmPin("");
