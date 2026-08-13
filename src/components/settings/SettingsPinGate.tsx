@@ -6,26 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lock, Loader2, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
-const UNLOCK_KEY = "settings_pin_unlocked_at";
-const UNLOCK_TTL_MS = 60 * 60 * 1000; // 60 minutes
-
-export function isSettingsUnlocked() {
-  try {
-    const at = Number(sessionStorage.getItem(UNLOCK_KEY) || 0);
-    return at > 0 && Date.now() - at < UNLOCK_TTL_MS;
-  } catch {
-    return false;
-  }
-}
-
-export function lockSettings() {
-  try {
-    sessionStorage.removeItem(UNLOCK_KEY);
-  } catch {
-    /* ignore */
-  }
-}
-
 type Status = { allowed: boolean; is_set: boolean; role?: string } | null;
 
 /** Requires a doctor/admin role plus the clinic settings PIN before rendering children. */
