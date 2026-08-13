@@ -6,33 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lock, Loader2, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
-const UNLOCK_KEY = "settings_pin_unlocked_at";
-const UNLOCK_TTL_MS = 60 * 60 * 1000; // 60 minutes
-
-export function isSettingsUnlocked() {
-  try {
-    const at = Number(sessionStorage.getItem(UNLOCK_KEY) || 0);
-    return at > 0 && Date.now() - at < UNLOCK_TTL_MS;
-  } catch {
-    return false;
-  }
-}
-
-export function lockSettings() {
-  try {
-    sessionStorage.removeItem(UNLOCK_KEY);
-  } catch {
-    /* ignore */
-  }
-}
-
 type Status = { allowed: boolean; is_set: boolean; role?: string } | null;
 
 /** Requires a doctor/admin role plus the clinic settings PIN before rendering children. */
 export default function SettingsPinGate({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>(null);
   const [loading, setLoading] = useState(true);
-  const [unlocked, setUnlocked] = useState(isSettingsUnlocked());
+  const [unlocked, setUnlocked] = useState(false);
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [busy, setBusy] = useState(false);
@@ -60,7 +40,6 @@ export default function SettingsPinGate({ children }: { children: ReactNode }) {
       const { data, error } = await (supabase as any).rpc("verify_clinic_settings_pin", { p_pin: pin });
       if (error) throw error;
       if (!data?.ok) return toast.error(data?.error || "Incorrect PIN");
-      sessionStorage.setItem(UNLOCK_KEY, String(Date.now()));
       setUnlocked(true);
       setPin("");
     } catch (e: any) {
@@ -81,7 +60,6 @@ export default function SettingsPinGate({ children }: { children: ReactNode }) {
       });
       if (error) throw error;
       if (!data?.ok) return toast.error(data?.error || "Could not set PIN");
-      sessionStorage.setItem(UNLOCK_KEY, String(Date.now()));
       toast.success("Settings PIN created");
       setPin("");
       setConfirmPin("");
