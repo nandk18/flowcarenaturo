@@ -18,6 +18,7 @@ import { RANGES, Range, dateRange, inr, num, DOW_NAMES, downloadCSV, toCSV } fro
 import { KpiCard } from "./KpiCard";
 import { PhoneCall, ListTodo, MessageCircle, UserPlus, Clock, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const LEAD_COLUMNS: { key: string; label: string; dot: string }[] = [
   { key: "attempt1", label: "Attempt 1", dot: "bg-amber-500" },
