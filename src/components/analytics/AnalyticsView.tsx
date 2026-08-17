@@ -512,7 +512,7 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
                         {items.slice(0, 12).map((p) => (
                           <Link
                             key={p.id}
-                            to={`/sales/${p.id}`}
+                            to={`/patients/${p.id}`}
                             className="block rounded-md border bg-background p-2 text-xs hover:bg-muted"
                           >
                             <p className="truncate font-medium">{p.name}</p>
