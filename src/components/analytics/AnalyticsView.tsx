@@ -105,6 +105,49 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
     return () => { cancelled = true; };
   }, [clinicId, start, end]);
 
+  // Always show every known lead source, even with zero leads.
+  const sourceRows = useMemo(() => {
+    const raw = ((led?.by_source ?? []) as any[]);
+    const byKey = new Map(raw.map((r) => [String(r.source).toLowerCase(), r]));
+    const rows = LEAD_SOURCES.map((s) => {
+      const hit = byKey.get(s.key);
+      byKey.delete(s.key);
+      return { label: s.label, leads: hit?.leads ?? 0, won: hit?.won ?? 0, rate: hit?.rate ?? 0 };
+    });
+    for (const [, r] of byKey) {
+      rows.push({ label: String(r.source), leads: r.leads ?? 0, won: r.won ?? 0, rate: r.rate ?? 0 });
+    }
+    return rows;
+  }, [led]);
+
+  const moveLead = async (leadId: string, toStatus: string) => {
+    const lead = pipeline.find((p) => p.id === leadId);
+    if (!lead || lead.status === toStatus) return;
+    const isAttempt = toStatus.startsWith("attempt");
+    const nextDue = isAttempt
+      ? new Date(Date.now() + 86400_000).toISOString().slice(0, 10)
+      : null;
+    const prev = pipeline;
+    setPipeline(
+      prev.map((p) =>
+        p.id === leadId ? { ...p, status: toStatus, due: nextDue, overdue_days: 0 } : p,
+      ),
+    );
+    try {
+      const { error } = await (supabase as any)
+        .from("patients")
+        .update({ lead_status: toStatus, call_due_date: nextDue, sla_breach_days: 0 })
+        .eq("id", leadId);
+      if (error) throw error;
+      toast.success(
+        `${lead.name} moved to ${LEAD_COLUMNS.find((c) => c.key === toStatus)?.label ?? toStatus}`,
+      );
+    } catch (e: any) {
+      setPipeline(prev);
+      toast.error(e?.message ?? "Failed to move lead");
+    }
+  };
+
   const exportAll = () => {
     if (!rev || !pat || !app || !tre || !the) return;
     const rows: (string | number)[][] = [];
