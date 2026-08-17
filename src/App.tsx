@@ -24,6 +24,8 @@ import SalesPatientDetail from "./pages/SalesPatientDetail";
 import Settings from "./pages/Settings";
 import TemplatesPage from "./pages/TemplatesPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
+import SettingsAnalyticsPage from "./pages/SettingsAnalyticsPage";
+import TasksPage from "./pages/TasksPage";
 import DoctorSchedulePage from "./pages/DoctorSchedulePage";
 import AvailabilityPage from "./pages/AvailabilityPage";
 import PatientsListPage from "./pages/PatientsListPage";
