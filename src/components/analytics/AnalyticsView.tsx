@@ -544,13 +544,29 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
           </Card>
 
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Lead pipeline</CardTitle></CardHeader>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Lead pipeline</CardTitle>
+              <p className="text-xs text-muted-foreground">Drag a lead card between columns to change its stage</p>
+            </CardHeader>
             <CardContent className="overflow-x-auto">
               <div className="flex min-w-[720px] gap-3">
                 {LEAD_COLUMNS.map((col) => {
-                  const items = ((led?.pipeline ?? []) as any[]).filter((p) => p.status === col.key);
+                  const items = pipeline.filter((p) => p.status === col.key);
                   return (
-                    <div key={col.key} className="flex-1 rounded-lg border bg-muted/30 p-2">
+                    <div
+                      key={col.key}
+                      onDragOver={(e) => { e.preventDefault(); setDragOverCol(col.key); }}
+                      onDragLeave={() => setDragOverCol((c) => (c === col.key ? null : c))}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDragOverCol(null);
+                        const id = e.dataTransfer.getData("text/plain");
+                        if (id) moveLead(id, col.key);
+                      }}
+                      className={`flex-1 rounded-lg border bg-muted/30 p-2 transition-colors ${
+                        dragOverCol === col.key ? "border-primary bg-primary/5" : ""
+                      }`}
+                    >
                       <div className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold">
                         <span className={`h-2 w-2 rounded-full ${col.dot}`} />
                         {col.label}
@@ -561,21 +577,27 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
                           <p className="px-1 py-3 text-center text-[11px] text-muted-foreground">None</p>
                         )}
                         {items.slice(0, 12).map((p) => (
-                          <Link
+                          <div
                             key={p.id}
-                            to={`/patients/${p.id}`}
-                            className="block rounded-md border bg-background p-2 text-xs hover:bg-muted"
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData("text/plain", p.id);
+                              e.dataTransfer.effectAllowed = "move";
+                            }}
+                            className="rounded-md border bg-background p-2 text-xs hover:bg-muted active:cursor-grabbing cursor-grab"
                           >
-                            <p className="truncate font-medium">{p.name}</p>
-                            {p.phone && <p className="truncate text-muted-foreground">{p.phone}</p>}
-                            {p.overdue_days > 0 ? (
-                              <p className="mt-1 text-[11px] font-medium text-destructive">
-                                Overdue {p.overdue_days}d
-                              </p>
-                            ) : p.due ? (
-                              <p className="mt-1 text-[11px] text-muted-foreground">Due {p.due}</p>
-                            ) : null}
-                          </Link>
+                            <Link to={`/patients/${p.id}`} className="block">
+                              <p className="truncate font-medium">{p.name}</p>
+                              {p.phone && <p className="truncate text-muted-foreground">{p.phone}</p>}
+                              {p.overdue_days > 0 ? (
+                                <p className="mt-1 text-[11px] font-medium text-destructive">
+                                  Overdue {p.overdue_days}d
+                                </p>
+                              ) : p.due ? (
+                                <p className="mt-1 text-[11px] text-muted-foreground">Due {p.due}</p>
+                              ) : null}
+                            </Link>
+                          </div>
                         ))}
                       </div>
                     </div>
