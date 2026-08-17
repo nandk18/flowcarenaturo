@@ -57,7 +57,7 @@ import CancelAppointmentModal from "@/components/appointments/CancelAppointmentM
 
 import { Badge } from "@/components/ui/badge";
 
-type LeadStatus = "attempt1" | "attempt2" | "attempt3" | "closed" | "current";
+type LeadStatus = "attempt1" | "attempt2" | "attempt3" | "closed" | "lapsed" | "current";
 
 type Patient = {
   id: string;
@@ -159,6 +159,7 @@ const STATUS_STYLES: Record<LeadStatus, string> = {
   attempt2: "bg-orange-100 text-orange-800 border-orange-200",
   attempt3: "bg-red-100 text-red-800 border-red-200",
   closed: "bg-gray-100 text-gray-700 border-gray-200",
+  lapsed: "bg-slate-100 text-slate-700 border-slate-300",
   current: "bg-green-100 text-green-800 border-green-200",
 };
 
@@ -168,6 +169,7 @@ const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
   { value: "attempt3", label: "Attempt 3" },
   { value: "current", label: "Current" },
   { value: "closed", label: "Closed" },
+  { value: "lapsed", label: "Lapsed" },
 ];
 
 const INVOICE_STATUS_STYLES: Record<string, string> = {
