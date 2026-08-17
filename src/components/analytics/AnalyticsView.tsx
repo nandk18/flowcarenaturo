@@ -203,8 +203,10 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
           <TabsTrigger value="revenue">Revenue</TabsTrigger>
           <TabsTrigger value="patients">Patients</TabsTrigger>
           <TabsTrigger value="appointments">Appointments</TabsTrigger>
+          <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="treatments">Treatments</TabsTrigger>
           <TabsTrigger value="therapists">Therapists</TabsTrigger>
+
         </TabsList>
 
         {/* OVERVIEW */}
