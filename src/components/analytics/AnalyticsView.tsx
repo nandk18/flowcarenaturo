@@ -27,7 +27,15 @@ const LEAD_COLUMNS: { key: string; label: string; dot: string }[] = [
   { key: "closed", label: "Closed", dot: "bg-slate-500" },
 ];
 
-const SOURCE_BAR_COLORS = ["bg-teal-500", "bg-blue-500", "bg-amber-500", "bg-emerald-500", "bg-slate-400"];
+const SOURCE_BAR_COLORS = ["bg-teal-500", "bg-blue-500", "bg-amber-500", "bg-emerald-500", "bg-purple-500", "bg-slate-400"];
+
+const LEAD_SOURCES: { key: string; label: string }[] = [
+  { key: "instagram", label: "Instagram" },
+  { key: "phone", label: "Phone" },
+  { key: "whatsapp", label: "WhatsApp" },
+  { key: "yuvalife", label: "YuvaLife" },
+  { key: "friend", label: "Friend / Referral" },
+];
 
 
 const STAGE_LABEL: Record<number, string> = {
