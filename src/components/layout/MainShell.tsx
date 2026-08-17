@@ -79,15 +79,12 @@ export default function MainShell({
       label: "Tasks",
       items: [
         {
-          to: "/tasks/call-task",
+          to: "/tasks/list",
           icon: Phone,
-          label: "Call Task",
+          label: "Call Task & To Do",
+          match: (p) => p.startsWith("/tasks/list") || p === "/tasks",
           badge: careCallCount > 0 ? String(careCallCount) : undefined,
         },
-        { to: "/tasks/opening-checklist", icon: Sun, label: "Opening Checklist" },
-        { to: "/tasks/closing-checklist", icon: Moon, label: "Closing Checklist" },
-        { to: "/tasks/expense-list", icon: Receipt, label: "Expense List" },
-        { to: "/tasks/todo-list", icon: CheckSquare, label: "To Do List" },
         {
           to: "/tasks/pending-invoices",
           icon: FileText,
