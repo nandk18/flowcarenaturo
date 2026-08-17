@@ -60,7 +60,7 @@ type CancelledRow = {
 
 const INFORMED_PREFIX_RE = /^\[informed:([^\]]+)\]\s*/;
 
-export default function CallTaskPage() {
+export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) {
   const { profile } = useAuth();
   const { clinic } = useClinic();
   const clinicId = profile?.clinic_id;
@@ -350,8 +350,8 @@ export default function CallTaskPage() {
     loadAll();
   };
 
-  return (
-    <DashboardLayout title="Call Task">
+  const body = (
+    <>
       {!clinicId ? (
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">Loading clinic...</div>
       ) : (
@@ -771,8 +771,10 @@ export default function CallTaskPage() {
           </div>
         </SheetContent>
       </Sheet>
-    </DashboardLayout>
+    </>
   );
+
+  return bare ? body : <DashboardLayout title="Call Task">{body}</DashboardLayout>;
 }
 
 function outcomeStyle(o: string) {

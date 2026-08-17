@@ -43,7 +43,7 @@ const PRIORITY_STYLES: Record<Priority, string> = {
   low: "bg-green-100 text-green-700 border-green-200",
 };
 
-export default function TodoListPage() {
+export default function TodoListPage({ bare = false }: { bare?: boolean } = {}) {
   const { profile } = useAuth();
   const clinicId = profile?.clinic_id;
   const [rows, setRows] = useState<Todo[]>([]);
@@ -111,8 +111,8 @@ export default function TodoListPage() {
     load();
   };
 
-  return (
-    <DashboardLayout title="To Do List">
+  const body = (
+    <>
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-4 shadow-card">
           <div className="flex flex-wrap items-center gap-2">
@@ -163,8 +163,10 @@ export default function TodoListPage() {
         clinicId={clinicId ?? ""}
         onSaved={() => { setOpen(false); load(); }}
       />
-    </DashboardLayout>
+    </>
   );
+
+  return bare ? body : <DashboardLayout title="To Do List">{body}</DashboardLayout>;
 }
 
 function Section({
