@@ -334,14 +334,15 @@ function AppRoutes() {
 
       {/* Tasks */}
       {/* Tasks */}
-      <Route path="/tasks/call-task" element={<CallTaskPage />} />
+      <Route path="/tasks/list" element={<TasksPage />} />
+      <Route path="/tasks/call-task" element={<Navigate to="/tasks/list?section=calls" replace />} />
+      <Route path="/tasks/todo-list" element={<Navigate to="/tasks/list?section=todo" replace />} />
       <Route path="/tasks/care-call" element={<CareCallPage />} />
       <Route path="/tasks/opening-checklist" element={<OpeningChecklistPage />} />
       <Route path="/tasks/closing-checklist" element={<ClosingChecklistPage />} />
       <Route path="/tasks/expense-list" element={<ExpenseListPage />} />
-      <Route path="/tasks/todo-list" element={<TodoListPage />} />
       <Route path="/tasks/pending-invoices" element={<PendingInvoicesPage />} />
-      <Route path="/tasks" element={<Navigate to="/tasks/call-task" replace />} />
+      <Route path="/tasks" element={<Navigate to="/tasks/list" replace />} />
 
       {/* Billing detail (reachable from Settings → Billing) */}
       <Route path="/dashboard/billing/:invoiceId" element={<InvoiceDetailPage />} />
@@ -349,8 +350,8 @@ function AppRoutes() {
       {/* Settings */}
       <Route path="/settings" element={<Navigate to="/settings/clinic" replace />} />
       <Route path="/settings/templates" element={<TemplatesPage />} />
-      <Route path="/settings/analytics" element={<AnalyticsPage />} />
-      <Route path="/settings/billing-config" element={<BillingConfigPage />} />
+      <Route path="/settings/analytics" element={<SettingsAnalyticsPage />} />
+      <Route path="/settings/billing-config" element={<Navigate to="/settings/analytics?section=invoices" replace />} />
       <Route path="/settings/billing-config/:invoiceId" element={<InvoiceDetailPage />} />
       <Route path="/settings/doctor-schedule" element={<DoctorSchedulePage />} />
       <Route path="/settings/patient-import" element={<PatientImportPage />} />
