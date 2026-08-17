@@ -72,6 +72,8 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
   const [ovd, setOvd] = useState<any>(null);
   const [fol, setFol] = useState<any>(null);
   const [led, setLed] = useState<any>(null);
+  const [pipeline, setPipeline] = useState<any[]>([]);
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
