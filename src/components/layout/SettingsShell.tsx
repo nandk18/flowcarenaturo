@@ -5,20 +5,15 @@ import {
   Users,
   Receipt,
   ShoppingBag,
-  SlidersHorizontal,
   BarChart3,
   FileText,
   MessageCircle,
   MessageSquare,
   CalendarClock,
   Upload,
-  Sun,
-  Moon,
-  Tag,
-  Wallet,
 } from "lucide-react";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
-import SettingsPinGate from "@/components/settings/SettingsPinGate";
+
 
 
 const NAV: ShellNavGroup[] = [
@@ -50,9 +45,6 @@ const NAV: ShellNavGroup[] = [
     items: [
       { to: "/settings/services", icon: Receipt, label: "Invoice Services" },
       { to: "/settings/store-items", icon: ShoppingBag, label: "Store Items" },
-      { to: "/settings/billing-config", icon: BarChart3, label: "Invoice Analytics" },
-      { to: "/settings/expense-categories", icon: Tag, label: "Expense Categories" },
-      { to: "/settings/petty-cash", icon: Wallet, label: "Petty Cash" },
     ],
   },
   {
@@ -60,8 +52,6 @@ const NAV: ShellNavGroup[] = [
     items: [
       { to: "/settings/templates", icon: FileText, label: "Templates" },
       { to: "/settings/message-templates", icon: MessageSquare, label: "Message Templates" },
-      { to: "/settings/opening-checklist", icon: Sun, label: "Opening Checklist" },
-      { to: "/settings/closing-checklist", icon: Moon, label: "Closing Checklist" },
     ],
   },
   {
@@ -88,7 +78,7 @@ export default function SettingsShell({
 }) {
   return (
     <SectionShell title={title} navGroups={NAV} accent="purple" headerRight={headerRight}>
-      <SettingsPinGate>{children}</SettingsPinGate>
+      {children}
     </SectionShell>
   );
 

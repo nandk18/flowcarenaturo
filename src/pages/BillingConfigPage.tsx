@@ -20,7 +20,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 
-export default function BillingConfigPage() {
+export default function BillingConfigPage({ bare = false }: { bare?: boolean } = {}) {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { clinic, refetch } = useClinic();
@@ -235,8 +235,8 @@ export default function BillingConfigPage() {
     { label: "Paid Today", value: todayPaidCount, icon: "✅" },
   ];
 
-  return (
-    <SettingsShell title="Invoice Analytics">
+  const body = (
+    <>
       <Tabs defaultValue="analytics" className="space-y-4">
         <TabsList>
           <TabsTrigger value="analytics"><BarChart3 className="w-4 h-4 mr-1" /> Analytics</TabsTrigger>
@@ -444,6 +444,8 @@ export default function BillingConfigPage() {
           </Card>
         </TabsContent>
       </Tabs>
-    </SettingsShell>
+    </>
   );
+
+  return bare ? body : <SettingsShell title="Invoice Analytics">{body}</SettingsShell>;
 }
