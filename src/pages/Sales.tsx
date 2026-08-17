@@ -63,7 +63,7 @@ import BookAppointmentModal from "@/components/appointments/BookAppointmentModal
 import { buildMessage } from "@/lib/messageTemplates";
 import { openWhatsApp } from "@/lib/whatsapp";
 
-type LeadStatus = "attempt1" | "attempt2" | "attempt3" | "closed" | "current";
+type LeadStatus = "attempt1" | "attempt2" | "attempt3" | "closed" | "lapsed" | "current";
 
 type Patient = {
   id: string;
@@ -96,6 +96,7 @@ const STATUS_OPTIONS: { value: LeadStatus | "all"; label: string }[] = [
   { value: "attempt2", label: "Attempt 2" },
   { value: "attempt3", label: "Attempt 3" },
   { value: "closed", label: "Closed" },
+  { value: "lapsed", label: "Lapsed" },
   { value: "current", label: "Current" },
 ];
 
@@ -104,6 +105,7 @@ const STATUS_STYLES: Record<LeadStatus, string> = {
   attempt2: "bg-orange-100 text-orange-800 border-orange-200",
   attempt3: "bg-red-100 text-red-800 border-red-200",
   closed: "bg-gray-100 text-gray-700 border-gray-200",
+  lapsed: "bg-slate-100 text-slate-700 border-slate-300",
   current: "bg-green-100 text-green-800 border-green-200",
 };
 
@@ -564,7 +566,7 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
   useEffect(() => {
     let cancelled = false;
     const loadCounts = async () => {
-      const statuses: LeadStatus[] = ["attempt1", "attempt2", "attempt3", "closed", "current"];
+      const statuses: LeadStatus[] = ["attempt1", "attempt2", "attempt3", "closed", "lapsed", "current"];
       const results = await Promise.all([
         supabase.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", clinicId),
         ...statuses.map((s) =>
