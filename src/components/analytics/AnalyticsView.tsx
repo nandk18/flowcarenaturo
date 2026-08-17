@@ -521,29 +521,25 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm">Leads by source</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {(led?.by_source ?? []).length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">No leads in this range</p>
-              ) : (
-                (led.by_source as any[]).map((s, i) => {
-                  const max = Math.max(...(led.by_source as any[]).map((x) => x.leads || 0), 1);
-                  return (
-                    <div key={s.source} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-medium">{s.source}</span>
-                        <span className="text-muted-foreground">
-                          {num(s.leads)} leads · {num(s.won)} won · {Number(s.rate ?? 0)}%
-                        </span>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                        <div
-                          className={`h-full rounded-full ${SOURCE_BAR_COLORS[i % SOURCE_BAR_COLORS.length]}`}
-                          style={{ width: `${Math.round(((s.leads || 0) / max) * 100)}%` }}
-                        />
-                      </div>
+              {sourceRows.map((s, i) => {
+                const max = Math.max(...sourceRows.map((x) => x.leads || 0), 1);
+                return (
+                  <div key={s.label} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium">{s.label}</span>
+                      <span className="text-muted-foreground">
+                        {num(s.leads)} leads · {num(s.won)} won · {Number(s.rate ?? 0)}%
+                      </span>
                     </div>
-                  );
-                })
-              )}
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-full rounded-full ${SOURCE_BAR_COLORS[i % SOURCE_BAR_COLORS.length]}`}
+                        style={{ width: `${Math.round(((s.leads || 0) / max) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
 
