@@ -12,11 +12,23 @@ import {
 import { toast } from "sonner";
 import {
   fetchRevenue, fetchPatients, fetchAppointments,
-  fetchTreatments, fetchTherapists, fetchOverdueCounts, fetchFollowups,
+  fetchTreatments, fetchTherapists, fetchOverdueCounts, fetchFollowups, fetchLeads,
 } from "@/lib/analytics/api";
 import { RANGES, Range, dateRange, inr, num, DOW_NAMES, downloadCSV, toCSV } from "@/lib/analytics/format";
 import { KpiCard } from "./KpiCard";
-import { PhoneCall, ListTodo, MessageCircle } from "lucide-react";
+import { PhoneCall, ListTodo, MessageCircle, UserPlus, Clock, CheckCircle2 } from "lucide-react";
+import { Link } from "react-router-dom";
+
+const LEAD_COLUMNS: { key: string; label: string; dot: string }[] = [
+  { key: "attempt1", label: "Attempt 1", dot: "bg-amber-500" },
+  { key: "attempt2", label: "Attempt 2", dot: "bg-orange-500" },
+  { key: "attempt3", label: "Attempt 3", dot: "bg-red-500" },
+  { key: "lapsed", label: "Lapsed", dot: "bg-slate-400" },
+  { key: "closed", label: "Closed", dot: "bg-slate-500" },
+];
+
+const SOURCE_BAR_COLORS = ["bg-teal-500", "bg-blue-500", "bg-amber-500", "bg-emerald-500", "bg-slate-400"];
+
 
 const STAGE_LABEL: Record<number, string> = {
   1: "1st reminder (day 10)",
