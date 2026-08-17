@@ -76,12 +76,11 @@ export default function MainShell({
       items: [{ to: "/availability", icon: CalendarDays, label: "Calendar" }],
     },
     {
-      label: "Daily Ops",
       items: [
         {
           to: "/tasks/list",
           icon: Phone,
-          label: "Call Task & To Do",
+          label: "Daily Ops",
           match: (p) => p.startsWith("/tasks/list") || p === "/tasks",
           badge: careCallCount > 0 ? String(careCallCount) : undefined,
         },
