@@ -12,7 +12,7 @@ export default function TasksPage() {
   ];
 
   return (
-    <DashboardLayout title="Tasks">
+    <DashboardLayout title="Daily Ops">
       <Tabs value={section} onValueChange={setSection} className="space-y-4">
         <TabsList>
           <TabsTrigger value="calls">

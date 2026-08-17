@@ -12,11 +12,23 @@ import {
 import { toast } from "sonner";
 import {
   fetchRevenue, fetchPatients, fetchAppointments,
-  fetchTreatments, fetchTherapists, fetchOverdueCounts, fetchFollowups,
+  fetchTreatments, fetchTherapists, fetchOverdueCounts, fetchFollowups, fetchLeads,
 } from "@/lib/analytics/api";
 import { RANGES, Range, dateRange, inr, num, DOW_NAMES, downloadCSV, toCSV } from "@/lib/analytics/format";
 import { KpiCard } from "./KpiCard";
-import { PhoneCall, ListTodo, MessageCircle } from "lucide-react";
+import { PhoneCall, ListTodo, MessageCircle, UserPlus, Clock, CheckCircle2 } from "lucide-react";
+import { Link } from "react-router-dom";
+
+const LEAD_COLUMNS: { key: string; label: string; dot: string }[] = [
+  { key: "attempt1", label: "Attempt 1", dot: "bg-amber-500" },
+  { key: "attempt2", label: "Attempt 2", dot: "bg-orange-500" },
+  { key: "attempt3", label: "Attempt 3", dot: "bg-red-500" },
+  { key: "lapsed", label: "Lapsed", dot: "bg-slate-400" },
+  { key: "closed", label: "Closed", dot: "bg-slate-500" },
+];
+
+const SOURCE_BAR_COLORS = ["bg-teal-500", "bg-blue-500", "bg-amber-500", "bg-emerald-500", "bg-slate-400"];
+
 
 const STAGE_LABEL: Record<number, string> = {
   1: "1st reminder (day 10)",
@@ -50,6 +62,7 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
   const [the, setThe] = useState<any>(null);
   const [ovd, setOvd] = useState<any>(null);
   const [fol, setFol] = useState<any>(null);
+  const [led, setLed] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -57,7 +70,7 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
     (async () => {
       setLoading(true);
       try {
-        const [r, p, a, t, h, o, f] = await Promise.all([
+        const [r, p, a, t, h, o, f, l] = await Promise.all([
           fetchRevenue(clinicId, start, end),
           fetchPatients(clinicId, start, end),
           fetchAppointments(clinicId, start, end),
@@ -65,9 +78,11 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
           fetchTherapists(clinicId, start, end),
           fetchOverdueCounts(clinicId).catch(() => ({ overdue_calls: 0, overdue_todos: 0 })),
           fetchFollowups(clinicId, start, end).catch(() => null),
+          fetchLeads(clinicId, start, end).catch(() => null),
         ]);
         if (cancelled) return;
-        setRev(r); setPat(p); setApp(a); setTre(t); setThe(h); setOvd(o); setFol(f);
+        setRev(r); setPat(p); setApp(a); setTre(t); setThe(h); setOvd(o); setFol(f); setLed(l);
+
 
       } catch (e: any) {
         if (!cancelled) toast.error(e.message || "Failed to load analytics");
@@ -128,6 +143,20 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
     }
     rows.push(["Overall", fol?.totals?.sent ?? 0, fol?.totals?.booked ?? 0, Number(fol?.totals?.rate ?? 0)]);
     rows.push(["Closed after final reminder", fol?.closed?.closed_patients ?? 0]);
+    rows.push([]);
+    rows.push(["Leads"]);
+    rows.push(["New leads today", led?.totals?.new_today ?? 0]);
+    rows.push(["In progress", led?.totals?.in_progress ?? 0]);
+    rows.push(["Overdue on next attempt", led?.totals?.overdue_attempts ?? 0]);
+    rows.push(["Leads in range", led?.totals?.leads_in_range ?? 0]);
+    rows.push(["Converted in range", led?.totals?.converted_in_range ?? 0]);
+    rows.push(["Conversion rate %", Number(led?.totals?.conversion_rate ?? 0)]);
+    rows.push([]);
+    rows.push(["Lead source", "Leads", "Won", "Rate %"]);
+    for (const s of (led?.by_source || [])) {
+      rows.push([s.source, s.leads, s.won, Number(s.rate ?? 0)]);
+    }
+
     downloadCSV("flowcare-analytics", toCSV(rows));
 
     toast.success("Report downloaded");
@@ -174,8 +203,10 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
           <TabsTrigger value="revenue">Revenue</TabsTrigger>
           <TabsTrigger value="patients">Patients</TabsTrigger>
           <TabsTrigger value="appointments">Appointments</TabsTrigger>
+          <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="treatments">Treatments</TabsTrigger>
           <TabsTrigger value="therapists">Therapists</TabsTrigger>
+
         </TabsList>
 
         {/* OVERVIEW */}
@@ -416,6 +447,94 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
             )}
           </CardContent></Card>
         </TabsContent>
+
+        {/* LEADS */}
+        <TabsContent value="leads" className="space-y-4 mt-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <KpiCard label="New leads today" value={num(led?.totals?.new_today)} icon={UserPlus} tone="primary" />
+            <KpiCard label="In progress" value={num(led?.totals?.in_progress)} icon={PhoneCall} tone="accent" />
+            <KpiCard label="Overdue attempts" value={num(led?.totals?.overdue_attempts)} icon={Clock} tone="danger" />
+            <KpiCard
+              label="Conversion rate"
+              value={`${Number(led?.totals?.conversion_rate ?? 0)}%`}
+              icon={CheckCircle2}
+              tone="success"
+              sub={`${num(led?.totals?.converted_in_range)} of ${num(led?.totals?.leads_in_range)} leads`}
+            />
+          </div>
+
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Leads by source</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              {(led?.by_source ?? []).length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">No leads in this range</p>
+              ) : (
+                (led.by_source as any[]).map((s, i) => {
+                  const max = Math.max(...(led.by_source as any[]).map((x) => x.leads || 0), 1);
+                  return (
+                    <div key={s.source} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-medium">{s.source}</span>
+                        <span className="text-muted-foreground">
+                          {num(s.leads)} leads · {num(s.won)} won · {Number(s.rate ?? 0)}%
+                        </span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className={`h-full rounded-full ${SOURCE_BAR_COLORS[i % SOURCE_BAR_COLORS.length]}`}
+                          style={{ width: `${Math.round(((s.leads || 0) / max) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Lead pipeline</CardTitle></CardHeader>
+            <CardContent className="overflow-x-auto">
+              <div className="flex min-w-[720px] gap-3">
+                {LEAD_COLUMNS.map((col) => {
+                  const items = ((led?.pipeline ?? []) as any[]).filter((p) => p.status === col.key);
+                  return (
+                    <div key={col.key} className="flex-1 rounded-lg border bg-muted/30 p-2">
+                      <div className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold">
+                        <span className={`h-2 w-2 rounded-full ${col.dot}`} />
+                        {col.label}
+                        <span className="ml-auto text-muted-foreground">{items.length}</span>
+                      </div>
+                      <div className="space-y-2">
+                        {items.length === 0 && (
+                          <p className="px-1 py-3 text-center text-[11px] text-muted-foreground">None</p>
+                        )}
+                        {items.slice(0, 12).map((p) => (
+                          <Link
+                            key={p.id}
+                            to={`/patients/${p.id}`}
+                            className="block rounded-md border bg-background p-2 text-xs hover:bg-muted"
+                          >
+                            <p className="truncate font-medium">{p.name}</p>
+                            {p.phone && <p className="truncate text-muted-foreground">{p.phone}</p>}
+                            {p.overdue_days > 0 ? (
+                              <p className="mt-1 text-[11px] font-medium text-destructive">
+                                Overdue {p.overdue_days}d
+                              </p>
+                            ) : p.due ? (
+                              <p className="mt-1 text-[11px] text-muted-foreground">Due {p.due}</p>
+                            ) : null}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
 
         {/* TREATMENTS */}
         <TabsContent value="treatments" className="space-y-4 mt-4">

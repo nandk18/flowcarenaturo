@@ -76,7 +76,7 @@ export default function MainShell({
       items: [{ to: "/availability", icon: CalendarDays, label: "Calendar" }],
     },
     {
-      label: "Tasks",
+      label: "Daily Ops",
       items: [
         {
           to: "/tasks/list",
@@ -85,6 +85,7 @@ export default function MainShell({
           match: (p) => p.startsWith("/tasks/list") || p === "/tasks",
           badge: careCallCount > 0 ? String(careCallCount) : undefined,
         },
+
         {
           to: "/tasks/pending-invoices",
           icon: FileText,
