@@ -143,6 +143,20 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
     }
     rows.push(["Overall", fol?.totals?.sent ?? 0, fol?.totals?.booked ?? 0, Number(fol?.totals?.rate ?? 0)]);
     rows.push(["Closed after final reminder", fol?.closed?.closed_patients ?? 0]);
+    rows.push([]);
+    rows.push(["Leads"]);
+    rows.push(["New leads today", led?.totals?.new_today ?? 0]);
+    rows.push(["In progress", led?.totals?.in_progress ?? 0]);
+    rows.push(["Overdue on next attempt", led?.totals?.overdue_attempts ?? 0]);
+    rows.push(["Leads in range", led?.totals?.leads_in_range ?? 0]);
+    rows.push(["Converted in range", led?.totals?.converted_in_range ?? 0]);
+    rows.push(["Conversion rate %", Number(led?.totals?.conversion_rate ?? 0)]);
+    rows.push([]);
+    rows.push(["Lead source", "Leads", "Won", "Rate %"]);
+    for (const s of (led?.by_source || [])) {
+      rows.push([s.source, s.leads, s.won, Number(s.rate ?? 0)]);
+    }
+
     downloadCSV("flowcare-analytics", toCSV(rows));
 
     toast.success("Report downloaded");
