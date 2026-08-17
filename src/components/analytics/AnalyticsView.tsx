@@ -93,6 +93,7 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
         ]);
         if (cancelled) return;
         setRev(r); setPat(p); setApp(a); setTre(t); setThe(h); setOvd(o); setFol(f); setLed(l);
+        setPipeline(((l as any)?.pipeline ?? []) as any[]);
 
 
       } catch (e: any) {
