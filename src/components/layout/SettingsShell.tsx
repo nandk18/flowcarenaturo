@@ -5,20 +5,15 @@ import {
   Users,
   Receipt,
   ShoppingBag,
-  SlidersHorizontal,
   BarChart3,
   FileText,
   MessageCircle,
   MessageSquare,
   CalendarClock,
   Upload,
-  Sun,
-  Moon,
-  Tag,
-  Wallet,
 } from "lucide-react";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
-import SettingsPinGate from "@/components/settings/SettingsPinGate";
+
 
 
 const NAV: ShellNavGroup[] = [
