@@ -74,12 +74,13 @@ const SECTIONS: Section[] = [
     badgeVariant: "secondary",
     to: "/treatment",
     theme: {
-      border: "border-purple-500/30 hover:border-purple-500",
-      hoverBg: "hover:bg-purple-500/5",
-      iconBg: "bg-purple-500/10",
-      iconText: "text-purple-500",
-      glow: "hover:shadow-[0_0_0_1px_hsl(271_91%_65%/0.3),0_20px_40px_-15px_hsl(271_91%_65%/0.35)]",
+      border: "border-border hover:border-primary/60",
+      hoverBg: "hover:bg-secondary/60",
+      iconBg: "bg-secondary",
+      iconText: "text-secondary-foreground",
+      glow: "hover:-translate-y-1 hover:shadow-elevated",
     },
+
   },
 ];
 
