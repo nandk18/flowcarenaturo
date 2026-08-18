@@ -56,12 +56,13 @@ const SECTIONS: Section[] = [
     badgeVariant: "default",
     to: "/consult",
     theme: {
-      border: "border-green-500/30 hover:border-green-500",
-      hoverBg: "hover:bg-green-500/5",
-      iconBg: "bg-green-500/10",
-      iconText: "text-green-600",
-      glow: "hover:shadow-[0_0_0_1px_hsl(142_71%_45%/0.3),0_20px_40px_-15px_hsl(142_71%_45%/0.35)]",
+      border: "border-border hover:border-accent-foreground/40",
+      hoverBg: "hover:bg-accent/40",
+      iconBg: "bg-accent",
+      iconText: "text-accent-foreground",
+      glow: "hover:-translate-y-1 hover:shadow-elevated",
     },
+
   },
   {
     key: "treatment",
