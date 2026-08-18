@@ -44,16 +44,17 @@ export type ShellNavGroup = {
 export type ShellAccent = "blue" | "green" | "purple";
 
 const ACCENT_BORDER: Record<ShellAccent, string> = {
-  blue: "border-r-blue-500",
-  green: "border-r-green-500",
-  purple: "border-r-purple-500",
+  blue: "",
+  green: "",
+  purple: "",
 };
 
 const ACCENT_BG: Record<ShellAccent, string> = {
-  blue: "bg-blue-500/10 text-blue-600",
-  green: "bg-green-500/10 text-green-600",
-  purple: "bg-purple-500/10 text-purple-600",
+  blue: "bg-sidebar-accent text-sidebar-accent-foreground",
+  green: "bg-sidebar-accent text-sidebar-accent-foreground",
+  purple: "bg-sidebar-accent text-sidebar-accent-foreground",
 };
+
 
 const SHELL_STYLE = {
   // 200px desktop, 52px tablet icon-only
