@@ -122,7 +122,7 @@ function InnerSidebar({
         {navGroups.map((group, gi) => (
           <SidebarGroup key={group.label ?? `g-${gi}`}>
             {group.label && !collapsed && (
-              <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.14em] text-sidebar-foreground/50">
                 {group.label}
               </SidebarGroupLabel>
             )}
@@ -138,9 +138,8 @@ function InnerSidebar({
                         tooltip={item.label}
                         isActive={active}
                         className={cn(
-                          "h-9 gap-2.5 px-3 text-sm",
-                          active &&
-                            cn("border-r-2", ACCENT_BORDER[accent], ACCENT_BG[accent]),
+                          "h-10 gap-2.5 rounded-full px-3 text-sm text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+                          active && cn("font-semibold", ACCENT_BG[accent]),
                         )}
                       >
                         <NavLink to={item.to} end={item.end} onClick={closeIfMobile}>
@@ -150,8 +149,8 @@ function InnerSidebar({
                             <span className={cn(
                               "ml-auto rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
                               /^\d+$/.test(item.badge)
-                                ? "bg-red-500 text-white"
-                                : "bg-muted text-muted-foreground",
+                                ? "bg-destructive text-destructive-foreground"
+                                : "bg-sidebar-accent text-sidebar-accent-foreground",
                             )}>
                               {item.badge}
                             </span>
@@ -163,6 +162,7 @@ function InnerSidebar({
                 })}
               </SidebarMenu>
             </SidebarGroupContent>
+
           </SidebarGroup>
         ))}
       </SidebarContent>
