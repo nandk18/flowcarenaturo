@@ -120,7 +120,7 @@ export default function Home() {
         </div>
 
 
-        <div className="grid w-full grid-cols-1 gap-5 md:grid-cols-3">
+        <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-3">
           {sections.map((s) => {
             const Icon = s.icon;
             return (
@@ -129,16 +129,17 @@ export default function Home() {
                 type="button"
                 onClick={() => navigate(s.to)}
                 className={cn(
-                  "group flex flex-col items-start rounded-2xl border bg-card p-6 text-left shadow-card transition-all",
+                  "group flex flex-col items-start rounded-2xl border bg-card p-7 text-left shadow-card transition-all duration-300",
                   s.theme.border,
                   s.theme.hoverBg,
                   s.theme.glow,
                 )}
               >
-                <div className="mb-5 flex w-full items-start justify-between">
-                  <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", s.theme.iconBg)}>
-                    <Icon className={cn("h-6 w-6", s.theme.iconText)} />
+                <div className="mb-6 flex w-full items-start justify-between">
+                  <div className={cn("flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-105", s.theme.iconBg)}>
+                    <Icon className={cn("h-7 w-7", s.theme.iconText)} />
                   </div>
+
                   <Badge variant={s.badgeVariant} className="text-[10px]">{s.badge}</Badge>
                 </div>
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{s.tag}</p>
