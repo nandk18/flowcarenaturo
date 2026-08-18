@@ -38,12 +38,13 @@ const SECTIONS: Section[] = [
     badgeVariant: "secondary",
     to: "/sales",
     theme: {
-      border: "border-blue-500/30 hover:border-blue-500",
-      hoverBg: "hover:bg-blue-500/5",
-      iconBg: "bg-blue-500/10",
-      iconText: "text-blue-500",
-      glow: "hover:shadow-[0_0_0_1px_hsl(217_91%_60%/0.3),0_20px_40px_-15px_hsl(217_91%_60%/0.35)]",
+      border: "border-border hover:border-primary/60",
+      hoverBg: "hover:bg-primary/[0.04]",
+      iconBg: "bg-primary/10",
+      iconText: "text-primary",
+      glow: "hover:-translate-y-1 hover:shadow-elevated",
     },
+
   },
   {
     key: "consult",
