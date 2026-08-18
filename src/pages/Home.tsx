@@ -106,18 +106,19 @@ export default function Home() {
     );
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-gradient-hero">
       <TopBar />
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 py-12 sm:px-6">
-        <div className="mb-10 flex flex-col items-center text-center">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 py-16 sm:px-6">
+        <div className="mb-12 flex flex-col items-center text-center animate-enter">
           <Logo height={96} className="mb-6" />
-          <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
+          <h1 className="font-display text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
             {getGreeting()}, {firstName}
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+          <p className="mt-3 text-base text-muted-foreground">
             What would you like to manage today?
           </p>
         </div>
+
 
         <div className="grid w-full grid-cols-1 gap-5 md:grid-cols-3">
           {sections.map((s) => {
