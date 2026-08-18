@@ -38,12 +38,13 @@ const SECTIONS: Section[] = [
     badgeVariant: "secondary",
     to: "/sales",
     theme: {
-      border: "border-blue-500/30 hover:border-blue-500",
-      hoverBg: "hover:bg-blue-500/5",
-      iconBg: "bg-blue-500/10",
-      iconText: "text-blue-500",
-      glow: "hover:shadow-[0_0_0_1px_hsl(217_91%_60%/0.3),0_20px_40px_-15px_hsl(217_91%_60%/0.35)]",
+      border: "border-border hover:border-primary/60",
+      hoverBg: "hover:bg-primary/[0.04]",
+      iconBg: "bg-primary/10",
+      iconText: "text-primary",
+      glow: "hover:-translate-y-1 hover:shadow-elevated",
     },
+
   },
   {
     key: "consult",
@@ -55,12 +56,13 @@ const SECTIONS: Section[] = [
     badgeVariant: "default",
     to: "/consult",
     theme: {
-      border: "border-green-500/30 hover:border-green-500",
-      hoverBg: "hover:bg-green-500/5",
-      iconBg: "bg-green-500/10",
-      iconText: "text-green-600",
-      glow: "hover:shadow-[0_0_0_1px_hsl(142_71%_45%/0.3),0_20px_40px_-15px_hsl(142_71%_45%/0.35)]",
+      border: "border-border hover:border-accent-foreground/40",
+      hoverBg: "hover:bg-accent/40",
+      iconBg: "bg-accent",
+      iconText: "text-accent-foreground",
+      glow: "hover:-translate-y-1 hover:shadow-elevated",
     },
+
   },
   {
     key: "treatment",
@@ -72,12 +74,13 @@ const SECTIONS: Section[] = [
     badgeVariant: "secondary",
     to: "/treatment",
     theme: {
-      border: "border-purple-500/30 hover:border-purple-500",
-      hoverBg: "hover:bg-purple-500/5",
-      iconBg: "bg-purple-500/10",
-      iconText: "text-purple-500",
-      glow: "hover:shadow-[0_0_0_1px_hsl(271_91%_65%/0.3),0_20px_40px_-15px_hsl(271_91%_65%/0.35)]",
+      border: "border-border hover:border-primary/60",
+      hoverBg: "hover:bg-secondary/60",
+      iconBg: "bg-secondary",
+      iconText: "text-secondary-foreground",
+      glow: "hover:-translate-y-1 hover:shadow-elevated",
     },
+
   },
 ];
 
@@ -103,20 +106,21 @@ export default function Home() {
     );
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-gradient-hero">
       <TopBar />
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 py-12 sm:px-6">
-        <div className="mb-10 flex flex-col items-center text-center">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 py-16 sm:px-6">
+        <div className="mb-12 flex flex-col items-center text-center animate-enter">
           <Logo height={96} className="mb-6" />
-          <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
+          <h1 className="font-display text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
             {getGreeting()}, {firstName}
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+          <p className="mt-3 text-base text-muted-foreground">
             What would you like to manage today?
           </p>
         </div>
 
-        <div className="grid w-full grid-cols-1 gap-5 md:grid-cols-3">
+
+        <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-3">
           {sections.map((s) => {
             const Icon = s.icon;
             return (
@@ -125,16 +129,17 @@ export default function Home() {
                 type="button"
                 onClick={() => navigate(s.to)}
                 className={cn(
-                  "group flex flex-col items-start rounded-2xl border bg-card p-6 text-left shadow-card transition-all",
+                  "group flex flex-col items-start rounded-2xl border bg-card p-7 text-left shadow-card transition-all duration-300",
                   s.theme.border,
                   s.theme.hoverBg,
                   s.theme.glow,
                 )}
               >
-                <div className="mb-5 flex w-full items-start justify-between">
-                  <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", s.theme.iconBg)}>
-                    <Icon className={cn("h-6 w-6", s.theme.iconText)} />
+                <div className="mb-6 flex w-full items-start justify-between">
+                  <div className={cn("flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-105", s.theme.iconBg)}>
+                    <Icon className={cn("h-7 w-7", s.theme.iconText)} />
                   </div>
+
                   <Badge variant={s.badgeVariant} className="text-[10px]">{s.badge}</Badge>
                 </div>
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{s.tag}</p>

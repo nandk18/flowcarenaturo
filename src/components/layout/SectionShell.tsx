@@ -44,16 +44,17 @@ export type ShellNavGroup = {
 export type ShellAccent = "blue" | "green" | "purple";
 
 const ACCENT_BORDER: Record<ShellAccent, string> = {
-  blue: "border-r-blue-500",
-  green: "border-r-green-500",
-  purple: "border-r-purple-500",
+  blue: "",
+  green: "",
+  purple: "",
 };
 
 const ACCENT_BG: Record<ShellAccent, string> = {
-  blue: "bg-blue-500/10 text-blue-600",
-  green: "bg-green-500/10 text-green-600",
-  purple: "bg-purple-500/10 text-purple-600",
+  blue: "bg-sidebar-accent text-sidebar-accent-foreground",
+  green: "bg-sidebar-accent text-sidebar-accent-foreground",
+  purple: "bg-sidebar-accent text-sidebar-accent-foreground",
 };
+
 
 const SHELL_STYLE = {
   // 200px desktop, 52px tablet icon-only
@@ -97,8 +98,9 @@ function InnerSidebar({
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r bg-secondary/30">
-      <SidebarHeader className="border-b border-border/60">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border gradient-sidebar text-sidebar-foreground">
+      <SidebarHeader className="border-b border-sidebar-border/60">
+
         <button
           type="button"
           onClick={() => {
@@ -120,7 +122,7 @@ function InnerSidebar({
         {navGroups.map((group, gi) => (
           <SidebarGroup key={group.label ?? `g-${gi}`}>
             {group.label && !collapsed && (
-              <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.14em] text-sidebar-foreground/50">
                 {group.label}
               </SidebarGroupLabel>
             )}
@@ -136,9 +138,8 @@ function InnerSidebar({
                         tooltip={item.label}
                         isActive={active}
                         className={cn(
-                          "h-9 gap-2.5 px-3 text-sm",
-                          active &&
-                            cn("border-r-2", ACCENT_BORDER[accent], ACCENT_BG[accent]),
+                          "h-10 gap-2.5 rounded-full px-3 text-sm text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+                          active && cn("font-semibold", ACCENT_BG[accent]),
                         )}
                       >
                         <NavLink to={item.to} end={item.end} onClick={closeIfMobile}>
@@ -148,8 +149,8 @@ function InnerSidebar({
                             <span className={cn(
                               "ml-auto rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
                               /^\d+$/.test(item.badge)
-                                ? "bg-red-500 text-white"
-                                : "bg-muted text-muted-foreground",
+                                ? "bg-destructive text-destructive-foreground"
+                                : "bg-sidebar-accent text-sidebar-accent-foreground",
                             )}>
                               {item.badge}
                             </span>
@@ -161,18 +162,19 @@ function InnerSidebar({
                 })}
               </SidebarMenu>
             </SidebarGroupContent>
+
           </SidebarGroup>
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/60">
+      <SidebarFooter className="border-t border-sidebar-border/60">
         <div className={cn("flex items-center gap-1", collapsed && "flex-col")}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                className="h-9 w-9 text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                 onClick={() => {
                   closeIfMobile();
                   navigate("/settings/clinic");
@@ -185,12 +187,13 @@ function InnerSidebar({
             <TooltipContent side="right">Settings</TooltipContent>
           </Tooltip>
           {!collapsed && (
-            <span className="ml-auto truncate text-[10px] text-muted-foreground">
+            <span className="ml-auto truncate text-[10px] text-sidebar-foreground/60">
               {profile?.full_name}
             </span>
           )}
         </div>
       </SidebarFooter>
+
 
     </Sidebar>
   );
@@ -219,12 +222,12 @@ export default function SectionShell({
     <SidebarProvider defaultOpen={defaultOpen} style={SHELL_STYLE}>
       <InnerSidebar navGroups={navGroups} accent={accent} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-3 backdrop-blur safe-top safe-x no-select sm:px-4">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/75 px-3 backdrop-blur-xl safe-top safe-x no-select sm:px-6">
           <SidebarTrigger />
           {title && (
             <div className="flex min-w-0 flex-1 items-center">
               {typeof title === "string" ? (
-                <h1 className="truncate font-display text-base font-semibold sm:text-lg">
+                <h1 className="truncate font-display text-lg font-semibold tracking-tight sm:text-xl">
                   {title}
                 </h1>
               ) : (
@@ -234,7 +237,10 @@ export default function SectionShell({
           )}
           {headerRight && <div className="ml-auto flex items-center gap-2">{headerRight}</div>}
         </header>
-        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4 pb-safe safe-x sm:p-6 lg:p-8 no-bounce">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-gradient-hero p-4 pb-safe safe-x sm:p-6 lg:p-10 no-bounce">
+          <div className="animate-enter mx-auto w-full max-w-[1500px]">{children}</div>
+        </main>
+
       </div>
       <SessionTimeoutWarning
         open={showWarning}

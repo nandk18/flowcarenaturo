@@ -6,89 +6,102 @@
 
 @layer base {
   :root {
-    --background: 0 0% 96%;
-    --foreground: 0 0% 10%;
+    --background: 260 40% 99%;
+    --foreground: 246 40% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
+    --card-foreground: 246 40% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
+    --popover-foreground: 246 40% 12%;
 
-    --primary: 174 80% 24%;
+    --primary: 268 58% 39%;
     --primary-foreground: 0 0% 100%;
+    --primary-glow: 262 83% 58%;
 
-    --secondary: 174 20% 93%;
-    --secondary-foreground: 174 80% 20%;
+    --secondary: 264 45% 96%;
+    --secondary-foreground: 268 58% 30%;
 
-    --muted: 0 0% 93%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 258 30% 96%;
+    --muted-foreground: 250 12% 45%;
 
-    --accent: 174 30% 90%;
-    --accent-foreground: 174 80% 20%;
+    --accent: 181 62% 94%;
+    --accent-foreground: 186 70% 24%;
+    --teal: 181 70% 45%;
+    --teal-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 352 78% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 174 80% 24%;
+    --border: 258 25% 91%;
+    --input: 258 25% 91%;
+    --ring: 262 83% 58%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    --sidebar-background: 174 40% 12%;
-    --sidebar-foreground: 174 10% 90%;
-    --sidebar-primary: 174 60% 50%;
+    --sidebar-background: 264 55% 15%;
+    --sidebar-foreground: 260 25% 88%;
+    --sidebar-primary: 262 83% 68%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 174 30% 18%;
-    --sidebar-accent-foreground: 174 10% 90%;
-    --sidebar-border: 174 30% 20%;
-    --sidebar-ring: 174 60% 50%;
+    --sidebar-accent: 264 45% 22%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 264 35% 26%;
+    --sidebar-ring: 262 83% 68%;
 
     /* Custom tokens */
-    --success: 152 60% 42%;
+    --success: 158 64% 38%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+    --warning: 35 95% 52%;
     --warning-foreground: 0 0% 100%;
-    --info: 210 80% 55%;
+    --info: 224 76% 58%;
     --info-foreground: 0 0% 100%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(174, 80%, 24%), hsl(174, 60%, 35%));
-    --gradient-sidebar: linear-gradient(180deg, hsl(174, 40%, 10%), hsl(174, 40%, 16%));
-    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.04), 0 1px 2px -1px hsl(0 0% 0% / 0.03);
-    --shadow-elevated: 0 10px 25px -5px hsl(0 0% 0% / 0.06), 0 8px 10px -6px hsl(0 0% 0% / 0.03);
+    --gradient-primary: linear-gradient(135deg, hsl(268 58% 39%), hsl(262 83% 58%) 55%, hsl(181 70% 45%));
+    --gradient-sidebar: linear-gradient(180deg, hsl(266 60% 17%), hsl(258 55% 12%) 60%, hsl(200 55% 14%));
+    --gradient-hero: linear-gradient(120deg, hsl(268 58% 39% / 0.10), hsl(262 83% 58% / 0.08) 45%, hsl(181 70% 45% / 0.10));
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(264 45% 98%));
+    --shadow-card: 0 1px 2px hsl(258 40% 20% / 0.04), 0 6px 20px -12px hsl(258 40% 20% / 0.18);
+    --shadow-elevated: 0 12px 32px -12px hsl(262 60% 30% / 0.22), 0 4px 12px -6px hsl(258 40% 20% / 0.10);
+    --shadow-glow: 0 10px 40px -12px hsl(262 83% 58% / 0.45);
   }
 
   .dark {
-    --background: 174 30% 6%;
-    --foreground: 174 10% 95%;
-    --card: 174 25% 10%;
-    --card-foreground: 174 10% 95%;
-    --popover: 174 25% 10%;
-    --popover-foreground: 174 10% 95%;
-    --primary: 174 60% 50%;
-    --primary-foreground: 174 30% 6%;
-    --secondary: 174 20% 15%;
-    --secondary-foreground: 174 10% 90%;
-    --muted: 174 15% 15%;
-    --muted-foreground: 174 10% 60%;
-    --accent: 174 20% 18%;
-    --accent-foreground: 174 10% 90%;
-    --destructive: 0 62.8% 30.6%;
+    --background: 262 35% 7%;
+    --foreground: 260 20% 95%;
+    --card: 262 30% 11%;
+    --card-foreground: 260 20% 95%;
+    --popover: 262 30% 11%;
+    --popover-foreground: 260 20% 95%;
+    --primary: 262 83% 66%;
+    --primary-foreground: 262 35% 8%;
+    --primary-glow: 268 90% 74%;
+    --secondary: 262 25% 17%;
+    --secondary-foreground: 260 20% 92%;
+    --muted: 262 20% 17%;
+    --muted-foreground: 258 12% 65%;
+    --accent: 190 35% 18%;
+    --accent-foreground: 181 70% 78%;
+    --teal: 181 65% 52%;
+    --teal-foreground: 262 35% 8%;
+    --destructive: 352 62% 45%;
     --destructive-foreground: 0 0% 100%;
-    --border: 174 15% 18%;
-    --input: 174 15% 18%;
-    --ring: 174 60% 50%;
-    --sidebar-background: 174 30% 6%;
-    --sidebar-foreground: 174 10% 90%;
-    --sidebar-primary: 174 60% 50%;
+    --border: 262 20% 20%;
+    --input: 262 20% 20%;
+    --ring: 262 83% 66%;
+    --sidebar-background: 264 40% 10%;
+    --sidebar-foreground: 260 20% 90%;
+    --sidebar-primary: 262 83% 70%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 174 20% 12%;
-    --sidebar-accent-foreground: 174 10% 90%;
-    --sidebar-border: 174 15% 15%;
-    --sidebar-ring: 174 60% 50%;
+    --sidebar-accent: 264 30% 18%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 264 25% 20%;
+    --sidebar-ring: 262 83% 70%;
+
+    --gradient-sidebar: linear-gradient(180deg, hsl(266 45% 12%), hsl(258 40% 8%) 60%, hsl(200 40% 10%));
+    --gradient-subtle: linear-gradient(180deg, hsl(262 30% 12%), hsl(262 30% 10%));
   }
 }
+
 
 @layer base {
   :root {
@@ -108,7 +121,10 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     min-height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "ss01";
+    letter-spacing: -0.005em;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -118,7 +134,9 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
   }
 
   /* Native-app feel on touch devices: bigger tap targets */
@@ -137,12 +155,46 @@
   .gradient-sidebar {
     background: var(--gradient-sidebar);
   }
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+  .gradient-subtle {
+    background: var(--gradient-subtle);
+  }
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
   .shadow-card {
     box-shadow: var(--shadow-card);
   }
   .shadow-elevated {
     box-shadow: var(--shadow-elevated);
   }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  .hover-lift {
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-elevated);
+  }
+  .animate-enter {
+    animation: fade-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hover-lift, .animate-enter {
+      transition: none;
+      animation: none;
+      transform: none;
+    }
+  }
+
 
   /* Safe-area helpers — respect the iOS notch / home-bar / Android insets */
   .safe-top { padding-top: env(safe-area-inset-top); }
