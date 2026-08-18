@@ -98,8 +98,9 @@ function InnerSidebar({
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r bg-secondary/30">
-      <SidebarHeader className="border-b border-border/60">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border gradient-sidebar text-sidebar-foreground">
+      <SidebarHeader className="border-b border-sidebar-border/60">
+
         <button
           type="button"
           onClick={() => {
