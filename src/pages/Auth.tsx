@@ -164,7 +164,7 @@ export default function Auth() {
         )}
 
         <Card className="shadow-elevated">
-          <Tabs defaultValue="login">
+          <Tabs defaultValue={activeTab} key={activeTab}>
             <CardHeader className="pb-4">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Log In</TabsTrigger>
