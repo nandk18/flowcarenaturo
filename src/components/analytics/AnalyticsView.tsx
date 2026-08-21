@@ -18,15 +18,7 @@ import { RANGES, Range, dateRange, inr, num, DOW_NAMES, downloadCSV, toCSV } fro
 import { KpiCard } from "./KpiCard";
 import { PhoneCall, ListTodo, MessageCircle, UserPlus, Clock, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-
-const LEAD_COLUMNS: { key: string; label: string; dot: string }[] = [
-  { key: "attempt1", label: "Attempt 1", dot: "bg-amber-500" },
-  { key: "attempt2", label: "Attempt 2", dot: "bg-orange-500" },
-  { key: "attempt3", label: "Attempt 3", dot: "bg-red-500" },
-  { key: "lapsed", label: "Lapsed", dot: "bg-slate-400" },
-  { key: "closed", label: "Closed", dot: "bg-slate-500" },
-];
+import LeadPipelineBoard from "@/components/leads/LeadPipelineBoard";
 
 const SOURCE_BAR_COLORS = ["bg-teal-500", "bg-blue-500", "bg-amber-500", "bg-emerald-500", "bg-purple-500", "bg-slate-400"];
 
