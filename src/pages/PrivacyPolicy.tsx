@@ -1,13 +1,24 @@
 import SeoHead from "@/components/SeoHead";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Home } from "lucide-react";
 
 export default function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-background">
       <SeoHead
-        title="Privacy Policy — StethoScribe"
-        description="How StethoScribe collects, processes, and protects clinic and patient data under India's DPDP Act 2023."
+        title="Privacy Policy — FlowCare"
+        description="How FlowCare collects, processes, and protects clinic and patient data."
         path="/privacy"
       />
+      <div className="absolute top-4 left-4">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/" className="flex items-center gap-1.5 text-muted-foreground">
+            <Home className="h-4 w-4" />
+            Back to home
+          </Link>
+        </Button>
+      </div>
       <div className="max-w-3xl mx-auto px-4 py-10">
         <h1 className="font-display text-3xl font-bold text-foreground mb-1">Privacy Policy</h1>
         <p className="text-sm text-muted-foreground mb-8">Last updated: April 2026</p>
