@@ -216,6 +216,7 @@ function AppRoutes() {
   ) {
     return (
       <Routes>
+        <Route path="/" element={<Landing />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route path="/reset-password" element={<ResetPassword />} />
