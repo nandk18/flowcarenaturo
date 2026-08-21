@@ -64,8 +64,6 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
   const [ovd, setOvd] = useState<any>(null);
   const [fol, setFol] = useState<any>(null);
   const [led, setLed] = useState<any>(null);
-  const [pipeline, setPipeline] = useState<any[]>([]);
-  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -85,9 +83,6 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
         ]);
         if (cancelled) return;
         setRev(r); setPat(p); setApp(a); setTre(t); setThe(h); setOvd(o); setFol(f); setLed(l);
-        setPipeline(((l as any)?.pipeline ?? []) as any[]);
-
-
       } catch (e: any) {
         if (!cancelled) toast.error(e.message || "Failed to load analytics");
       } finally {
