@@ -4,8 +4,8 @@ export default function DataProcessingAgreement() {
   return (
     <div className="min-h-screen bg-background">
       <SeoHead
-        title="Data Processing Agreement — StethoScribe"
-        description="DPA terms between StethoScribe (processor) and clinics (controllers) under India's DPDP Act 2023."
+        title="Data Processing Agreement — FlowCare"
+        description="DPA terms between FlowCare (processor) and clinics (controllers) under India's DPDP Act 2023."
         path="/dpa"
       />
       <div className="max-w-3xl mx-auto px-4 py-10">
@@ -17,15 +17,15 @@ export default function DataProcessingAgreement() {
             <h2 className="font-display text-lg font-semibold text-foreground mb-2">1. Parties</h2>
             <p>This Data Processing Agreement ("DPA") is between:</p>
             <ul className="list-disc pl-5 space-y-1 mt-2 text-muted-foreground">
-              <li><strong className="text-foreground">Data Controller:</strong> The clinic or healthcare provider ("Clinic") registering for StethoScribe</li>
-              <li><strong className="text-foreground">Data Processor:</strong> StethoScribe Technologies ("StethoScribe")</li>
+              <li><strong className="text-foreground">Data Controller:</strong> The clinic or healthcare provider ("Clinic") registering for FlowCare</li>
+              <li><strong className="text-foreground">Data Processor:</strong> FlowCare Technologies ("FlowCare")</li>
             </ul>
-            <p className="mt-3">This DPA forms part of the Terms of Service and governs the processing of personal data by StethoScribe on behalf of the Clinic.</p>
+            <p className="mt-3">This DPA forms part of the Terms of Service and governs the processing of personal data by FlowCare on behalf of the Clinic.</p>
           </section>
 
           <section>
             <h2 className="font-display text-lg font-semibold text-foreground mb-2">2. Subject Matter</h2>
-            <p>StethoScribe processes personal data on behalf of the Clinic to provide clinic management, e-prescription, and AI medical scribe services as described in the Terms of Service.</p>
+            <p>FlowCare processes personal data on behalf of the Clinic to provide clinic management, e-prescription, and AI medical scribe services as described in the Terms of Service.</p>
           </section>
 
           <section>
@@ -53,7 +53,7 @@ export default function DataProcessingAgreement() {
           </section>
 
           <section>
-            <h2 className="font-display text-lg font-semibold text-foreground mb-2">5. Obligations of StethoScribe</h2>
+            <h2 className="font-display text-lg font-semibold text-foreground mb-2">5. Obligations of FlowCare</h2>
             <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
               <li>Process personal data only on documented instructions from the Clinic</li>
               <li>Ensure persons authorized to process data are bound by confidentiality</li>
@@ -73,13 +73,13 @@ export default function DataProcessingAgreement() {
               <li>Obtain appropriate patient consent before entering data</li>
               <li>Ensure data entered is accurate and up to date</li>
               <li>Manage staff access and revoke access when staff leave</li>
-              <li>Not instruct StethoScribe to process data in violation of applicable law</li>
+              <li>Not instruct FlowCare to process data in violation of applicable law</li>
             </ul>
           </section>
 
           <section>
             <h2 className="font-display text-lg font-semibold text-foreground mb-2">7. Sub-processors</h2>
-            <p>StethoScribe uses the following sub-processors to deliver its services:</p>
+            <p>FlowCare uses the following sub-processors to deliver its services:</p>
             <div className="overflow-x-auto mt-3">
               <table className="w-full text-xs border border-border rounded-lg">
                 <thead className="bg-muted">
@@ -114,14 +114,14 @@ export default function DataProcessingAgreement() {
 
           <section>
             <h2 className="font-display text-lg font-semibold text-foreground mb-2">9. Term and Termination</h2>
-            <p>This DPA remains in effect for the duration of the Terms of Service. Upon termination, StethoScribe will retain data for 90 days to allow export, after which all data will be permanently deleted.</p>
+            <p>This DPA remains in effect for the duration of the Terms of Service. Upon termination, FlowCare will retain data for 90 days to allow export, after which all data will be permanently deleted.</p>
           </section>
 
           <section>
             <h2 className="font-display text-lg font-semibold text-foreground mb-2">10. Contact</h2>
             <div className="border border-border rounded-lg p-4 bg-muted/30">
               <p className="font-semibold">For DPA-related queries:</p>
-              <p className="mt-1">Email: <a href="mailto:privacy@stethoscribe.app" className="text-primary underline">privacy@stethoscribe.app</a></p>
+              <p className="mt-1">Email: <a href="mailto:privacy@flowcare.app" className="text-primary underline">privacy@flowcare.app</a></p>
             </div>
           </section>
         </div>

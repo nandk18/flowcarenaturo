@@ -26,7 +26,7 @@ export default function PrivacyPolicy() {
         <div className="space-y-8 text-sm leading-relaxed text-foreground/90">
           <section>
             <h2 className="font-display text-lg font-semibold text-foreground mb-2">1. Introduction</h2>
-            <p>StethoScribe ("we", "our", or "us") is an AI-powered clinic management and e-prescription platform operated by StethoScribe Technologies. We are committed to protecting the privacy and security of personal data processed through our platform in accordance with the Digital Personal Data Protection Act, 2023 (DPDP Act), the Information Technology Act, 2000, and the IT (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011.</p>
+            <p>FlowCare ("we", "our", or "us") is an AI-powered clinic management and e-prescription platform operated by FlowCare Technologies. We are committed to protecting the privacy and security of personal data processed through our platform in accordance with the Digital Personal Data Protection Act, 2023 (DPDP Act), the Information Technology Act, 2000, and the IT (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011.</p>
             <p className="mt-2">This Privacy Policy explains how we collect, use, store, share, and protect personal data when clinics and their staff use our services.</p>
           </section>
 
@@ -89,7 +89,7 @@ export default function PrivacyPolicy() {
                 <p className="text-muted-foreground">All data is stored in Supabase's managed PostgreSQL database hosted on AWS. Data is encrypted at rest and in transit. Privacy policy: supabase.com/privacy</p>
               </div>
             </div>
-            <p className="mt-3">By using StethoScribe, clinics acknowledge that patient data necessary for AI processing is shared with these subprocessors under appropriate data processing agreements.</p>
+            <p className="mt-3">By using FlowCare, clinics acknowledge that patient data necessary for AI processing is shared with these subprocessors under appropriate data processing agreements.</p>
           </section>
 
           <section>
@@ -127,12 +127,12 @@ export default function PrivacyPolicy() {
               <li><strong className="text-foreground">Right to Grievance Redressal:</strong> Lodge a complaint with our Data Protection Officer</li>
               <li><strong className="text-foreground">Right to Nominate:</strong> Nominate another person to exercise your rights in case of death or incapacity</li>
             </ul>
-            <p className="mt-3">To exercise any of these rights, contact us at <strong>privacy@stethoscribe.app</strong>. We will respond within 30 days.</p>
+            <p className="mt-3">To exercise any of these rights, contact us at <strong>privacy@flowcare.app</strong>. We will respond within 30 days.</p>
           </section>
 
           <section>
             <h2 className="font-display text-lg font-semibold text-foreground mb-2">8. Cookies and Local Storage</h2>
-            <p>StethoScribe uses session cookies and browser local storage solely for authentication and user preferences. We do not use advertising cookies or track users across other websites. No third-party advertising networks have access to your data.</p>
+            <p>FlowCare uses session cookies and browser local storage solely for authentication and user preferences. We do not use advertising cookies or track users across other websites. No third-party advertising networks have access to your data.</p>
           </section>
 
           <section>
@@ -142,7 +142,7 @@ export default function PrivacyPolicy() {
 
           <section>
             <h2 className="font-display text-lg font-semibold text-foreground mb-2">10. Children's Data</h2>
-            <p>StethoScribe may process health records of minor patients as part of clinic operations. Such data is handled with additional care and only processed on the instruction of the treating clinic. We do not knowingly collect data directly from individuals under 18.</p>
+            <p>FlowCare may process health records of minor patients as part of clinic operations. Such data is handled with additional care and only processed on the instruction of the treating clinic. We do not knowingly collect data directly from individuals under 18.</p>
           </section>
 
           <section>
@@ -154,8 +154,8 @@ export default function PrivacyPolicy() {
             <h2 className="font-display text-lg font-semibold text-foreground mb-2">12. Contact Us</h2>
             <div className="border border-border rounded-lg p-4 bg-muted/30">
               <p className="font-semibold">Data Protection Officer</p>
-              <p>StethoScribe Technologies</p>
-              <p className="mt-1">Email: <a href="mailto:privacy@stethoscribe.app" className="text-primary underline">privacy@stethoscribe.app</a></p>
+              <p>FlowCare Technologies</p>
+              <p className="mt-1">Email: <a href="mailto:privacy@flowcare.app" className="text-primary underline">privacy@flowcare.app</a></p>
             </div>
           </section>
         </div>
