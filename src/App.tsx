@@ -340,7 +340,6 @@ function AppRoutes() {
       <Route path="/availability" element={<AvailabilityPage />} />
 
       {/* Tasks */}
-      {/* Tasks */}
       <Route path="/tasks/list" element={<TasksPage />} />
       <Route path="/tasks/call-task" element={<Navigate to="/tasks/list?section=calls" replace />} />
       <Route path="/tasks/todo-list" element={<Navigate to="/tasks/list?section=todo" replace />} />
@@ -350,6 +349,9 @@ function AppRoutes() {
       <Route path="/tasks/expense-list" element={<ExpenseListPage />} />
       <Route path="/tasks/pending-invoices" element={<PendingInvoicesPage />} />
       <Route path="/tasks" element={<Navigate to="/tasks/list" replace />} />
+
+      {/* Lead Pipeline */}
+      <Route path="/leads/pipeline" element={<LeadsPage />} />
 
       {/* Billing detail (reachable from Settings → Billing) */}
       <Route path="/dashboard/billing/:invoiceId" element={<InvoiceDetailPage />} />
