@@ -31,32 +31,33 @@ export default function LeadPipelineBoard({ clinicId }: { clinicId: string | nul
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      if (!clinicId) return;
       setLoading(true);
       try {
         const today = new Date().toISOString().slice(0, 10);
-        const { data, error } = await (supabase as any)
+        let q = (supabase as any)
           .from("patients")
-          .select("id, name, phone, lead_status, lead_source, call_due_date, created_at")
+          .select("id, name, phone, lead_status, lead_source, call_due_date, created_at, clinic_id")
           .in("lead_status", ["attempt1", "attempt2", "attempt3", "closed", "lapsed"])
           .order("call_due_date", { ascending: true, nullsFirst: false })
           .order("created_at", { ascending: false });
+        if (clinicId) q = q.eq("clinic_id", clinicId);
+        const { data, error } = await q;
         if (error) throw error;
         if (cancelled) return;
 
-        const rows: Lead[] = (data ?? [])
-          .filter((p: any) => clinicId === null || p.clinic_id === clinicId)
-          .map((p: any) => ({
-            id: p.id,
-            name: p.name,
-            phone: p.phone,
-            status: p.lead_status,
-            source: p.lead_source,
-            due: p.call_due_date,
-            overdue_days:
-              p.call_due_date && p.call_due_date < today
-                ? new Date(today).getDate() - new Date(p.call_due_date).getDate()
-                : 0,
-          }));
+        const rows: Lead[] = (data ?? []).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          phone: p.phone,
+          status: p.lead_status,
+          source: p.lead_source,
+          due: p.call_due_date,
+          overdue_days:
+            p.call_due_date && p.call_due_date < today
+              ? Math.max(0, Math.floor((new Date(today).getTime() - new Date(p.call_due_date).getTime()) / 86400000))
+              : 0,
+        }));
         setPipeline(rows);
       } catch (e: any) {
         if (!cancelled) toast.error(e?.message || "Failed to load lead pipeline");
