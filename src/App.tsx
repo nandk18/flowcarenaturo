@@ -95,6 +95,7 @@ const queryClient = new QueryClient({
 });
 
 const isPublicRoute = (path: string) =>
+  path === "/" ||
   path === "/auth/callback" ||
   path === "/auth" ||
   path === "/login" ||
