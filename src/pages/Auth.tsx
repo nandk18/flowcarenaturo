@@ -114,6 +114,14 @@ export default function Auth() {
         description="Log in to your FlowCare clinic account to manage patients, consultations, and prescriptions with AI voice notes."
         path="/auth"
       />
+      <div className="absolute top-4 left-4">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/" className="flex items-center gap-1.5 text-muted-foreground">
+            <Home className="h-4 w-4" />
+            Back to home
+          </Link>
+        </Button>
+      </div>
       <div className="w-full max-w-md animate-fade-in">
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo height={64} className="mb-4" />
