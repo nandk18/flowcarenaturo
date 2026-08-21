@@ -17,16 +17,7 @@ import {
 import { RANGES, Range, dateRange, inr, num, DOW_NAMES, downloadCSV, toCSV } from "@/lib/analytics/format";
 import { KpiCard } from "./KpiCard";
 import { PhoneCall, ListTodo, MessageCircle, UserPlus, Clock, CheckCircle2 } from "lucide-react";
-import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-
-const LEAD_COLUMNS: { key: string; label: string; dot: string }[] = [
-  { key: "attempt1", label: "Attempt 1", dot: "bg-amber-500" },
-  { key: "attempt2", label: "Attempt 2", dot: "bg-orange-500" },
-  { key: "attempt3", label: "Attempt 3", dot: "bg-red-500" },
-  { key: "lapsed", label: "Lapsed", dot: "bg-slate-400" },
-  { key: "closed", label: "Closed", dot: "bg-slate-500" },
-];
+import LeadPipelineBoard from "@/components/leads/LeadPipelineBoard";
 
 const SOURCE_BAR_COLORS = ["bg-teal-500", "bg-blue-500", "bg-amber-500", "bg-emerald-500", "bg-purple-500", "bg-slate-400"];
 
@@ -72,8 +63,6 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
   const [ovd, setOvd] = useState<any>(null);
   const [fol, setFol] = useState<any>(null);
   const [led, setLed] = useState<any>(null);
-  const [pipeline, setPipeline] = useState<any[]>([]);
-  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -93,9 +82,6 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
         ]);
         if (cancelled) return;
         setRev(r); setPat(p); setApp(a); setTre(t); setThe(h); setOvd(o); setFol(f); setLed(l);
-        setPipeline(((l as any)?.pipeline ?? []) as any[]);
-
-
       } catch (e: any) {
         if (!cancelled) toast.error(e.message || "Failed to load analytics");
       } finally {
@@ -119,34 +105,6 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
     }
     return rows;
   }, [led]);
-
-  const moveLead = async (leadId: string, toStatus: string) => {
-    const lead = pipeline.find((p) => p.id === leadId);
-    if (!lead || lead.status === toStatus) return;
-    const isAttempt = toStatus.startsWith("attempt");
-    const nextDue = isAttempt
-      ? new Date(Date.now() + 86400_000).toISOString().slice(0, 10)
-      : null;
-    const prev = pipeline;
-    setPipeline(
-      prev.map((p) =>
-        p.id === leadId ? { ...p, status: toStatus, due: nextDue, overdue_days: 0 } : p,
-      ),
-    );
-    try {
-      const { error } = await (supabase as any)
-        .from("patients")
-        .update({ lead_status: toStatus, call_due_date: nextDue, sla_breach_days: 0 })
-        .eq("id", leadId);
-      if (error) throw error;
-      toast.success(
-        `${lead.name} moved to ${LEAD_COLUMNS.find((c) => c.key === toStatus)?.label ?? toStatus}`,
-      );
-    } catch (e: any) {
-      setPipeline(prev);
-      toast.error(e?.message ?? "Failed to move lead");
-    }
-  };
 
   const exportAll = () => {
     if (!rev || !pat || !app || !tre || !the) return;
@@ -543,69 +501,7 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Lead pipeline</CardTitle>
-              <p className="text-xs text-muted-foreground">Drag a lead card between columns to change its stage</p>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <div className="flex min-w-[720px] gap-3">
-                {LEAD_COLUMNS.map((col) => {
-                  const items = pipeline.filter((p) => p.status === col.key);
-                  return (
-                    <div
-                      key={col.key}
-                      onDragOver={(e) => { e.preventDefault(); setDragOverCol(col.key); }}
-                      onDragLeave={() => setDragOverCol((c) => (c === col.key ? null : c))}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        setDragOverCol(null);
-                        const id = e.dataTransfer.getData("text/plain");
-                        if (id) moveLead(id, col.key);
-                      }}
-                      className={`flex-1 rounded-lg border bg-muted/30 p-2 transition-colors ${
-                        dragOverCol === col.key ? "border-primary bg-primary/5" : ""
-                      }`}
-                    >
-                      <div className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold">
-                        <span className={`h-2 w-2 rounded-full ${col.dot}`} />
-                        {col.label}
-                        <span className="ml-auto text-muted-foreground">{items.length}</span>
-                      </div>
-                      <div className="space-y-2">
-                        {items.length === 0 && (
-                          <p className="px-1 py-3 text-center text-[11px] text-muted-foreground">None</p>
-                        )}
-                        {items.slice(0, 12).map((p) => (
-                          <div
-                            key={p.id}
-                            draggable
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData("text/plain", p.id);
-                              e.dataTransfer.effectAllowed = "move";
-                            }}
-                            className="rounded-md border bg-background p-2 text-xs hover:bg-muted active:cursor-grabbing cursor-grab"
-                          >
-                            <Link to={`/patients/${p.id}`} className="block">
-                              <p className="truncate font-medium">{p.name}</p>
-                              {p.phone && <p className="truncate text-muted-foreground">{p.phone}</p>}
-                              {p.overdue_days > 0 ? (
-                                <p className="mt-1 text-[11px] font-medium text-destructive">
-                                  Overdue {p.overdue_days}d
-                                </p>
-                              ) : p.due ? (
-                                <p className="mt-1 text-[11px] text-muted-foreground">Due {p.due}</p>
-                              ) : null}
-                            </Link>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+          <LeadPipelineBoard clinicId={clinicId} />
         </TabsContent>
 
 

@@ -26,6 +26,7 @@ import TemplatesPage from "./pages/TemplatesPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsAnalyticsPage from "./pages/SettingsAnalyticsPage";
 import TasksPage from "./pages/TasksPage";
+import LeadsPage from "./pages/LeadsPage";
 import DoctorSchedulePage from "./pages/DoctorSchedulePage";
 import AvailabilityPage from "./pages/AvailabilityPage";
 import PatientsListPage from "./pages/PatientsListPage";
@@ -58,6 +59,7 @@ import { TherapistAuthProvider } from "./hooks/useTherapistAuth";
 
 import SuperAdmin from "./pages/SuperAdmin";
 import SuperAdminAnalytics from "./pages/SuperAdminAnalytics";
+import Landing from "./pages/Landing";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import DataProcessingAgreement from "./pages/DataProcessingAgreement";
@@ -93,6 +95,7 @@ const queryClient = new QueryClient({
 });
 
 const isPublicRoute = (path: string) =>
+  path === "/" ||
   path === "/auth/callback" ||
   path === "/auth" ||
   path === "/login" ||
@@ -213,6 +216,7 @@ function AppRoutes() {
   ) {
     return (
       <Routes>
+        <Route path="/" element={<Landing />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route path="/reset-password" element={<ResetPassword />} />
@@ -241,6 +245,7 @@ function AppRoutes() {
   if (!session) {
     return (
       <Routes>
+        <Route path="/" element={<Landing />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/login" element={<Auth />} />
         <Route path="/rx/:prescriptionId" element={<PrescriptionViewer />} />
@@ -335,7 +340,6 @@ function AppRoutes() {
       <Route path="/availability" element={<AvailabilityPage />} />
 
       {/* Tasks */}
-      {/* Tasks */}
       <Route path="/tasks/list" element={<TasksPage />} />
       <Route path="/tasks/call-task" element={<Navigate to="/tasks/list?section=calls" replace />} />
       <Route path="/tasks/todo-list" element={<Navigate to="/tasks/list?section=todo" replace />} />
@@ -345,6 +349,9 @@ function AppRoutes() {
       <Route path="/tasks/expense-list" element={<ExpenseListPage />} />
       <Route path="/tasks/pending-invoices" element={<PendingInvoicesPage />} />
       <Route path="/tasks" element={<Navigate to="/tasks/list" replace />} />
+
+      {/* Lead Pipeline */}
+      <Route path="/leads/pipeline" element={<LeadsPage />} />
 
       {/* Billing detail (reachable from Settings → Billing) */}
       <Route path="/dashboard/billing/:invoiceId" element={<InvoiceDetailPage />} />

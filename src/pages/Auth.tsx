@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Home } from "lucide-react";
 import { supabase as sb } from "@/integrations/supabase/client";
 import SeoHead from "@/components/SeoHead";
 import Logo from "@/components/Logo";
@@ -42,6 +42,7 @@ export default function Auth() {
   const [fullName, setFullName] = useState("");
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") === "signup" ? "signup" : "login";
   const sessionExpired = searchParams.get("reason") === "session_expired";
   const deletionRequested = searchParams.get("reason") === "deletion_requested";
   const clinicDisabled = searchParams.get("reason") === "clinic_disabled";
@@ -113,6 +114,14 @@ export default function Auth() {
         description="Log in to your FlowCare clinic account to manage patients, consultations, and prescriptions with AI voice notes."
         path="/auth"
       />
+      <div className="absolute top-4 left-4">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/" className="flex items-center gap-1.5 text-muted-foreground">
+            <Home className="h-4 w-4" />
+            Back to home
+          </Link>
+        </Button>
+      </div>
       <div className="w-full max-w-md animate-fade-in">
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo height={64} className="mb-4" />
@@ -155,7 +164,7 @@ export default function Auth() {
         )}
 
         <Card className="shadow-elevated">
-          <Tabs defaultValue="login">
+          <Tabs defaultValue={activeTab} key={activeTab}>
             <CardHeader className="pb-4">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Log In</TabsTrigger>
