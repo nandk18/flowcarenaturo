@@ -12,12 +12,13 @@ Convert the uploaded FlowCare website into a React landing page served at `/` fo
 - Back buttons: Auth page and the Privacy/Terms/DPA/Security pages get a "Back to home" link returning to `/`. Auth reads `?tab=signup` to open the sign-up tab directly.
 - SEO: page title/description, single H1, semantic sections, alt text, JSON-LD Organization/SoftwareApplication.
 
-## 2. Lead Pipeline in Daily Ops
+## 2. Lead Pipeline in sidebar
 
-- Add a third tab, **Leads**, to `src/pages/TasksPage.tsx` (`/tasks/list?section=leads`), next to Calls and To Do.
+- Add a new **Lead Pipeline** item in the main sidebar (`src/components/layout/MainShell.tsx`) linking to `/leads/pipeline`.
+- Create a new `src/pages/LeadsPage.tsx` that renders the drag-and-drop pipeline board.
 - Extract the existing drag-and-drop pipeline board from `AnalyticsView.tsx` into a reusable `src/components/leads/LeadPipelineBoard.tsx` (columns Attempt 1/2/3, Closed, Lapsed; drag to change stage with optimistic update + Supabase write; click a card to open the patient).
 - Analytics keeps using the same component, so behaviour stays identical in both places.
-- Daily Ops version loads leads directly from `patients` (no analytics PIN dependency) and shows all leads, not capped by a date range.
+- Lead Pipeline page loads leads directly from `patients` (no analytics PIN dependency) and shows all leads, not capped by a date range.
 
 ## 3. "Leads by source" shows 0 leads / 0 won
 
@@ -27,6 +28,6 @@ Fix: update the `analytics_leads` RPC so source stats cover the same lead set as
 
 ## Technical notes
 
-- New files: `src/pages/Landing.tsx`, landing section components under `src/components/landing/`, `src/components/leads/LeadPipelineBoard.tsx`.
-- Edited: `src/App.tsx` (public `/` route), `src/pages/Auth.tsx` (back link + `?tab=signup`), legal pages (back link), `src/pages/TasksPage.tsx`, `src/components/analytics/AnalyticsView.tsx`, `index.html` (title/meta), plus a migration replacing `analytics_leads`.
+- New files: `src/pages/Landing.tsx`, landing section components under `src/components/landing/`, `src/pages/LeadsPage.tsx`, `src/components/leads/LeadPipelineBoard.tsx`.
+- Edited: `src/App.tsx` (public `/` route + new `/leads/pipeline` route), `src/components/layout/MainShell.tsx` (sidebar item), `src/pages/Auth.tsx` (back link + `?tab=signup`), legal pages (back link), `src/components/analytics/AnalyticsView.tsx`, `index.html` (title/meta), plus a migration replacing `analytics_leads`.
 - Fonts (Fraunces, Work Sans, IBM Plex Mono) loaded for the landing page only.
