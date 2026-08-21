@@ -86,7 +86,7 @@ export default function MainShell({
         },
         {
           to: "/leads/pipeline",
-          icon: Funnel,
+          icon: Filter,
           label: "Lead Pipeline",
           match: (p) => p.startsWith("/leads/pipeline"),
         },
