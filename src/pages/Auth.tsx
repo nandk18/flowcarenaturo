@@ -42,6 +42,7 @@ export default function Auth() {
   const [fullName, setFullName] = useState("");
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") === "signup" ? "signup" : "login";
   const sessionExpired = searchParams.get("reason") === "session_expired";
   const deletionRequested = searchParams.get("reason") === "deletion_requested";
   const clinicDisabled = searchParams.get("reason") === "clinic_disabled";
