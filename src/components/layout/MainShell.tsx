@@ -84,7 +84,12 @@ export default function MainShell({
           match: (p) => p.startsWith("/tasks/list") || p === "/tasks",
           badge: careCallCount > 0 ? String(careCallCount) : undefined,
         },
-
+        {
+          to: "/leads/pipeline",
+          icon: Funnel,
+          label: "Lead Pipeline",
+          match: (p) => p.startsWith("/leads/pipeline"),
+        },
         {
           to: "/tasks/pending-invoices",
           icon: FileText,
