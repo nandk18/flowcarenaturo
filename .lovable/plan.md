@@ -28,6 +28,6 @@ Fix: update the `analytics_leads` RPC so source stats cover the same lead set as
 
 ## Technical notes
 
-- New files: `src/pages/Landing.tsx`, landing section components under `src/components/landing/`, `src/components/leads/LeadPipelineBoard.tsx`.
-- Edited: `src/App.tsx` (public `/` route), `src/pages/Auth.tsx` (back link + `?tab=signup`), legal pages (back link), `src/pages/TasksPage.tsx`, `src/components/analytics/AnalyticsView.tsx`, `index.html` (title/meta), plus a migration replacing `analytics_leads`.
+- New files: `src/pages/Landing.tsx`, landing section components under `src/components/landing/`, `src/pages/LeadsPage.tsx`, `src/components/leads/LeadPipelineBoard.tsx`.
+- Edited: `src/App.tsx` (public `/` route + new `/leads/pipeline` route), `src/components/layout/MainShell.tsx` (sidebar item), `src/pages/Auth.tsx` (back link + `?tab=signup`), legal pages (back link), `src/components/analytics/AnalyticsView.tsx`, `index.html` (title/meta), plus a migration replacing `analytics_leads`.
 - Fonts (Fraunces, Work Sans, IBM Plex Mono) loaded for the landing page only.
