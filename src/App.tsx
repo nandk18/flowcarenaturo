@@ -26,6 +26,7 @@ import TemplatesPage from "./pages/TemplatesPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsAnalyticsPage from "./pages/SettingsAnalyticsPage";
 import TasksPage from "./pages/TasksPage";
+import LeadsPage from "./pages/LeadsPage";
 import DoctorSchedulePage from "./pages/DoctorSchedulePage";
 import AvailabilityPage from "./pages/AvailabilityPage";
 import PatientsListPage from "./pages/PatientsListPage";
@@ -58,6 +59,7 @@ import { TherapistAuthProvider } from "./hooks/useTherapistAuth";
 
 import SuperAdmin from "./pages/SuperAdmin";
 import SuperAdminAnalytics from "./pages/SuperAdminAnalytics";
+import Landing from "./pages/Landing";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import DataProcessingAgreement from "./pages/DataProcessingAgreement";
