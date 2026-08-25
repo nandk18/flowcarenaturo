@@ -50,10 +50,11 @@ const ACCENT_BORDER: Record<ShellAccent, string> = {
 };
 
 const ACCENT_BG: Record<ShellAccent, string> = {
-  blue: "bg-sidebar-accent text-sidebar-accent-foreground",
-  green: "bg-sidebar-accent text-sidebar-accent-foreground",
-  purple: "bg-sidebar-accent text-sidebar-accent-foreground",
+  blue: "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
+  green: "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
+  purple: "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
 };
+
 
 
 const SHELL_STYLE = {
