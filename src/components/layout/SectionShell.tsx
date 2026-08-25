@@ -58,10 +58,11 @@ const ACCENT_BG: Record<ShellAccent, string> = {
 
 
 const SHELL_STYLE = {
-  // 200px desktop, 52px tablet icon-only
-  "--sidebar-width": "200px",
-  "--sidebar-width-icon": "52px",
+  // 248px desktop, 56px tablet icon-only
+  "--sidebar-width": "232px",
+  "--sidebar-width-icon": "56px",
 } as React.CSSProperties;
+
 
 function InnerSidebar({
   navGroups,
