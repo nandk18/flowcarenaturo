@@ -171,14 +171,14 @@ function InnerSidebar({
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border/60">
+      <SidebarFooter className="border-t border-sidebar-border/70">
         <div className={cn("flex items-center gap-1", collapsed && "flex-col")}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 onClick={() => {
                   closeIfMobile();
                   navigate("/settings/clinic");
@@ -191,12 +191,13 @@ function InnerSidebar({
             <TooltipContent side="right">Settings</TooltipContent>
           </Tooltip>
           {!collapsed && (
-            <span className="ml-auto truncate text-[10px] text-sidebar-foreground/60">
+            <span className="ml-auto truncate text-[11px] text-muted-foreground">
               {profile?.full_name}
             </span>
           )}
         </div>
       </SidebarFooter>
+
 
 
     </Sidebar>
