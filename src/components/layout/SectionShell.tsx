@@ -50,17 +50,19 @@ const ACCENT_BORDER: Record<ShellAccent, string> = {
 };
 
 const ACCENT_BG: Record<ShellAccent, string> = {
-  blue: "bg-sidebar-accent text-sidebar-accent-foreground",
-  green: "bg-sidebar-accent text-sidebar-accent-foreground",
-  purple: "bg-sidebar-accent text-sidebar-accent-foreground",
+  blue: "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
+  green: "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
+  purple: "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
 };
 
 
+
 const SHELL_STYLE = {
-  // 200px desktop, 52px tablet icon-only
-  "--sidebar-width": "200px",
-  "--sidebar-width-icon": "52px",
+  // 248px desktop, 56px tablet icon-only
+  "--sidebar-width": "232px",
+  "--sidebar-width-icon": "56px",
 } as React.CSSProperties;
+
 
 function InnerSidebar({
   navGroups,
@@ -98,8 +100,8 @@ function InnerSidebar({
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border gradient-sidebar text-sidebar-foreground">
-      <SidebarHeader className="border-b border-sidebar-border/60">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+      <SidebarHeader className="border-b border-sidebar-border/70">
 
         <button
           type="button"
@@ -107,22 +109,23 @@ function InnerSidebar({
             closeIfMobile();
             navigate("/dashboard");
           }}
-          className="flex items-center gap-2 rounded-md px-1.5 py-1 text-left hover:bg-sidebar-accent/50"
+          className="flex items-center gap-2.5 rounded-md px-1.5 py-1 text-left hover:bg-sidebar-accent"
         >
           <SidebarLogo clinicName={clinic?.name} size={28} />
           {!collapsed && (
-            <span className="truncate font-display text-sm font-semibold text-sidebar-foreground">
+            <span className="truncate text-[15px] font-semibold text-foreground">
               {clinic?.name ?? "FlowCare"}
             </span>
           )}
         </button>
       </SidebarHeader>
 
+
       <SidebarContent>
         {navGroups.map((group, gi) => (
           <SidebarGroup key={group.label ?? `g-${gi}`}>
             {group.label && !collapsed && (
-              <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.14em] text-sidebar-foreground/50">
+              <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                 {group.label}
               </SidebarGroupLabel>
             )}
@@ -138,8 +141,8 @@ function InnerSidebar({
                         tooltip={item.label}
                         isActive={active}
                         className={cn(
-                          "h-10 gap-2.5 rounded-full px-3 text-sm text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
-                          active && cn("font-semibold", ACCENT_BG[accent]),
+                          "h-8 gap-2.5 rounded-md px-2.5 text-[13.5px] text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                          active && cn("font-medium", ACCENT_BG[accent]),
                         )}
                       >
                         <NavLink to={item.to} end={item.end} onClick={closeIfMobile}>
@@ -147,14 +150,15 @@ function InnerSidebar({
                           <span className="flex-1 truncate">{item.label}</span>
                           {item.badge && !collapsed && (
                             <span className={cn(
-                              "ml-auto rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
+                              "ml-auto rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase",
                               /^\d+$/.test(item.badge)
                                 ? "bg-destructive text-destructive-foreground"
-                                : "bg-sidebar-accent text-sidebar-accent-foreground",
+                                : "bg-card text-muted-foreground",
                             )}>
                               {item.badge}
                             </span>
                           )}
+
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -167,14 +171,14 @@ function InnerSidebar({
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border/60">
+      <SidebarFooter className="border-t border-sidebar-border/70">
         <div className={cn("flex items-center gap-1", collapsed && "flex-col")}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 onClick={() => {
                   closeIfMobile();
                   navigate("/settings/clinic");
@@ -187,12 +191,13 @@ function InnerSidebar({
             <TooltipContent side="right">Settings</TooltipContent>
           </Tooltip>
           {!collapsed && (
-            <span className="ml-auto truncate text-[10px] text-sidebar-foreground/60">
+            <span className="ml-auto truncate text-[11px] text-muted-foreground">
               {profile?.full_name}
             </span>
           )}
         </div>
       </SidebarFooter>
+
 
 
     </Sidebar>
@@ -222,12 +227,12 @@ export default function SectionShell({
     <SidebarProvider defaultOpen={defaultOpen} style={SHELL_STYLE}>
       <InnerSidebar navGroups={navGroups} accent={accent} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/75 px-3 backdrop-blur-xl safe-top safe-x no-select sm:px-6">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card px-3 safe-top safe-x no-select sm:px-6">
           <SidebarTrigger />
           {title && (
             <div className="flex min-w-0 flex-1 items-center">
               {typeof title === "string" ? (
-                <h1 className="truncate font-display text-lg font-semibold tracking-tight sm:text-xl">
+                <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">
                   {title}
                 </h1>
               ) : (
@@ -237,9 +242,10 @@ export default function SectionShell({
           )}
           {headerRight && <div className="ml-auto flex items-center gap-2">{headerRight}</div>}
         </header>
-        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-gradient-hero p-4 pb-safe safe-x sm:p-6 lg:p-10 no-bounce">
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-background p-4 pb-safe safe-x sm:p-6 lg:p-8 no-bounce">
           <div className="animate-enter mx-auto w-full max-w-[1500px]">{children}</div>
         </main>
+
 
       </div>
       <SessionTimeoutWarning

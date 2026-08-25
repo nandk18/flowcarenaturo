@@ -473,18 +473,19 @@ export default function AdminDashboard() {
 function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
   return (
     <Card className="shadow-card">
-      <CardContent className="flex items-center gap-2 p-3 sm:gap-3 sm:p-4">
-        <div className={`flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-muted ${color}`}>
-          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted ${color}`}>
+            <Icon className="h-3.5 w-3.5" />
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="truncate text-[10px] sm:text-xs text-muted-foreground">{label}</p>
-          <p className="font-display text-lg sm:text-xl font-bold">{value}</p>
-        </div>
+        <p className="mt-2 text-2xl font-semibold tracking-tight">{value}</p>
       </CardContent>
     </Card>
   );
 }
+
 
 
 function ConsultationTabs({
