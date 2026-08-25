@@ -145,10 +145,11 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
-    letter-spacing: -0.025em;
-    line-height: 1.15;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
   }
+
 
   /* Native-app feel on touch devices: bigger tap targets */
   @media (pointer: coarse) {
