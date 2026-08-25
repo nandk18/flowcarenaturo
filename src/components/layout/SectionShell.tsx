@@ -125,7 +125,7 @@ function InnerSidebar({
         {navGroups.map((group, gi) => (
           <SidebarGroup key={group.label ?? `g-${gi}`}>
             {group.label && !collapsed && (
-              <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.14em] text-sidebar-foreground/50">
+              <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                 {group.label}
               </SidebarGroupLabel>
             )}
@@ -141,8 +141,8 @@ function InnerSidebar({
                         tooltip={item.label}
                         isActive={active}
                         className={cn(
-                          "h-10 gap-2.5 rounded-full px-3 text-sm text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
-                          active && cn("font-semibold", ACCENT_BG[accent]),
+                          "h-8 gap-2.5 rounded-md px-2.5 text-[13.5px] text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                          active && cn("font-medium", ACCENT_BG[accent]),
                         )}
                       >
                         <NavLink to={item.to} end={item.end} onClick={closeIfMobile}>
@@ -150,14 +150,15 @@ function InnerSidebar({
                           <span className="flex-1 truncate">{item.label}</span>
                           {item.badge && !collapsed && (
                             <span className={cn(
-                              "ml-auto rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
+                              "ml-auto rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase",
                               /^\d+$/.test(item.badge)
                                 ? "bg-destructive text-destructive-foreground"
-                                : "bg-sidebar-accent text-sidebar-accent-foreground",
+                                : "bg-card text-muted-foreground",
                             )}>
                               {item.badge}
                             </span>
                           )}
+
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
