@@ -100,8 +100,8 @@ function InnerSidebar({
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border gradient-sidebar text-sidebar-foreground">
-      <SidebarHeader className="border-b border-sidebar-border/60">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+      <SidebarHeader className="border-b border-sidebar-border/70">
 
         <button
           type="button"
@@ -109,16 +109,17 @@ function InnerSidebar({
             closeIfMobile();
             navigate("/dashboard");
           }}
-          className="flex items-center gap-2 rounded-md px-1.5 py-1 text-left hover:bg-sidebar-accent/50"
+          className="flex items-center gap-2.5 rounded-md px-1.5 py-1 text-left hover:bg-sidebar-accent"
         >
           <SidebarLogo clinicName={clinic?.name} size={28} />
           {!collapsed && (
-            <span className="truncate font-display text-sm font-semibold text-sidebar-foreground">
+            <span className="truncate text-[15px] font-semibold text-foreground">
               {clinic?.name ?? "FlowCare"}
             </span>
           )}
         </button>
       </SidebarHeader>
+
 
       <SidebarContent>
         {navGroups.map((group, gi) => (
