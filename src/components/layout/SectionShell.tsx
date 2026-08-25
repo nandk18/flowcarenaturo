@@ -222,12 +222,12 @@ export default function SectionShell({
     <SidebarProvider defaultOpen={defaultOpen} style={SHELL_STYLE}>
       <InnerSidebar navGroups={navGroups} accent={accent} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/75 px-3 backdrop-blur-xl safe-top safe-x no-select sm:px-6">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card px-3 safe-top safe-x no-select sm:px-6">
           <SidebarTrigger />
           {title && (
             <div className="flex min-w-0 flex-1 items-center">
               {typeof title === "string" ? (
-                <h1 className="truncate font-display text-lg font-semibold tracking-tight sm:text-xl">
+                <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">
                   {title}
                 </h1>
               ) : (
@@ -237,9 +237,10 @@ export default function SectionShell({
           )}
           {headerRight && <div className="ml-auto flex items-center gap-2">{headerRight}</div>}
         </header>
-        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-gradient-hero p-4 pb-safe safe-x sm:p-6 lg:p-10 no-bounce">
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-background p-4 pb-safe safe-x sm:p-6 lg:p-8 no-bounce">
           <div className="animate-enter mx-auto w-full max-w-[1500px]">{children}</div>
         </main>
+
 
       </div>
       <SessionTimeoutWarning
