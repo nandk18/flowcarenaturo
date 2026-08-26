@@ -193,17 +193,27 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           {title && <h1 className="font-display text-2xl font-bold text-foreground">{title}</h1>}
           {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {RANGES.map(r => (
-            <Button key={r} size="sm" variant={range === r ? "default" : "outline"} className="text-xs" onClick={() => setRange(r)}>
-              {r}
-            </Button>
-          ))}
+          <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-muted/40 p-1">
+            {RANGES.map(r => (
+              <button
+                key={r}
+                onClick={() => setRange(r)}
+                className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                  range === r
+                    ? "bg-background text-foreground shadow-sm border border-border"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
           <Button size="sm" variant="outline" onClick={exportAll} className="text-xs gap-1">
             <Download className="h-3.5 w-3.5" /> CSV
           </Button>
@@ -224,19 +234,50 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
 
         {/* OVERVIEW */}
         <TabsContent value="overview" className="space-y-4 mt-4">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <KpiCard label="Revenue billed" value={inr(rt.total_billed)} sub={`${num(rt.invoice_count)} invoices`} icon={Wallet} tone="primary" />
-            <KpiCard label="Collected" value={inr(rt.total_collected)} sub={`${collRate}% of billed`} icon={TrendingUp} tone="success" />
-            <KpiCard label="Outstanding" value={inr(rt.outstanding)} sub="Unpaid balance" icon={Wallet} tone="warning" />
-            <KpiCard label="Patients" value={num(pt.total)} sub={`+${num(pat?.new_in_range)} new`} icon={Users} tone="accent" />
-            <KpiCard label="Appointments" value={num(at.total)} sub={`${showRate}% completed`} icon={Calendar} tone="primary" />
-            <KpiCard label="Therapy sessions" value={num(tt.total)} sub={`${num(tt.completed)} done · ${num(tt.cancelled)} cancelled`} icon={Activity} tone="accent" />
-            <KpiCard label="Unique patients treated" value={num(tt.unique_patients)} icon={Users} tone="success" />
-            <KpiCard label="Reviews received" value={num((the?.therapists || []).reduce((s: number, t: any) => s + (t.reviews_count || 0), 0))} icon={Star} tone="warning" />
-            <KpiCard label="Overdue calls" value={num(ovd?.overdue_calls)} sub={`${num(ovd?.overdue_care_calls)} care · ${num(ovd?.overdue_lead_calls)} leads`} icon={PhoneCall} tone={ovd?.overdue_calls ? "danger" : "success"} />
-            <KpiCard label="Overdue to-dos" value={num(ovd?.overdue_todos)} sub="Past due date" icon={ListTodo} tone={ovd?.overdue_todos ? "danger" : "success"} />
+          {/* Top-line KPI strip, 5-across */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <KpiCard
+              label="Follow-up conv."
+              value={`${Number(fol?.totals?.rate ?? 0)}%`}
+              sub={`${num(fol?.totals?.booked)} of ${num(fol?.totals?.sent)} booked`}
+              tone="primary"
+            />
+            <KpiCard
+              label="Package completion"
+              value={`${Number(tre?.package?.avg_completion ?? 0)}%`}
+              sub={`${num(tre?.package?.fully_completed)} of ${num(tre?.package?.plans)} plans`}
+              tone="primary"
+            />
+            <KpiCard
+              label="Revenue collected"
+              value={inr(rt.total_collected)}
+              sub={`${collRate}% of billed`}
+              tone="success"
+            />
+            <KpiCard
+              label="Outstanding"
+              value={inr(rt.outstanding)}
+              sub="Unpaid balance"
+              tone="warning"
+            />
+            <KpiCard
+              label="Appointments"
+              value={`${num(at.completed)} / ${num(at.total)}`}
+              sub={`${showRate}% completed`}
+              tone="accent"
+            />
           </div>
 
+          {/* Secondary KPI strip */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <KpiCard label="Revenue billed" value={inr(rt.total_billed)} sub={`${num(rt.invoice_count)} invoices`} icon={Wallet} tone="primary" />
+            <KpiCard label="Patients" value={num(pt.total)} sub={`+${num(pat?.new_in_range)} new`} icon={Users} tone="accent" />
+            <KpiCard label="Therapy sessions" value={num(tt.total)} sub={`${num(tt.completed)} done · ${num(tt.cancelled)} cancelled`} icon={Activity} tone="accent" />
+            <KpiCard label="Reviews received" value={num((the?.therapists || []).reduce((s: number, t: any) => s + (t.reviews_count || 0), 0))} icon={Star} tone="warning" />
+            <KpiCard label="Overdue calls / to-dos" value={`${num(ovd?.overdue_calls)} / ${num(ovd?.overdue_todos)}`} sub={`${num(ovd?.overdue_care_calls)} care · ${num(ovd?.overdue_lead_calls)} leads`} icon={PhoneCall} tone={(ovd?.overdue_calls || ovd?.overdue_todos) ? "danger" : "success"} />
+          </div>
+
+          {/* Revenue */}
           <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Revenue over time</CardTitle></CardHeader><CardContent>
             {(rev?.daily || []).length === 0 ? <Empty /> : (
               <ResponsiveContainer width="100%" height={220}>
@@ -253,7 +294,8 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
             )}
           </CardContent></Card>
 
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Follow-up conversion (WhatsApp)</CardTitle></CardHeader><CardContent>
+          {/* Follow-up funnel */}
+          <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Follow-up funnel</CardTitle></CardHeader><CardContent>
             {!fol?.totals?.sent ? <Empty /> : (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
@@ -284,6 +326,73 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
               </div>
             )}
           </CardContent></Card>
+
+          {/* Treatment packages */}
+          <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Treatment packages</CardTitle></CardHeader><CardContent>
+            {!tre?.package?.plans ? <Empty /> : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                  <KpiCard label="Avg. completion" value={`${Number(tre.package.avg_completion ?? 0)}%`} tone="primary" icon={TrendingUp} />
+                  <KpiCard label="Fully completed" value={num(tre.package.fully_completed)} tone="success" icon={Activity} />
+                  <KpiCard label="Plans tracked" value={num(tre.package.plans)} icon={Activity} />
+                </div>
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart data={[
+                    { name: "0–25%", c: tre.package.b0_25 },
+                    { name: "25–50%", c: tre.package.b25_50 },
+                    { name: "50–75%", c: tre.package.b50_75 },
+                    { name: "75–99%", c: tre.package.b75_99 },
+                    { name: "100%", c: tre.package.b100 },
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                    <Tooltip formatter={(v: any) => `${v} plans`} />
+                    <Bar dataKey="c" fill={COLORS[5]} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent></Card>
+
+          {/* Leads */}
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Leads by source</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <KpiCard label="New today" value={num(led?.totals?.new_today)} icon={UserPlus} tone="primary" />
+                <KpiCard label="In progress" value={num(led?.totals?.in_progress)} icon={PhoneCall} tone="accent" />
+                <KpiCard label="Overdue attempts" value={num(led?.totals?.overdue_attempts)} icon={Clock} tone="danger" />
+                <KpiCard
+                  label="Conversion rate"
+                  value={`${Number(led?.totals?.conversion_rate ?? 0)}%`}
+                  icon={CheckCircle2}
+                  tone="success"
+                  sub={`${num(led?.totals?.converted_in_range)} of ${num(led?.totals?.leads_in_range)} leads`}
+                />
+              </div>
+              {sourceRows.map((s, i) => {
+                const max = Math.max(...sourceRows.map((x) => x.leads || 0), 1);
+                return (
+                  <div key={s.label} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium">{s.label}</span>
+                      <span className="text-muted-foreground">
+                        {num(s.leads)} leads · {num(s.won)} won · {Number(s.rate ?? 0)}%
+                      </span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-full rounded-full ${SOURCE_BAR_COLORS[i % SOURCE_BAR_COLORS.length]}`}
+                        style={{ width: `${Math.round(((s.leads || 0) / max) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+              <p className="text-xs text-muted-foreground">See the Leads tab for the full pipeline board.</p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
 

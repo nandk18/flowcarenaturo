@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertTriangle } from "lucide-react";
 import {
   ArrowLeft,
@@ -46,6 +47,8 @@ import {
   RotateCw,
   XCircle,
   CalendarCheck,
+  SlidersHorizontal,
+  MoreHorizontal,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -108,6 +111,13 @@ const STATUS_STYLES: Record<LeadStatus, string> = {
   lapsed: "bg-slate-100 text-slate-700 border-slate-300",
   current: "bg-green-100 text-green-800 border-green-200",
 };
+
+const SIMPLE_STATUS_FILTERS: { value: LeadStatus | "all"; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "current", label: "Current" },
+  { value: "closed", label: "Closed" },
+  { value: "lapsed", label: "Lapsed" },
+];
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 const GENDERS = ["Male", "Female", "Other"];
@@ -713,9 +723,14 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
 
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
-        {STATUS_OPTIONS.map((o) => {
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">Patient list</h1>
+        <p className="text-sm text-muted-foreground">{statusCounts.all ?? patients.length} patients on record</p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {SIMPLE_STATUS_FILTERS.map((o) => {
           const active = statusFilter === o.value;
           const count = statusCounts[o.value] ?? 0;
           return (
@@ -724,98 +739,89 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
               type="button"
               onClick={() => setStatusFilter(o.value)}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                "rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors",
                 active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background hover:bg-muted",
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:bg-muted",
               )}
             >
-              {o.label}
-              <span className={cn(
-                "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
-                active ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground",
-              )}>{count}</span>
+              {o.label} · {count}
             </button>
           );
         })}
-      </div>
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4">
-        <div className="space-y-1">
-          <Label className="text-xs">Source</Label>
-          <Select value={sourceFilter} onValueChange={setSourceFilter}>
-            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="Instagram">Instagram</SelectItem>
-              <SelectItem value="Phone">Phone</SelectItem>
-              <SelectItem value="WhatsApp">WhatsApp</SelectItem>
-              <SelectItem value="YuvaLife">YuvaLife</SelectItem>
-              <SelectItem value="Friend">Friend</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">From</Label>
-          <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-[150px]" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">To</Label>
-          <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-[150px]" />
-        </div>
-        <div className="relative flex-1 min-w-[200px] space-y-1">
-          <Label className="text-xs">Search</Label>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Name or phone"
-              className="pl-9"
-            />
-          </div>
-        </div>
-        <div className="ml-auto flex gap-2">
-          <Button variant="outline" size="sm" onClick={exportCsv}>
-            <Download className="mr-1.5 h-4 w-4" /> CSV
-          </Button>
-          <Button variant="outline" size="sm" onClick={exportXlsx}>
-            <FileSpreadsheet className="mr-1.5 h-4 w-4" /> Excel
-          </Button>
-        </div>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="ml-auto rounded-full gap-1.5 text-xs font-medium"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" /> More filters
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-72 space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Lead source</Label>
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All sources</SelectItem>
+                  <SelectItem value="Instagram">Instagram</SelectItem>
+                  <SelectItem value="Phone">Phone</SelectItem>
+                  <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+                  <SelectItem value="YuvaLife">YuvaLife</SelectItem>
+                  <SelectItem value="Friend">Friend</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Added on</Label>
+              <div className="flex items-center gap-2">
+                <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="h-8 text-xs" />
+                <span className="text-xs text-muted-foreground">to</span>
+                <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="h-8 text-xs" />
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
-      <div className="rounded-xl border bg-card">
+      <div className="relative w-full max-w-sm">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Name or phone..."
+          className="pl-9"
+        />
+      </div>
+
+      <div className="rounded-xl border bg-card overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Lead Source</TableHead>
-              <TableHead>Call Due</TableHead>
-              <TableHead>SLA Breach</TableHead>
-              <TableHead>Last Note</TableHead>
-              <TableHead>Added On</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Loading...</TableCell></TableRow>
             ) : pageRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="py-10">
+                <TableCell colSpan={4} className="py-10">
                   {search.trim() && renderSearchEmpty
                     ? renderSearchEmpty(search.trim())
-                    : <div className="text-center text-muted-foreground">No leads found</div>}
+                    : <div className="text-center text-muted-foreground">No patients match these filters</div>}
                 </TableCell>
               </TableRow>
-            ) : pageRows.map((p) => {
-              const lastNote = notesByPatient[p.id];
-              const breach = p.sla_breach_days ?? 0;
-              return (
-                <TableRow key={p.id}>
-                  <TableCell>
+            ) : pageRows.map((p) => (
+              <TableRow key={p.id}>
+                <TableCell>
                   <button
                     type="button"
                     onClick={() => navigate(`${patientHrefPrefix}/${p.id}`)}
@@ -826,62 +832,44 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
                 </TableCell>
                 <TableCell className="text-sm">{p.phone ?? "—"}</TableCell>
                 <TableCell>{statusBadge(p.lead_status)}</TableCell>
-                <TableCell className="text-sm">{p.lead_source ?? "—"}</TableCell>
-                <TableCell className="text-sm">{p.call_due_date ?? "—"}</TableCell>
-                <TableCell className={cn("text-sm", breach > 0 && "text-red-600 font-semibold")}>
-                  {breach > 0 ? `${breach}d` : "—"}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground max-w-[240px] truncate">
-                  {lastNote ? lastNote.slice(0, 40) + (lastNote.length > 40 ? "..." : "") : "—"}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {p.created_at ? new Date(p.created_at).toLocaleDateString() : "—"}
-                </TableCell>
-                  <TableCell className="text-right">
-                    <div className="inline-flex gap-1">
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" aria-label="Row actions">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onEdit(p)}>
+                        <Pencil className="mr-2 h-4 w-4" /> Edit patient
+                      </DropdownMenuItem>
                       {p.phone && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          asChild
-                          aria-label="WhatsApp"
-                        >
+                        <DropdownMenuItem asChild>
                           <a
                             href={`https://wa.me/${p.phone.replace(/[^\d]/g, "")}`}
                             target="_blank"
                             rel="noopener noreferrer"
+                            className="flex items-center"
                           >
-                            <MessageCircle className="h-4 w-4 text-green-600" />
+                            <MessageCircle className="mr-2 h-4 w-4 text-green-600" /> WhatsApp
                           </a>
-                        </Button>
+                        </DropdownMenuItem>
                       )}
-                      <Button variant="ghost" size="icon" onClick={() => onEdit(p)} aria-label="Edit">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-        <div className="flex items-center gap-2">
-          <Label className="text-xs">Rows per page</Label>
-          <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-            <SelectTrigger className="w-[90px] h-8"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {PAGE_SIZE_OPTIONS.map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <span className="text-muted-foreground ml-2">
-            {filtered.length === 0
-              ? "0 results"
-              : `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, filtered.length)} of ${filtered.length}`}
-          </span>
-        </div>
+        <span className="text-muted-foreground">
+          {filtered.length === 0
+            ? "0 results"
+            : `Showing ${(page - 1) * pageSize + 1}\u2013${Math.min(page * pageSize, filtered.length)} of ${filtered.length}`}
+        </span>
         {totalPages > 1 && (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>Prev</Button>

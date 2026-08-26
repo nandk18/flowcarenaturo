@@ -22,12 +22,6 @@ export default function ConsultPatients() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-foreground">Patients</h1>
-        <p className="text-sm text-muted-foreground">
-          Full patient list — shared with Sales
-        </p>
-      </div>
 
       {!clinicId ? (
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">

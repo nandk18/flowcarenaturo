@@ -5,8 +5,9 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Stethoscope, ArrowRight, Plus, Calendar, CheckCircle2, Clock, Users, Eye, Play, Sparkles, X, CalendarClock, Activity } from "lucide-react";
+import { Stethoscope, ArrowRight, Plus, Eye, Play, Sparkles, X, CalendarClock, Activity } from "lucide-react";
+import KpiTile from "@/components/dashboard/KpiTile";
+import SubTabStrip from "@/components/dashboard/SubTabStrip";
 import { useNavigate } from "react-router-dom";
 import PatientLink from "@/components/PatientLink";
 import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
@@ -236,6 +237,14 @@ export default function AdminDashboard() {
 
   const completedCount = activeAppts.filter((a) => a.status === "completed").length;
   const pendingCount = activeAppts.filter((a) => a.status === "scheduled" || a.status === "confirmed").length;
+  const completedPct = activeAppts.length > 0 ? Math.round((completedCount / activeAppts.length) * 100) : 0;
+  const nextPendingAppt = useMemo(() => {
+    const pending = activeAppts
+      .filter((a) => a.status === "scheduled" || a.status === "confirmed")
+      .slice()
+      .sort((a, b) => a.appointment_time.localeCompare(b.appointment_time));
+    return pending[0] ?? null;
+  }, [activeAppts]);
 
   // Consultation display: prefer visit status. For mixed appts, do NOT let appt.status=completed
   // (set when treatment sessions all complete) cascade back to the consult side.
@@ -335,8 +344,8 @@ export default function AdminDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="font-display text-xl font-bold sm:text-2xl">Clinical Dashboard</h1>
+      <div className="mb-5">
+        <h1 className="font-display text-xl font-bold sm:text-2xl">Clinical dashboard</h1>
         <p className="text-xs text-muted-foreground sm:text-sm">Today's appointments and consultations</p>
       </div>
 
@@ -347,34 +356,43 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard icon={Calendar} label="Today's Appointments" value={activeAppts.length} color="text-info" />
-        <StatCard icon={CheckCircle2} label="Completed" value={completedCount} color="text-success" />
-        <StatCard icon={Clock} label="Pending" value={pendingCount} color="text-warning" />
-        <StatCard icon={Users} label="Total Patients" value={totalPatients} color="text-primary" />
+      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <KpiTile
+          label="Today's appointments"
+          value={activeAppts.length}
+          trendLabel="No change"
+          trendTone="flat"
+          sub={`${consultAppts.length} consultations · ${treatmentAppts.length} treatments`}
+          accent="info"
+        />
+        <KpiTile
+          label="Completed"
+          value={completedCount}
+          trendLabel={activeAppts.length > 0 ? `${completedPct}%` : "—"}
+          trendTone={completedPct >= 50 ? "up" : "flat"}
+          sub={activeAppts.length > 0 ? `${completedCount} of ${activeAppts.length} appointments today` : "No appointments today"}
+          accent="success"
+        />
+        <KpiTile
+          label="Pending"
+          value={pendingCount}
+          trendLabel="Due today"
+          trendTone="flat"
+          sub={nextPendingAppt ? `Next at ${nextPendingAppt.appointment_time?.substring(0, 5)}` : "Nothing pending"}
+          accent="warning"
+        />
       </div>
 
-      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="inline-flex w-full sm:w-auto rounded-lg border bg-muted/50 p-1">
-          <button
-            onClick={() => setMode("consult")}
-            className={`inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              mode === "consult" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Stethoscope className="h-4 w-4" /> Consultations
-            <Badge variant="outline" className="ml-1 h-5 px-1.5 text-[10px]">{consultAppts.length}</Badge>
-          </button>
-          <button
-            onClick={() => setMode("treatment")}
-            className={`inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              mode === "treatment" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Sparkles className="h-4 w-4" /> Treatments
-            <Badge variant="outline" className="ml-1 h-5 px-1.5 text-[10px]">{treatmentAppts.length}</Badge>
-          </button>
-        </div>
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <SubTabStrip
+          variant="plain"
+          value={mode}
+          onChange={(v) => setMode(v as "consult" | "treatment")}
+          items={[
+            { value: "consult", label: (<span className="flex items-center gap-1.5"><Stethoscope className="h-4 w-4" /> Consultations</span>), count: consultAppts.length },
+            { value: "treatment", label: (<span className="flex items-center gap-1.5"><Sparkles className="h-4 w-4" /> Treatments</span>), count: treatmentAppts.length },
+          ]}
+        />
         <Button onClick={() => setBookOpen(true)} className="w-full sm:w-auto">
           <Plus className="mr-1 h-4 w-4" />
           <span className="sm:hidden">Book</span>
@@ -515,12 +533,16 @@ function ConsultationTabs({
 
   return (
     <>
-      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-3">
-        <TabsList>
-          <TabsTrigger value="active">Active ({active.length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({completed.length})</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <SubTabStrip
+        variant="underline"
+        value={tab}
+        onChange={(v) => setTab(v as "active" | "completed")}
+        items={[
+          { value: "active", label: "Active", count: active.length },
+          { value: "completed", label: "Completed", count: completed.length },
+        ]}
+      />
+      <div className="mb-3" />
 
       {loading ? (
         <div className="space-y-2">
@@ -547,28 +569,39 @@ function ConsultationTabs({
           {list.map((appt) => {
             const display = getDisplay(appt);
             const canModify = display === "scheduled" || display === "waiting" || display === "in_progress";
+            const consultSvcNames = (appt.services ?? [])
+              .filter((s) => (s.invoice_services?.service_type ?? "consultation") !== "treatment")
+              .map((s) => s.invoice_services?.name)
+              .filter(Boolean) as string[];
             return (
-              <Card key={appt.id} className="shadow-card">
-                <CardContent className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:gap-3">
-                  <div className="flex items-start gap-2 min-w-0 flex-1 sm:items-center sm:gap-3">
-                    <span className="font-mono text-xs font-bold text-primary w-12 shrink-0 sm:w-14">
+              <Card key={appt.id} className="shadow-card transition-shadow hover:shadow-md">
+                <CardContent className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:gap-4">
+                  <div className="flex items-start gap-3 min-w-0 flex-1 sm:items-center">
+                    <span className="rounded-md bg-muted px-2 py-1 font-mono text-xs font-bold text-primary shrink-0">
                       {appt.appointment_time?.substring(0, 5)}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         {appt.patient && (
-                          <PatientLink patientId={appt.patient.id} className="truncate">
+                          <PatientLink patientId={appt.patient.id} className="truncate font-medium">
                             {appt.patient.name}
                           </PatientLink>
                         )}
-                        <Badge variant="outline" className={`text-[10px] ${statusStyle(display)}`}>
+                        <Badge variant="outline" className={`rounded-full text-[10px] ${statusStyle(display)}`}>
                           {statusLabel(display)}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {formatDoctorName(appt.doctor?.name)}
-                        {appt.reason && ` · ${appt.reason}`}
-                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <span className="text-xs text-muted-foreground">{formatDoctorName(appt.doctor?.name)}</span>
+                        {consultSvcNames.map((name) => (
+                          <span key={name} className="rounded-full bg-info/10 px-2 py-0.5 text-[11px] text-info">
+                            {name}
+                          </span>
+                        ))}
+                        {appt.reason && (
+                          <span className="truncate text-xs text-muted-foreground">· {appt.reason}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center justify-end gap-1.5 shrink-0">
@@ -638,12 +671,16 @@ function TreatmentTabs({
 
   return (
     <>
-      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-3">
-        <TabsList>
-          <TabsTrigger value="active">Active ({active.length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({completed.length})</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <SubTabStrip
+        variant="underline"
+        value={tab}
+        onChange={(v) => setTab(v as "active" | "completed")}
+        items={[
+          { value: "active", label: "Active", count: active.length },
+          { value: "completed", label: "Completed", count: completed.length },
+        ]}
+      />
+      <div className="mb-3" />
 
       {loading ? (
         <div className="space-y-2">
@@ -677,22 +714,22 @@ function TreatmentTabs({
             const isCompleted = display === "completed";
             const canModify = display === "booked";
             return (
-              <Card key={appt.id} className="shadow-card">
-                <CardContent className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:gap-3">
-                  <div className="flex items-start gap-2 min-w-0 flex-1 sm:items-center sm:gap-3">
-                    <span className="font-mono text-xs font-bold text-primary w-12 shrink-0 sm:w-14">
+              <Card key={appt.id} className="shadow-card transition-shadow hover:shadow-md">
+                <CardContent className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:gap-4">
+                  <div className="flex items-start gap-3 min-w-0 flex-1 sm:items-center">
+                    <span className="rounded-md bg-muted px-2 py-1 font-mono text-xs font-bold text-primary shrink-0">
                       {appt.appointment_time?.substring(0, 5)}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         {appt.patient && (
-                          <PatientLink patientId={appt.patient.id} className="truncate">
+                          <PatientLink patientId={appt.patient.id} className="truncate font-medium">
                             {appt.patient.name}
                           </PatientLink>
                         )}
                         <Badge
                           variant="outline"
-                          className={`text-[10px] ${
+                          className={`rounded-full text-[10px] ${
                             isCompleted
                               ? "bg-success/15 text-success border-success/30"
                               : isInProgress
@@ -703,10 +740,18 @@ function TreatmentTabs({
                           {isCompleted ? "Completed" : isInProgress ? "On Board" : "Booked"}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {svcNames.length > 0 ? svcNames.join(", ") : "Treatment"}
-                        {appt.notes && ` · 📝 ${appt.notes}`}
-                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        {svcNames.length > 0 ? (
+                          svcNames.map((name) => (
+                            <span key={name} className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[11px] text-teal-700 dark:text-teal-400">
+                              {name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Treatment</span>
+                        )}
+                        {appt.notes && <span className="truncate text-xs text-muted-foreground">📝 {appt.notes}</span>}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center justify-end gap-1.5 shrink-0">
