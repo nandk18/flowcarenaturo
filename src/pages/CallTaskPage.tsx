@@ -8,9 +8,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PatientLink from "@/components/PatientLink";
-import { MessageCircle, CheckCircle2, HeartHandshake, XCircle, CalendarClock, Phone, ChevronDown } from "lucide-react";
+import { MessageCircle, CheckCircle2, HeartHandshake, XCircle, CalendarClock, Phone, ChevronDown, AlertCircle, Clock } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { format, addDays, differenceInCalendarDays } from "date-fns";
@@ -367,64 +367,60 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
               cancelledRows.filter((r) => !isInformed(r.notes) && r.called_at.slice(0, 10) === today).length +
               leadCounts.due;
             const doneCount = doneCalls.length;
-            const pills: { key: "overdue" | "due" | "done"; label: string; count: number; tone: string }[] = [
-              { key: "overdue", label: "Overdue", count: overdueCount, tone: "bg-red-100 text-red-700 border-red-200 data-[active=true]:bg-red-600 data-[active=true]:text-white data-[active=true]:border-red-600" },
-              { key: "due", label: "Due Today", count: dueCount, tone: "bg-amber-100 text-amber-700 border-amber-200 data-[active=true]:bg-amber-600 data-[active=true]:text-white data-[active=true]:border-amber-600" },
-              { key: "done", label: "Done Today", count: doneCount, tone: "bg-green-100 text-green-700 border-green-200 data-[active=true]:bg-green-600 data-[active=true]:text-white data-[active=true]:border-green-600" },
+            const statusOptions: { key: "overdue" | "due" | "done"; label: string; count: number }[] = [
+              { key: "overdue", label: "Overdue", count: overdueCount },
+              { key: "due", label: "Due Today", count: dueCount },
+              { key: "done", label: "Done Today", count: doneCount },
             ];
+            const activeCount = statusOptions.find((s) => s.key === statusTab)?.count ?? 0;
+            const typeOptions: { key: "appt" | "care" | "cancel" | "lead"; label: string; icon: any; count: number }[] = [
+              { key: "appt", label: "Appointment Tomorrow", icon: CalendarClock, count: tomorrowAppts.length },
+              { key: "care", label: "Care Call", icon: HeartHandshake, count: careRows.length },
+              { key: "cancel", label: "Cancelled Call", icon: XCircle, count: cancelledRows.filter((r) => !isInformed(r.notes)).length },
+              { key: "lead", label: "Lead Call", icon: Phone, count: leadTotal },
+            ];
+            const activeType = typeOptions.find((t) => t.key === activeTab);
             return (
-              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-                {pills.map((p) => (
-                  <button
-                    key={p.key}
-                    type="button"
-                    data-active={statusTab === p.key}
-                    onClick={() => setStatusTab(p.key)}
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select value={statusTab} onValueChange={(v) => setStatusTab(v as any)}>
+                    <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map((s) => (
+                        <SelectItem key={s.key} value={s.key}>{s.label} ({s.count})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {statusTab !== "done" && (
+                    <Select value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+                      <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {typeOptions.map((t) => (
+                          <SelectItem key={t.key} value={t.key}>{t.label} ({t.count})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                {statusTab !== "done" && (
+                  <div
                     className={cn(
-                      "inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-                      p.tone,
+                      "flex items-center gap-2 px-1 pt-1 text-sm font-semibold",
+                      statusTab === "overdue" ? "text-red-600" : "text-amber-600",
                     )}
                   >
-                    {p.key === "overdue" && "🔴"}
-                    {p.key === "due" && "🟡"}
-                    {p.key === "done" && "✅"}
-                    {p.label}: {p.count}
-                  </button>
-                ))}
-              </div>
+                    {statusTab === "overdue" ? (
+                      <AlertCircle className="h-3.5 w-3.5" />
+                    ) : (
+                      <Clock className="h-3.5 w-3.5" />
+                    )}
+                    {statusOptions.find((s) => s.key === statusTab)?.label} — {activeType ? activeType.count : activeCount}
+                  </div>
+                )}
+              </>
             );
           })()}
-
-          {statusTab !== "done" && (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-            <TabsList className="-mx-4 flex w-auto gap-1 overflow-x-auto px-4 sm:mx-0 sm:grid sm:w-full sm:grid-cols-4 sm:px-0 [&>button]:shrink-0 [&>button]:whitespace-nowrap">
-              <TabsTrigger value="appt">
-                <CalendarClock className="mr-1 h-3.5 w-3.5" />
-                Appointment Tomorrow
-                {tomorrowAppts.length > 0 && <span className="ml-1 rounded-full bg-blue-600 px-1.5 text-[10px] text-white">{tomorrowAppts.length}</span>}
-              </TabsTrigger>
-              <TabsTrigger value="care">
-                <HeartHandshake className="mr-1 h-3.5 w-3.5" />
-                Care Call
-                {careRows.length > 0 && <span className="ml-1 rounded-full bg-amber-600 px-1.5 text-[10px] text-white">{careRows.length}</span>}
-              </TabsTrigger>
-              <TabsTrigger value="cancel">
-                <XCircle className="mr-1 h-3.5 w-3.5" />
-                Cancelled Call
-                {cancelledRows.filter((r) => !isInformed(r.notes)).length > 0 && (
-                  <span className="ml-1 rounded-full bg-red-600 px-1.5 text-[10px] text-white">
-                    {cancelledRows.filter((r) => !isInformed(r.notes)).length}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="lead">
-                <Phone className="mr-1 h-3.5 w-3.5" />
-                Lead Call
-                {leadTotal > 0 && <span className="ml-1 rounded-full bg-purple-600 px-1.5 text-[10px] text-white">{leadTotal}</span>}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          )}
 
           {statusTab === "done" && (
             <section className="rounded-2xl border bg-card shadow-card overflow-hidden">

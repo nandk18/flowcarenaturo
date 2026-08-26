@@ -5,8 +5,9 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Stethoscope, ArrowRight, Plus, Calendar, CheckCircle2, Clock, Users, Eye, Play, Sparkles, X, CalendarClock, Activity } from "lucide-react";
+import { Stethoscope, ArrowRight, Plus, Eye, Play, Sparkles, X, CalendarClock, Activity } from "lucide-react";
+import KpiTile from "@/components/dashboard/KpiTile";
+import SubTabStrip from "@/components/dashboard/SubTabStrip";
 import { useNavigate } from "react-router-dom";
 import PatientLink from "@/components/PatientLink";
 import BookAppointmentModal from "@/components/appointments/BookAppointmentModal";
@@ -236,6 +237,14 @@ export default function AdminDashboard() {
 
   const completedCount = activeAppts.filter((a) => a.status === "completed").length;
   const pendingCount = activeAppts.filter((a) => a.status === "scheduled" || a.status === "confirmed").length;
+  const completedPct = activeAppts.length > 0 ? Math.round((completedCount / activeAppts.length) * 100) : 0;
+  const nextPendingAppt = useMemo(() => {
+    const pending = activeAppts
+      .filter((a) => a.status === "scheduled" || a.status === "confirmed")
+      .slice()
+      .sort((a, b) => a.appointment_time.localeCompare(b.appointment_time));
+    return pending[0] ?? null;
+  }, [activeAppts]);
 
   // Consultation display: prefer visit status. For mixed appts, do NOT let appt.status=completed
   // (set when treatment sessions all complete) cascade back to the consult side.
@@ -335,8 +344,8 @@ export default function AdminDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="font-display text-xl font-bold sm:text-2xl">Clinical Dashboard</h1>
+      <div className="mb-5">
+        <h1 className="font-display text-xl font-bold sm:text-2xl">Clinical dashboard</h1>
         <p className="text-xs text-muted-foreground sm:text-sm">Today's appointments and consultations</p>
       </div>
 
@@ -347,34 +356,43 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard icon={Calendar} label="Today's Appointments" value={activeAppts.length} color="text-info" />
-        <StatCard icon={CheckCircle2} label="Completed" value={completedCount} color="text-success" />
-        <StatCard icon={Clock} label="Pending" value={pendingCount} color="text-warning" />
-        <StatCard icon={Users} label="Total Patients" value={totalPatients} color="text-primary" />
+      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <KpiTile
+          label="Today's appointments"
+          value={activeAppts.length}
+          trendLabel="No change"
+          trendTone="flat"
+          sub={`${consultAppts.length} consultations · ${treatmentAppts.length} treatments`}
+          accent="info"
+        />
+        <KpiTile
+          label="Completed"
+          value={completedCount}
+          trendLabel={activeAppts.length > 0 ? `${completedPct}%` : "—"}
+          trendTone={completedPct >= 50 ? "up" : "flat"}
+          sub={activeAppts.length > 0 ? `${completedCount} of ${activeAppts.length} appointments today` : "No appointments today"}
+          accent="success"
+        />
+        <KpiTile
+          label="Pending"
+          value={pendingCount}
+          trendLabel="Due today"
+          trendTone="flat"
+          sub={nextPendingAppt ? `Next at ${nextPendingAppt.appointment_time?.substring(0, 5)}` : "Nothing pending"}
+          accent="warning"
+        />
       </div>
 
-      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="inline-flex w-full sm:w-auto rounded-lg border bg-muted/50 p-1">
-          <button
-            onClick={() => setMode("consult")}
-            className={`inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              mode === "consult" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Stethoscope className="h-4 w-4" /> Consultations
-            <Badge variant="outline" className="ml-1 h-5 px-1.5 text-[10px]">{consultAppts.length}</Badge>
-          </button>
-          <button
-            onClick={() => setMode("treatment")}
-            className={`inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              mode === "treatment" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Sparkles className="h-4 w-4" /> Treatments
-            <Badge variant="outline" className="ml-1 h-5 px-1.5 text-[10px]">{treatmentAppts.length}</Badge>
-          </button>
-        </div>
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <SubTabStrip
+          variant="plain"
+          value={mode}
+          onChange={(v) => setMode(v as "consult" | "treatment")}
+          items={[
+            { value: "consult", label: (<span className="flex items-center gap-1.5"><Stethoscope className="h-4 w-4" /> Consultations</span>), count: consultAppts.length },
+            { value: "treatment", label: (<span className="flex items-center gap-1.5"><Sparkles className="h-4 w-4" /> Treatments</span>), count: treatmentAppts.length },
+          ]}
+        />
         <Button onClick={() => setBookOpen(true)} className="w-full sm:w-auto">
           <Plus className="mr-1 h-4 w-4" />
           <span className="sm:hidden">Book</span>
@@ -515,12 +533,16 @@ function ConsultationTabs({
 
   return (
     <>
-      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-3">
-        <TabsList>
-          <TabsTrigger value="active">Active ({active.length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({completed.length})</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <SubTabStrip
+        variant="underline"
+        value={tab}
+        onChange={(v) => setTab(v as "active" | "completed")}
+        items={[
+          { value: "active", label: "Active", count: active.length },
+          { value: "completed", label: "Completed", count: completed.length },
+        ]}
+      />
+      <div className="mb-3" />
 
       {loading ? (
         <div className="space-y-2">
@@ -638,12 +660,16 @@ function TreatmentTabs({
 
   return (
     <>
-      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-3">
-        <TabsList>
-          <TabsTrigger value="active">Active ({active.length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({completed.length})</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <SubTabStrip
+        variant="underline"
+        value={tab}
+        onChange={(v) => setTab(v as "active" | "completed")}
+        items={[
+          { value: "active", label: "Active", count: active.length },
+          { value: "completed", label: "Completed", count: completed.length },
+        ]}
+      />
+      <div className="mb-3" />
 
       {loading ? (
         <div className="space-y-2">

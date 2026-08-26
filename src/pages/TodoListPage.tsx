@@ -114,47 +114,32 @@ export default function TodoListPage({ bare = false }: { bare?: boolean } = {}) 
   const body = (
     <>
       <div className="space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-4 shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-display text-xl font-semibold mr-2">To Do List</h1>
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-              <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+            <Select value={scopeFilter} onValueChange={(v) => setScopeFilter(v as any)}>
+              <SelectTrigger className="w-[150px]"><SelectValue placeholder="Type" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="done">Done</SelectItem>
+                <SelectItem value="all">Type: All</SelectItem>
+                <SelectItem value="patient">Patient tasks</SelectItem>
+                <SelectItem value="general">General tasks</SelectItem>
               </SelectContent>
             </Select>
             <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as any)}>
-              <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[150px]"><SelectValue placeholder="Priority" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All priorities</SelectItem>
+                <SelectItem value="all">Priority: All</SelectItem>
                 <SelectItem value="high">High</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
                 <SelectItem value="low">Low</SelectItem>
               </SelectContent>
             </Select>
-            <div className="ml-1 flex gap-1 rounded-lg border bg-background p-1">
-              {(["all", "patient", "general"] as const).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setScopeFilter(s)}
-                  className={cn(
-                    "rounded-md px-3 py-1 text-xs font-medium capitalize transition",
-                    scopeFilter === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent",
-                  )}
-                >
-                  {s === "all" ? "All" : s === "patient" ? "Patient Tasks" : "General Tasks"}
-                </button>
-              ))}
-            </div>
           </div>
-          <Button onClick={() => setOpen(true)}><Plus className="mr-1 h-3.5 w-3.5" /> Add Task</Button>
+          <Button onClick={() => setOpen(true)}><Plus className="mr-1 h-3.5 w-3.5" /> Add task</Button>
         </div>
 
-        <Section label="High Priority" color="text-red-600" items={highPending} onToggle={toggle} />
-        <Section label="Medium & Low" color="text-amber-600" items={otherPending} onToggle={toggle} />
-        <Section label="Completed Today" color="text-green-600" items={completedToday} onToggle={toggle} collapsible />
+        <Section label="High priority" color="text-red-600" items={highPending} onToggle={toggle} />
+        <Section label="Medium & low" color="text-amber-600" items={otherPending} onToggle={toggle} />
+        <Section label="Completed today" color="text-green-600" items={completedToday} onToggle={toggle} collapsible />
       </div>
 
       <TodoModal
