@@ -21,7 +21,7 @@ Note on item 6: the last point names the patient list but links the patient-prof
 ## 3. Daily Ops (`flowcare-daily-ops-redesign.html`)
 
 - `TasksPage`: title + subtitle, segmented "Call task / To do list" switch instead of the current tab strip.
-- Call task panel: three stat chips (overdue / due today / done today), a "Type" filter dropdown, grouped task lists with a group header ("Overdue — 2"), each row a card with type icon, name + phone, red/amber sub-line, and the Call / WhatsApp action buttons on the right; the tidy empty state at the end.
+- Call task panel: a status dropdown (overdue / due today / done today, with counts), a "Type" filter dropdown, grouped task lists with a group header ("Overdue — 2"), each row a card with type icon, name + phone, red/amber sub-line, and the Call / WhatsApp action buttons on the right; the tidy empty state at the end.
 - To do panel: type + priority filter dropdowns, "Add task" primary button on the right, and three cards — High priority, Medium & low, Completed today — each with count and "Nothing here" empty text.
 - All existing task data, actions and mutations are preserved.
 
