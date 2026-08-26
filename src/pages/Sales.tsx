@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertTriangle } from "lucide-react";
 import {
   ArrowLeft,
@@ -46,6 +47,8 @@ import {
   RotateCw,
   XCircle,
   CalendarCheck,
+  SlidersHorizontal,
+  MoreHorizontal,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -108,6 +111,13 @@ const STATUS_STYLES: Record<LeadStatus, string> = {
   lapsed: "bg-slate-100 text-slate-700 border-slate-300",
   current: "bg-green-100 text-green-800 border-green-200",
 };
+
+const SIMPLE_STATUS_FILTERS: { value: LeadStatus | "all"; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "current", label: "Current" },
+  { value: "closed", label: "Closed" },
+  { value: "lapsed", label: "Lapsed" },
+];
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 const GENDERS = ["Male", "Female", "Other"];
