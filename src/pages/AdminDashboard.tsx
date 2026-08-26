@@ -569,28 +569,39 @@ function ConsultationTabs({
           {list.map((appt) => {
             const display = getDisplay(appt);
             const canModify = display === "scheduled" || display === "waiting" || display === "in_progress";
+            const consultSvcNames = (appt.services ?? [])
+              .filter((s) => (s.invoice_services?.service_type ?? "consultation") !== "treatment")
+              .map((s) => s.invoice_services?.name)
+              .filter(Boolean) as string[];
             return (
-              <Card key={appt.id} className="shadow-card">
-                <CardContent className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:gap-3">
-                  <div className="flex items-start gap-2 min-w-0 flex-1 sm:items-center sm:gap-3">
-                    <span className="font-mono text-xs font-bold text-primary w-12 shrink-0 sm:w-14">
+              <Card key={appt.id} className="shadow-card transition-shadow hover:shadow-md">
+                <CardContent className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:gap-4">
+                  <div className="flex items-start gap-3 min-w-0 flex-1 sm:items-center">
+                    <span className="rounded-md bg-muted px-2 py-1 font-mono text-xs font-bold text-primary shrink-0">
                       {appt.appointment_time?.substring(0, 5)}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         {appt.patient && (
-                          <PatientLink patientId={appt.patient.id} className="truncate">
+                          <PatientLink patientId={appt.patient.id} className="truncate font-medium">
                             {appt.patient.name}
                           </PatientLink>
                         )}
-                        <Badge variant="outline" className={`text-[10px] ${statusStyle(display)}`}>
+                        <Badge variant="outline" className={`rounded-full text-[10px] ${statusStyle(display)}`}>
                           {statusLabel(display)}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {formatDoctorName(appt.doctor?.name)}
-                        {appt.reason && ` · ${appt.reason}`}
-                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <span className="text-xs text-muted-foreground">{formatDoctorName(appt.doctor?.name)}</span>
+                        {consultSvcNames.map((name) => (
+                          <span key={name} className="rounded-full bg-info/10 px-2 py-0.5 text-[11px] text-info">
+                            {name}
+                          </span>
+                        ))}
+                        {appt.reason && (
+                          <span className="truncate text-xs text-muted-foreground">· {appt.reason}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center justify-end gap-1.5 shrink-0">
@@ -703,22 +714,22 @@ function TreatmentTabs({
             const isCompleted = display === "completed";
             const canModify = display === "booked";
             return (
-              <Card key={appt.id} className="shadow-card">
-                <CardContent className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:gap-3">
-                  <div className="flex items-start gap-2 min-w-0 flex-1 sm:items-center sm:gap-3">
-                    <span className="font-mono text-xs font-bold text-primary w-12 shrink-0 sm:w-14">
+              <Card key={appt.id} className="shadow-card transition-shadow hover:shadow-md">
+                <CardContent className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:gap-4">
+                  <div className="flex items-start gap-3 min-w-0 flex-1 sm:items-center">
+                    <span className="rounded-md bg-muted px-2 py-1 font-mono text-xs font-bold text-primary shrink-0">
                       {appt.appointment_time?.substring(0, 5)}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         {appt.patient && (
-                          <PatientLink patientId={appt.patient.id} className="truncate">
+                          <PatientLink patientId={appt.patient.id} className="truncate font-medium">
                             {appt.patient.name}
                           </PatientLink>
                         )}
                         <Badge
                           variant="outline"
-                          className={`text-[10px] ${
+                          className={`rounded-full text-[10px] ${
                             isCompleted
                               ? "bg-success/15 text-success border-success/30"
                               : isInProgress
@@ -729,10 +740,18 @@ function TreatmentTabs({
                           {isCompleted ? "Completed" : isInProgress ? "On Board" : "Booked"}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {svcNames.length > 0 ? svcNames.join(", ") : "Treatment"}
-                        {appt.notes && ` · 📝 ${appt.notes}`}
-                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        {svcNames.length > 0 ? (
+                          svcNames.map((name) => (
+                            <span key={name} className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[11px] text-teal-700 dark:text-teal-400">
+                              {name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Treatment</span>
+                        )}
+                        {appt.notes && <span className="truncate text-xs text-muted-foreground">📝 {appt.notes}</span>}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center justify-end gap-1.5 shrink-0">
