@@ -23,6 +23,7 @@ import { getProfileId } from "@/utils/getProfileId";
 import { createShortLink } from "@/utils/createShortLink";
 
 import PatientDocumentsCard from "@/components/patient/PatientDocumentsCard";
+import { cn } from "@/lib/utils";
 
 
 type Patient = {
@@ -54,6 +55,7 @@ export default function PatientDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [editingVisit, setEditingVisit] = useState<any>(null);
   const [sendingLink, setSendingLink] = useState(false);
+  const [activeTab, setActiveTab] = useState<"general" | "clinical" | "invoices" | "appointments" | "treatment">("general");
   const { log: auditLog } = useAuditLog();
 
   const isAdmin = profile?.role === "admin";
@@ -185,229 +187,311 @@ export default function PatientDetailPage() {
     );
   }
 
+  const TABS: { key: typeof activeTab; label: string }[] = [
+    { key: "general", label: "General" },
+    { key: "clinical", label: "Clinical notes" },
+    { key: "invoices", label: "Invoices" },
+    { key: "appointments", label: "Appointments" },
+    { key: "treatment", label: "Treatment" },
+  ];
+
+  const InfoRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
+    <div>
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">{label}</div>
+      <div className="text-sm text-foreground">{value}</div>
+    </div>
+  );
+
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/patients")}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Patients
-        </Button>
-        <div className="flex gap-2">
-          <Button size="sm" onClick={() => navigate(`/availability?patient=${patient.id}&book=1`)}>
-            <Calendar className="mr-2 h-4 w-4" /> Add Appointment
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleSendFormLink} disabled={sendingLink}>
-            {sendingLink ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}
-            Send Form Link
-          </Button>
-          {isAdmin && (
-            <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteOpen(true)}>
-              <Trash2 className="mr-2 h-4 w-4" /> Delete
-            </Button>
-          )}
-        </div>
-      </div>
-
       {/* Patient Header */}
       <Card className="shadow-card mb-6">
         <CardContent className="p-5">
-          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-primary/10 font-display text-xl font-bold text-primary">
-              {patient.name.charAt(0).toUpperCase()}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3 min-w-0">
+              <Button variant="outline" size="icon" className="h-9 w-9 flex-shrink-0" onClick={() => navigate("/dashboard/patients")} aria-label="Back to patients">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-primary/10 font-display text-xl font-bold text-primary">
+                {patient.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <h1 className="font-display text-2xl font-bold text-foreground">{patient.name}</h1>
+                {patient.healthcare_id && <p className="font-mono text-sm text-primary">{patient.healthcare_id}</p>}
+                <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
+                  {patient.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{patient.phone}</span>}
+                  {patient.dob && <span>{getAge(patient.dob)}y</span>}
+                  {patient.gender && <span className="capitalize">{patient.gender}</span>}
+                  {patient.blood_group && <Badge variant="outline" className="text-xs">{patient.blood_group}</Badge>}
+                  {patient.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{patient.email}</span>}
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {patient.allergies && Array.isArray(patient.allergies) && (patient.allergies as string[]).map((a: string) => (
+                    <Badge key={a} variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive text-xs">
+                      <AlertTriangle className="mr-1 h-3 w-3" /> {a}
+                    </Badge>
+                  ))}
+                  {patient.chronic_conditions && Array.isArray(patient.chronic_conditions) && (patient.chronic_conditions as string[]).map((c: string) => (
+                    <Badge key={c} variant="outline" className="border-orange-400/30 bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400 text-xs">
+                      <Activity className="mr-1 h-3 w-3" /> {c}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="font-display text-2xl font-bold text-foreground">{patient.name}</h1>
-              {patient.healthcare_id && <p className="font-mono text-sm text-primary">{patient.healthcare_id}</p>}
-              <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
-                {patient.gender && <span className="capitalize">{patient.gender}</span>}
-                {patient.dob && <span>{getAge(patient.dob)}y</span>}
-                {patient.blood_group && <Badge variant="outline" className="text-xs">{patient.blood_group}</Badge>}
-                {patient.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{patient.phone}</span>}
-                {patient.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{patient.email}</span>}
-              </div>
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {patient.allergies && Array.isArray(patient.allergies) && (patient.allergies as string[]).map((a: string) => (
-                  <Badge key={a} variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive text-xs">
-                    <AlertTriangle className="mr-1 h-3 w-3" /> {a}
-                  </Badge>
-                ))}
-                {patient.chronic_conditions && Array.isArray(patient.chronic_conditions) && (patient.chronic_conditions as string[]).map((c: string) => (
-                  <Badge key={c} variant="outline" className="border-orange-400/30 bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400 text-xs">
-                    <Activity className="mr-1 h-3 w-3" /> {c}
-                  </Badge>
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-2 sm:flex-shrink-0">
+              <Button size="sm" onClick={() => navigate(`/availability?patient=${patient.id}&book=1`)}>
+                <Calendar className="mr-2 h-4 w-4" /> Add Appointment
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSendFormLink} disabled={sendingLink}>
+                {sendingLink ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}
+                Send Form Link
+              </Button>
+              {isAdmin && (
+                <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteOpen(true)}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Lifestyle & Medical History */}
-      <div className="grid gap-4 sm:grid-cols-2 mb-6">
-        <Card className="shadow-card">
-          <CardContent className="p-4 space-y-2">
-            <h3 className="font-display font-semibold mb-2">Lifestyle & Habits</h3>
-            {patient.food_habits ? <p className="text-sm flex items-center gap-2"><Coffee className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Diet:</span> <span className="capitalize">{patient.food_habits}</span></p> : null}
-            {patient.smoking ? <p className="text-sm flex items-center gap-2"><Cigarette className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Smoking:</span> <span className="capitalize">{patient.smoking}</span></p> : null}
-            {patient.alcohol ? <p className="text-sm flex items-center gap-2"><Wine className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Alcohol:</span> <span className="capitalize">{patient.alcohol}</span></p> : null}
-            {patient.sleep_hours != null ? <p className="text-sm flex items-center gap-2"><Moon className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Sleep:</span> {patient.sleep_hours}h / night</p> : null}
-            {patient.dinner_time ? <p className="text-sm flex items-center gap-2"><Utensils className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Dinner:</span> {String(patient.dinner_time).substring(0, 5)}</p> : null}
-            {!patient.food_habits && !patient.smoking && !patient.alcohol && patient.sleep_hours == null && !patient.dinner_time && (
-              <p className="text-sm text-muted-foreground italic">No lifestyle info recorded. Use "Send Form Link" to ask the patient.</p>
+      {/* Tab strip */}
+      <div className="mb-5 flex gap-6 overflow-x-auto border-b">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setActiveTab(t.key)}
+            className={cn(
+              "-mb-px whitespace-nowrap border-b-2 pb-2 text-sm transition-colors",
+              activeTab === t.key
+                ? "border-primary font-medium text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
             )}
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardContent className="p-4 space-y-2">
-            <h3 className="font-display font-semibold mb-2">Medical History</h3>
-            {patient.medication_history ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><Pill className="h-3.5 w-3.5" /> Current medication</div><p>{patient.medication_history}</p></div> : null}
-            {patient.past_surgery_details ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><Scissors className="h-3.5 w-3.5" /> Past surgery</div><p>{patient.past_surgery_details}</p></div> : null}
-            {Array.isArray(patient.allergies) && patient.allergies.length > 0 ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><AlertTriangle className="h-3.5 w-3.5" /> Allergies</div><p>{patient.allergies.join(", ")}</p></div> : null}
-            {Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length > 0 ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><ClipboardList className="h-3.5 w-3.5" /> Chronic</div><p>{patient.chronic_conditions.join(", ")}</p></div> : null}
-            {!patient.medication_history && !patient.past_surgery_details && !(Array.isArray(patient.allergies) && patient.allergies.length) && !(Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length) && (
-              <p className="text-sm text-muted-foreground italic">No medical history recorded.</p>
-            )}
-          </CardContent>
-        </Card>
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      {/* Documents */}
-      {patientId && profile?.clinic_id && (
-        <div className="mb-6">
-          <PatientDocumentsCard patientId={patientId} clinicId={profile.clinic_id} />
+      {/* General tab */}
+      {activeTab === "general" && (
+        <div className="grid gap-4 lg:grid-cols-2 items-start">
+          <div className="space-y-4">
+            <Card className="shadow-card">
+              <CardContent className="p-4">
+                <h3 className="font-display font-semibold mb-3">Contact details</h3>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <InfoRow label="Phone" value={patient.phone ?? "—"} />
+                  <InfoRow label="Email" value={patient.email ?? "—"} />
+                  <InfoRow label="Date of birth" value={patient.dob ?? "—"} />
+                  <InfoRow label="Gender" value={patient.gender ? <span className="capitalize">{patient.gender}</span> : "—"} />
+                  <InfoRow label="Blood group" value={patient.blood_group ?? "—"} />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="shadow-card">
+              <CardContent className="p-4 space-y-2">
+                <h3 className="font-display font-semibold mb-2">Lifestyle & Habits</h3>
+                {patient.food_habits ? <p className="text-sm flex items-center gap-2"><Coffee className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Diet:</span> <span className="capitalize">{patient.food_habits}</span></p> : null}
+                {patient.smoking ? <p className="text-sm flex items-center gap-2"><Cigarette className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Smoking:</span> <span className="capitalize">{patient.smoking}</span></p> : null}
+                {patient.alcohol ? <p className="text-sm flex items-center gap-2"><Wine className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Alcohol:</span> <span className="capitalize">{patient.alcohol}</span></p> : null}
+                {patient.sleep_hours != null ? <p className="text-sm flex items-center gap-2"><Moon className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Sleep:</span> {patient.sleep_hours}h / night</p> : null}
+                {patient.dinner_time ? <p className="text-sm flex items-center gap-2"><Utensils className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Dinner:</span> {String(patient.dinner_time).substring(0, 5)}</p> : null}
+                {!patient.food_habits && !patient.smoking && !patient.alcohol && patient.sleep_hours == null && !patient.dinner_time && (
+                  <p className="text-sm text-muted-foreground italic">No lifestyle info recorded. Use "Send Form Link" to ask the patient.</p>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="shadow-card">
+              <CardContent className="p-4 space-y-2">
+                <h3 className="font-display font-semibold mb-2">Medical History</h3>
+                {patient.medication_history ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><Pill className="h-3.5 w-3.5" /> Current medication</div><p>{patient.medication_history}</p></div> : null}
+                {patient.past_surgery_details ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><Scissors className="h-3.5 w-3.5" /> Past surgery</div><p>{patient.past_surgery_details}</p></div> : null}
+                {Array.isArray(patient.allergies) && patient.allergies.length > 0 ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><AlertTriangle className="h-3.5 w-3.5" /> Allergies</div><p>{patient.allergies.join(", ")}</p></div> : null}
+                {Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length > 0 ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><ClipboardList className="h-3.5 w-3.5" /> Chronic</div><p>{patient.chronic_conditions.join(", ")}</p></div> : null}
+                {!patient.medication_history && !patient.past_surgery_details && !(Array.isArray(patient.allergies) && patient.allergies.length) && !(Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length) && (
+                  <p className="text-sm text-muted-foreground italic">No medical history recorded.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          <div className="space-y-4">
+            {patientId && profile?.clinic_id && (
+              <PatientDocumentsCard patientId={patientId} clinicId={profile.clinic_id} />
+            )}
+          </div>
         </div>
       )}
 
-      {/* Vitals Trends */}
-      {patientId && <VitalsTrends patientId={patientId} />}
-
-      {/* Visit History */}
-      <h2 className="font-display text-lg font-semibold text-foreground mb-3">Visit History</h2>
-      {visits.length === 0 ? (
+      {/* Clinical notes tab */}
+      {activeTab === "clinical" && (
         <Card className="shadow-card">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Calendar className="mb-4 h-12 w-12 text-muted-foreground/20" />
-            <h3 className="font-display text-lg font-semibold text-muted-foreground">No Visits</h3>
-            <p className="text-sm text-muted-foreground">No visit history for this patient yet</p>
+          <CardContent className="p-4">
+            <h3 className="font-display font-semibold mb-3">Clinical notes</h3>
+            {visits.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <Calendar className="mb-4 h-12 w-12 text-muted-foreground/20" />
+                <h3 className="font-display text-lg font-semibold text-muted-foreground">No Visits</h3>
+                <p className="text-sm text-muted-foreground">No visit history for this patient yet</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">{visits.length} visit{visits.length !== 1 ? "s" : ""}</p>
+                {visits.map(visit => {
+                  const note = visit.clinical_notes?.[0];
+                  const soap = note?.soap_notes;
+                  const prescription = visit.prescriptions?.[0];
+                  const meds = prescription?.medications;
+                  const prescriptionId = prescription?.id;
+                  const lastEdited = note?.updated_at || prescription?.updated_at;
+
+                  const displayField = soap?.assessment || soap?.diagnosis || soap?.admission_diagnosis || soap?.current_status;
+
+                  const canEditThis = canEdit && doctor?.id && (
+                    (note && note.doctor_id === doctor.id) ||
+                    (prescription && prescription.doctor_id === doctor.id)
+                  );
+
+                  return (
+                    <Card key={visit.id} className="shadow-card">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-sm font-medium text-foreground">{visit.visit_date}</span>
+                              <Badge variant="outline" className="text-[10px]">#{visit.token_number}</Badge>
+                            </div>
+                            {visit.doctors && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {(visit.doctors.name?.match(/^dr\.?\b/i) ? visit.doctors.name : `Dr. ${visit.doctors.name}`)}{visit.doctors.qualification && `, ${visit.doctors.qualification}`}
+                              </p>
+                            )}
+                            {lastEdited && (
+                              <p className="text-[10px] text-muted-foreground mt-0.5">Last edited: {new Date(lastEdited).toLocaleString()}</p>
+                            )}
+                          </div>
+                          <Badge variant="outline" className="text-[10px] capitalize">{visit.status}</Badge>
+                        </div>
+
+                        {visit.chief_complaint && (
+                          <p className="text-sm text-muted-foreground">{visit.chief_complaint}</p>
+                        )}
+
+                        {displayField && (
+                          <p className="text-sm font-semibold text-foreground">{displayField}</p>
+                        )}
+
+                        {meds && Array.isArray(meds) && meds.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {meds.map((m: any, i: number) => (
+                              <Badge key={i} variant="secondary" className="text-[10px]">
+                                <Pill className="mr-0.5 h-2.5 w-2.5" /> {m.name} {m.dosage}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex gap-2 flex-wrap">
+                          {soap && (
+                            <Collapsible>
+                              <CollapsibleTrigger asChild>
+                                <Button variant="ghost" size="sm" className="text-xs h-7">
+                                  <FileText className="mr-1 h-3 w-3" /> Full Notes <ChevronDown className="ml-1 h-3 w-3" />
+                                </Button>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent className="mt-2 space-y-2 rounded-lg bg-muted/50 p-3 text-xs">
+                                {renderClinicalNotes(soap)}
+                              </CollapsibleContent>
+                            </Collapsible>
+                          )}
+                          {prescriptionId && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs h-7"
+                              onClick={() => openPrescription(prescriptionId)}
+                            >
+                              <ExternalLink className="mr-1 h-3 w-3" /> View Prescription
+                            </Button>
+                          )}
+                          {canEditThis && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs h-7 border-primary/30 text-primary hover:bg-primary/10"
+                              onClick={() => setEditingVisit({
+                                id: visit.id,
+                                clinical_notes_id: note?.id || null,
+                                soap_notes: soap || {},
+                                prescription_id: prescription?.id || null,
+                                medications: prescription?.medications || [],
+                                follow_up_date: prescription?.follow_up_date || null,
+                                prescription_notes: prescription?.notes || null,
+                              })}
+                            >
+                              <Pencil className="mr-1 h-3 w-3" /> Edit Notes & Rx
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
-      ) : (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">{visits.length} visit{visits.length !== 1 ? "s" : ""}</p>
-          {visits.map(visit => {
-            const note = visit.clinical_notes?.[0];
-            const soap = note?.soap_notes;
-            const prescription = visit.prescriptions?.[0];
-            const meds = prescription?.medications;
-            const prescriptionId = prescription?.id;
-            const lastEdited = note?.updated_at || prescription?.updated_at;
+      )}
 
-            const displayField = soap?.assessment || soap?.diagnosis || soap?.admission_diagnosis || soap?.current_status;
+      {/* Invoices tab */}
+      {activeTab === "invoices" && patientId && profile?.clinic_id && (
+        <Card className="shadow-card">
+          <CardContent className="p-4">
+            <h3 className="font-display font-semibold mb-3">Invoices</h3>
+            <PatientInvoicesTab patientId={patientId} clinicId={profile.clinic_id} />
+          </CardContent>
+        </Card>
+      )}
 
-            const canEditThis = canEdit && doctor?.id && (
-              (note && note.doctor_id === doctor.id) ||
-              (prescription && prescription.doctor_id === doctor.id)
-            );
-
-            return (
-              <Card key={visit.id} className="shadow-card">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between">
+      {/* Appointments tab */}
+      {activeTab === "appointments" && (
+        <Card className="shadow-card">
+          <CardContent className="p-4">
+            <h3 className="font-display font-semibold mb-3">Appointments</h3>
+            {visits.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic py-6 text-center">No appointments recorded yet</p>
+            ) : (
+              <div>
+                {visits.map((visit) => (
+                  <div key={visit.id} className="flex items-center justify-between py-2.5 border-b last:border-b-0">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-sm font-medium text-foreground">{visit.visit_date}</span>
-                        <Badge variant="outline" className="text-[10px]">#{visit.token_number}</Badge>
+                      <div className="text-sm font-medium text-foreground">{visit.visit_date}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {visit.chief_complaint || "Visit"}{visit.doctors?.name ? ` · Dr. ${visit.doctors.name}` : ""}
                       </div>
-                      {visit.doctors && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {(visit.doctors.name?.match(/^dr\.?\b/i) ? visit.doctors.name : `Dr. ${visit.doctors.name}`)}{visit.doctors.qualification && `, ${visit.doctors.qualification}`}
-                        </p>
-                      )}
-                      {lastEdited && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Last edited: {new Date(lastEdited).toLocaleString()}</p>
-                      )}
                     </div>
                     <Badge variant="outline" className="text-[10px] capitalize">{visit.status}</Badge>
                   </div>
-
-                  {visit.chief_complaint && (
-                    <p className="text-sm text-muted-foreground">{visit.chief_complaint}</p>
-                  )}
-
-                  {displayField && (
-                    <p className="text-sm font-semibold text-foreground">{displayField}</p>
-                  )}
-
-                  {meds && Array.isArray(meds) && meds.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {meds.map((m: any, i: number) => (
-                        <Badge key={i} variant="secondary" className="text-[10px]">
-                          <Pill className="mr-0.5 h-2.5 w-2.5" /> {m.name} {m.dosage}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 flex-wrap">
-                    {soap && (
-                      <Collapsible>
-                        <CollapsibleTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-xs h-7">
-                            <FileText className="mr-1 h-3 w-3" /> Full Notes <ChevronDown className="ml-1 h-3 w-3" />
-                          </Button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-2 space-y-2 rounded-lg bg-muted/50 p-3 text-xs">
-                          {renderClinicalNotes(soap)}
-                        </CollapsibleContent>
-                      </Collapsible>
-                    )}
-                    {prescriptionId && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() => openPrescription(prescriptionId)}
-                      >
-                        <ExternalLink className="mr-1 h-3 w-3" /> View Prescription
-                      </Button>
-                    )}
-                    {canEditThis && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7 border-primary/30 text-primary hover:bg-primary/10"
-                        onClick={() => setEditingVisit({
-                          id: visit.id,
-                          clinical_notes_id: note?.id || null,
-                          soap_notes: soap || {},
-                          prescription_id: prescription?.id || null,
-                          medications: prescription?.medications || [],
-                          follow_up_date: prescription?.follow_up_date || null,
-                          prescription_notes: prescription?.notes || null,
-                        })}
-                      >
-                        <Pencil className="mr-1 h-3 w-3" /> Edit Notes & Rx
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
-      {/* Invoices */}
-      {patientId && profile?.clinic_id && (
-        <div className="mt-6">
-          <h2 className="font-display text-lg font-semibold text-foreground mb-3">Invoices</h2>
-          <PatientInvoicesTab patientId={patientId} clinicId={profile.clinic_id} />
-        </div>
+      {/* Treatment tab */}
+      {activeTab === "treatment" && (
+        <Card className="shadow-card">
+          <CardContent className="p-4">
+            <h3 className="font-display font-semibold mb-3">Treatment</h3>
+            {patientId && <VitalsTrends patientId={patientId} />}
+          </CardContent>
+        </Card>
       )}
-
-
-
-
 
       {/* Edit Visit Sheet */}
       <EditVisitSheet
