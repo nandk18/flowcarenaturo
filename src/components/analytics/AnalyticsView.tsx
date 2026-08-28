@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Wallet, Users, Calendar, Activity, Star, TrendingUp, Download, Loader2,
@@ -16,7 +19,10 @@ import {
 } from "@/lib/analytics/api";
 import { RANGES, Range, dateRange, inr, num, DOW_NAMES, downloadCSV, toCSV } from "@/lib/analytics/format";
 import { KpiCard } from "./KpiCard";
-import { PhoneCall, ListTodo, MessageCircle, UserPlus, Clock, CheckCircle2 } from "lucide-react";
+import { BarChartCard } from "./BarChartCard";
+import { DonutChart } from "./DonutChart";
+import { FunnelChart } from "./FunnelChart";
+import { PhoneCall, ListTodo, MessageCircle, UserPlus, Clock, CheckCircle2, ChevronDown } from "lucide-react";
 import LeadPipelineBoard from "@/components/leads/LeadPipelineBoard";
 
 const SOURCE_BAR_COLORS = ["bg-teal-500", "bg-blue-500", "bg-amber-500", "bg-emerald-500", "bg-purple-500", "bg-slate-400"];
