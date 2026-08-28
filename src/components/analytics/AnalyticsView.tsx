@@ -196,34 +196,185 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
   const collRate = rt.total_billed > 0 ? Math.round((rt.total_collected / rt.total_billed) * 100) : 0;
   const showRate = at.total > 0 ? Math.round(((at.completed || 0) / at.total) * 100) : 0;
 
+  const PERIOD_LABEL: Record<Range, string> = {
+    "Today": "Today",
+    "This Week": "This week",
+    "This Month": "This month",
+    "Last 3 Months": "Last 3 months",
+    "This Year": "This year",
+  };
+  const PERIODS: Range[] = ["Today", "This Week", "This Month", "This Year"];
+
+  const TAB_LABEL: Record<string, string> = {
+    overview: "Overview", revenue: "Revenue", patients: "Patients",
+    appointments: "Appointments", leads: "Leads", treatments: "Treatments", therapists: "Therapists",
+  };
+
+  // --- Derived series for the top KPI sparklines + charts (no new RPCs; reuses fetched data) ---
+  const seriesTrend = (series: number[], mode: "pct" | "pts" | "count" = "pct") => {
+    if (!series || series.length < 2) return undefined;
+    const first = series[0];
+    const last = series[series.length - 1];
+    const diff = last - first;
+    if (mode === "pts") {
+      const pts = Math.round(diff);
+      if (pts === 0) return { label: "flat 0pts", direction: "flat" as const };
+      const dir: "up" | "down" = pts > 0 ? "up" : "down";
+      return { label: `${pts > 0 ? "↑" : "↓"}${Math.abs(pts)}pts`, direction: dir };
+    }
+    if (mode === "count") {
+      const c = Math.round(diff);
+      if (c === 0) return { label: "flat", direction: "flat" as const };
+      const dirC: "up" | "down" = c > 0 ? "up" : "down";
+      return { label: `${c > 0 ? "↑" : "↓"}${Math.abs(c)}`, direction: dirC };
+    }
+    if (first === 0) {
+      if (diff === 0) return { label: "flat", direction: "flat" as const };
+      const dirD: "up" | "down" = diff > 0 ? "up" : "down";
+      return { label: diff > 0 ? "↑" : "↓", direction: dirD };
+    }
+    const pct = Math.round((diff / Math.abs(first)) * 100);
+    if (pct === 0) return { label: "flat 0%", direction: "flat" as const };
+    const dirP: "up" | "down" = pct > 0 ? "up" : "down";
+    return { label: `${pct > 0 ? "↑" : "↓"}${Math.abs(pct)}%`, direction: dirP };
+  };
+
+  const followSeries = ((fol?.by_stage || []) as any[]).slice().sort((a, b) => a.stage - b.stage).map((s) => Number(s.rate || 0));
+  const packageSeries = tre?.package
+    ? [tre.package.b0_25, tre.package.b25_50, tre.package.b50_75, tre.package.b75_99, tre.package.b100].map((n) => Number(n || 0))
+    : [];
+  const revCollectedSeries = ((rev?.daily || []) as any[]).map((d) => Number(d.collected || 0));
+  const outstandingSeries = ((rev?.daily || []) as any[]).map((d) => Math.max(Number(d.billed || 0) - Number(d.collected || 0), 0));
+  const apptSeries = ((app?.daily || []) as any[]).map((d) => Number(d.c || 0));
+
+  const revenueBarData = ((rev?.daily || []) as any[]).map((d) => ({
+    label: DOW_NAMES[new Date(`${d.d}T00:00:00`).getDay()],
+    value: Number(d.collected || 0),
+  }));
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          {title && <h1 className="font-display text-2xl font-bold text-foreground">{title}</h1>}
-          {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+      <div>
+        {title && <h1 className="font-display text-2xl font-bold text-foreground">{title}</h1>}
+        <p className="text-sm text-muted-foreground">{subtitle || "Everything the doctor needs to see, in one glance"}</p>
+      </div>
+
+      {/* Toolbar: period segmented control + view dropdown */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-muted/40 p-1">
+          {PERIODS.map((r) => (
+            <button
+              key={r}
+              onClick={() => setRange(r)}
+              className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                range === r
+                  ? "bg-background text-foreground shadow-sm border border-border"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {PERIOD_LABEL[r]}
+            </button>
+          ))}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-muted/40 p-1">
-            {RANGES.map(r => (
-              <button
-                key={r}
-                onClick={() => setRange(r)}
-                className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                  range === r
-                    ? "bg-background text-foreground shadow-sm border border-border"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs font-medium">
+                View: {TAB_LABEL[tab] ?? "Overview"}
+                <ChevronDown className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {Object.entries(TAB_LABEL).map(([key, label]) => (
+                <DropdownMenuItem key={key} onClick={() => setTab(key)}>
+                  {label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button size="sm" variant="outline" onClick={exportAll} className="text-xs gap-1">
             <Download className="h-3.5 w-3.5" /> CSV
           </Button>
         </div>
+      </div>
+
+      {/* Five-across KPI tiles with inline sparklines */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <KpiCard
+          label="Follow-up conv."
+          value={`${Number(fol?.totals?.rate ?? 0)}%`}
+          tone="primary"
+          trend={seriesTrend(followSeries, "pts")}
+          spark={followSeries}
+        />
+        <KpiCard
+          label="Package completion"
+          value={`${Number(tre?.package?.avg_completion ?? 0)}%`}
+          tone="primary"
+          trend={seriesTrend(packageSeries, "pts")}
+          spark={packageSeries}
+        />
+        <KpiCard
+          label="Revenue collected"
+          value={inr(rt.total_collected)}
+          tone="success"
+          trend={seriesTrend(revCollectedSeries, "pct")}
+          spark={revCollectedSeries}
+        />
+        <KpiCard
+          label="Outstanding"
+          value={inr(rt.outstanding)}
+          tone="warning"
+          trend={seriesTrend(outstandingSeries, "pct")}
+          spark={outstandingSeries}
+        />
+        <KpiCard
+          label="Appointments"
+          value={`${num(at.completed)} / ${num(at.total)}`}
+          tone="accent"
+          trend={seriesTrend(apptSeries, "count")}
+          spark={apptSeries}
+        />
+      </div>
+
+      {/* Revenue / collections / follow-up snapshot */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="shadow-card lg:col-span-1">
+          <CardContent className="pt-5">
+            <BarChartCard
+              title="Revenue over time"
+              sub="Last 7 days · collected/day"
+              data={revenueBarData}
+              formatValue={(v) => (v > 0 ? inr(v) : "")}
+            />
+          </CardContent>
+        </Card>
+        <Card className="shadow-card lg:col-span-1">
+          <CardContent className="pt-5">
+            <DonutChart
+              title="Collected vs outstanding"
+              sub={PERIOD_LABEL[range]}
+              centerLabel={`${collRate}%`}
+              segments={[
+                { label: "Collected", value: Number(rt.total_collected || 0), color: "hsl(var(--success))", formatted: inr(rt.total_collected) },
+                { label: "Outstanding", value: Number(rt.outstanding || 0), color: "hsl(var(--warning))", formatted: inr(rt.outstanding) },
+              ]}
+            />
+          </CardContent>
+        </Card>
+        <Card className="shadow-card lg:col-span-1">
+          <CardContent className="pt-5">
+            <FunnelChart
+              title="Follow-up funnel"
+              sub={`Reminders → booked, ${PERIOD_LABEL[range].toLowerCase()}`}
+              rows={[
+                { label: "Sent", value: Number(fol?.totals?.sent || 0), color: "hsl(var(--info))" },
+                { label: "Booked", value: Number(fol?.totals?.booked || 0), color: "hsl(var(--success))" },
+              ]}
+            />
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>

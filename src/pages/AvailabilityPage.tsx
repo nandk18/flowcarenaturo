@@ -309,17 +309,17 @@ export default function AvailabilityPage() {
         </Button>
       </div>
 
-      <div className="mb-3 flex flex-wrap items-center gap-3">
+      <div className="mb-3.5 flex flex-wrap items-center gap-3">
         <DoctorMultiSelect doctors={doctors} selectedIds={doctorIds} onChange={setDoctorIds} />
 
-        <div className="inline-flex rounded-lg border bg-muted/40 p-1">
+        <div className="inline-flex rounded-lg border bg-muted/40 p-[3px]">
           {(["day", "week", "month"] as View[]).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
               className={cn(
-                "rounded-md px-3.5 py-1.5 text-xs font-medium capitalize transition-colors",
-                view === v ? "bg-card text-foreground shadow-sm border" : "text-muted-foreground hover:text-foreground",
+                "rounded-md px-3.5 py-[7px] text-[13px] font-medium capitalize transition-colors",
+                view === v ? "border bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
               )}
             >
               {v}
@@ -327,31 +327,41 @@ export default function AvailabilityPage() {
           ))}
         </div>
 
-        <Button variant="outline" size="sm" onClick={goToday}>Today</Button>
+        <Button variant="outline" size="sm" className="h-8" onClick={goToday}>Today</Button>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={goPrev}><ChevronLeft className="h-4 w-4" /></Button>
-          <span className="min-w-[200px] text-center font-display text-sm font-semibold">{headerLabel}</span>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={goNext}><ChevronRight className="h-4 w-4" /></Button>
+          <button
+            onClick={goPrev}
+            className="flex h-[30px] w-[30px] items-center justify-center rounded-lg border text-muted-foreground hover:bg-muted"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <span className="min-w-[150px] text-center text-[13.5px] font-semibold">{headerLabel}</span>
+          <button
+            onClick={goNext}
+            className="flex h-[30px] w-[30px] items-center justify-center rounded-lg border text-muted-foreground hover:bg-muted"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
 
-      {view === "day" ? (
-        <div className="mb-3 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+      {view === "day" && doctorIds.length > 1 ? (
+        <div className="mb-3 flex flex-wrap items-center gap-3.5">
           {selectedDoctors.map((d) => {
             const color = doctorColor(allDoctorIds, d.id);
             return (
-              <span key={d.id} className="flex items-center gap-1">
-                <span className={cn("h-2.5 w-2.5 rounded-full", color.dot)} /> {formatDoctorName(d.name)}
+              <span key={d.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className={cn("h-2.5 w-2.5 rounded-sm", color.dot)} /> {formatDoctorName(d.name)}
               </span>
             );
           })}
         </div>
       ) : (
-        <div className="mb-3 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-          <span className="flex items-center gap-1"><span className={cn("h-2.5 w-2.5 rounded", typeStyle.consultation.dot)} /> Consultation</span>
-          <span className="flex items-center gap-1"><span className={cn("h-2.5 w-2.5 rounded", typeStyle.treatment.dot)} /> Treatment</span>
-          <span className="flex items-center gap-1"><span className={cn("h-2.5 w-2.5 rounded", typeStyle.break.dot)} /> Break</span>
+        <div className="mb-3 flex flex-wrap items-center gap-3.5">
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className={cn("h-2.5 w-2.5 rounded-sm", typeStyle.consultation.dot)} /> Consultation</span>
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className={cn("h-2.5 w-2.5 rounded-sm", typeStyle.treatment.dot)} /> Treatment</span>
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className={cn("h-2.5 w-2.5 rounded-sm", typeStyle.break.dot)} /> Break</span>
         </div>
       )}
 
@@ -490,55 +500,54 @@ function MonthView({
     return Array.from({ length: 42 }, (_, i) => addDays(start, i));
   }, [cursor]);
   return (
-    <Card className="shadow-card"><CardContent className="p-3">
-      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-muted-foreground mb-1">
-        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => <div key={d}>{d}</div>)}
-      </div>
-      <div className="grid grid-cols-7 gap-1">
-        {cells.map((day) => {
-          const dateStr = format(day, "yyyy-MM-dd");
-          const items = apptsByDate.get(dateStr) ?? [];
-          const inMonth = isSameMonth(day, cursor);
-          const today = isSameDay(day, new Date());
-          const summary = summaryFor(day);
-          return (
-            <button
-              key={dateStr}
-              onClick={() => onPickDay(day)}
-              className={cn(
-                "min-h-[96px] rounded-md border p-1 text-left text-xs flex flex-col gap-1",
-                summaryTint[summary],
-                !inMonth && "opacity-40",
-                today && "ring-2 ring-primary",
+    <div className="grid grid-cols-7 overflow-hidden rounded-xl border bg-card">
+      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+        <div key={d} className="border-b bg-muted/30 px-1.5 py-2 text-center text-[11px] font-semibold text-muted-foreground">
+          {d}
+        </div>
+      ))}
+      {cells.map((day, i) => {
+        const dateStr = format(day, "yyyy-MM-dd");
+        const items = apptsByDate.get(dateStr) ?? [];
+        const inMonth = isSameMonth(day, cursor);
+        const today = isSameDay(day, new Date());
+        const summary = summaryFor(day);
+        return (
+          <button
+            key={dateStr}
+            onClick={() => onPickDay(day)}
+            className={cn(
+              "relative flex min-h-[92px] flex-col gap-1 border-b border-l p-1.5 text-left text-[11px]",
+              (i % 7) === 0 && "border-l-0",
+              summary === "off" ? "bg-muted/20" : "bg-card",
+              !inMonth && "opacity-40",
+              today && "bg-info/10 ring-1 ring-inset ring-info",
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11.5px] font-medium">{format(day, "d")}</span>
+              {summaryLabel[summary] && (
+                <span className="text-[9px] uppercase tracking-wide text-muted-foreground">{summaryLabel[summary]}</span>
               )}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-semibold">{format(day, "d")}</span>
-                {summaryLabel[summary] && (
-                  <span className="text-[9px] uppercase tracking-wide text-muted-foreground">{summaryLabel[summary]}</span>
-                )}
-              </div>
-              <div className="flex-1 space-y-0.5 overflow-hidden">
-                {items.slice(0, 3).map((a) => {
-                  const t = typeStyle[apptType(a)];
-                  return (
-                    <div key={a.id} className={cn("flex items-center gap-1 truncate rounded border-l-2 bg-background/70 px-1 py-0.5", t.border, a.status === "cancelled" && "opacity-60")}>
-                      <span className={cn("h-1.5 w-1.5 rounded-full", t.dot)} />
-                      <span className="font-mono">{a.appointment_time?.substring(0, 5)}</span>
-                      <span className={cn("truncate", a.status === "cancelled" && "line-through text-muted-foreground")}>
-                        {a.patient?.name ?? "—"}
-                      </span>
-                    </div>
-                  );
-                })}
-                {items.length > 3 && <div className="text-[10px] text-muted-foreground">+{items.length - 3} more</div>}
-
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </CardContent></Card>
+            </div>
+            <div className="flex-1 space-y-0.5 overflow-hidden">
+              {items.slice(0, 3).map((a) => {
+                const t = typeStyle[apptType(a)];
+                return (
+                  <div key={a.id} className={cn("flex items-center gap-1 truncate rounded-r border-l-2 bg-muted/50 px-1 py-0.5", t.border, a.status === "cancelled" && "opacity-60")}>
+                    <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", t.dot)} />
+                    <span className={cn("truncate", a.status === "cancelled" && "line-through text-muted-foreground")}>
+                      {a.patient?.name ?? "—"}
+                    </span>
+                  </div>
+                );
+              })}
+              {items.length > 3 && <div className="text-[9.5px] text-muted-foreground">+{items.length - 3} more</div>}
+            </div>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -547,49 +556,47 @@ function WeekView({
 }: { cursor: Date; apptsByDate: Map<string, Appt[]>; summaryFor: (d: Date) => DaySummary; onPickSlot: (date: string, time: string) => void; onOpenAppt: (a: Appt) => void }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(cursor, { weekStartsOn: 1 }), i));
   return (
-    <Card className="shadow-card"><CardContent className="p-3">
-      <div className="grid grid-cols-7 gap-2">
-        {days.map((day) => {
-          const dateStr = format(day, "yyyy-MM-dd");
-          const items = apptsByDate.get(dateStr) ?? [];
-          const today = isSameDay(day, new Date());
-          const summary = summaryFor(day);
-          return (
-            <div key={dateStr} className={cn("rounded-md border p-2", summaryTint[summary], today && "ring-2 ring-primary")}>
-              <div className="mb-2 flex items-center justify-between text-xs font-semibold">
-                <span>{format(day, "EEE d")}</span>
-                {summaryLabel[summary] && (
-                  <span className="text-[9px] uppercase tracking-wide text-muted-foreground">{summaryLabel[summary]}</span>
-                )}
-              </div>
-              <div className="space-y-1">
-                {items.length === 0 && summary !== "off" && (
-                  <button onClick={() => onPickSlot(dateStr, "")} className="w-full rounded border border-dashed py-2 text-[10px] text-muted-foreground hover:bg-muted">+ Book</button>
-                )}
-                {items.map((a) => {
-                  const t = typeStyle[apptType(a)];
-                  return (
-                    <div key={a.id} onClick={() => onOpenAppt(a)} className={cn("cursor-pointer rounded border-l-2 bg-background p-1.5 text-[11px]", t.border, a.status === "cancelled" && "opacity-60")}>
-                      <div className="flex items-center gap-1">
-                        <span className={cn("h-1.5 w-1.5 rounded-full", t.dot)} />
-                        <span className="font-mono">{a.appointment_time?.substring(0, 5)}</span>
-                      </div>
-                      {a.patient && <span className={cn("block truncate text-xs", a.status === "cancelled" && "line-through text-muted-foreground")}>{a.patient.name}</span>}
-                      {a.services && a.services.length > 0 && (
-                        <div className={cn("truncate text-[10px] text-muted-foreground", a.status === "cancelled" && "line-through")}>
-                          {a.services.slice(0, 2).join(", ")}{a.services.length > 2 ? ` +${a.services.length - 2}` : ""}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-              </div>
+    <div className="grid grid-cols-7 gap-2">
+      {days.map((day) => {
+        const dateStr = format(day, "yyyy-MM-dd");
+        const items = apptsByDate.get(dateStr) ?? [];
+        const today = isSameDay(day, new Date());
+        const summary = summaryFor(day);
+        return (
+          <div key={dateStr} className={cn("overflow-hidden rounded-xl border bg-card", today && "ring-1 ring-inset ring-info")}>
+            <div className={cn("flex items-center justify-between border-b bg-muted/30 px-2 py-2 text-[11px] font-semibold", summary === "off" && "text-muted-foreground/60")}>
+              <span>{format(day, "EEE d")}</span>
+              {summaryLabel[summary] && (
+                <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">{summaryLabel[summary]}</span>
+              )}
             </div>
-          );
-        })}
-      </div>
-    </CardContent></Card>
+            <div className="space-y-1 p-1.5">
+              {items.length === 0 && summary !== "off" && (
+                <button onClick={() => onPickSlot(dateStr, "")} className="w-full rounded border border-dashed py-2 text-[10px] text-muted-foreground hover:bg-muted">+ Book</button>
+              )}
+              {items.length === 0 && summary === "off" && (
+                <div className="py-3 text-center text-[10px] text-muted-foreground/50">—</div>
+              )}
+              {items.map((a) => {
+                const t = typeStyle[apptType(a)];
+                return (
+                  <div key={a.id} onClick={() => onOpenAppt(a)} className={cn("cursor-pointer rounded-r-md border-l-[3px] px-2 py-1.5 text-[11px]", t.border, t.bg, a.status === "cancelled" && "opacity-60")}>
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="font-semibold">{to12h(a.appointment_time?.substring(0, 5))}</span>
+                      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", t.dot)} />
+                    </div>
+                    {a.patient && <span className={cn("block truncate text-[11px] font-medium", a.status === "cancelled" && "line-through text-muted-foreground")}>{a.patient.name}</span>}
+                    <span className={cn("truncate text-[9.5px]", t.text)}>
+                      {a.services && a.services.length > 0 ? a.services.slice(0, 1).join(", ") : t.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -638,7 +645,7 @@ function MultiDoctorDayView({
   const times = Array.from(timeSet).sort();
 
   if (doctors.length === 0) {
-    return <Card className="shadow-card"><CardContent className="py-10 text-center text-sm text-muted-foreground">Select at least one doctor to view the calendar.</CardContent></Card>;
+    return <div className="rounded-xl border bg-card py-10 text-center text-sm text-muted-foreground">Select at least one doctor to view the calendar.</div>;
   }
 
   const renderApptContent = (a: Appt) => {
@@ -675,16 +682,16 @@ function MultiDoctorDayView({
   };
 
   return (
-    <Card className="shadow-card overflow-x-auto"><CardContent className="p-0">
-      <div className="grid min-w-fit" style={{ gridTemplateColumns: `72px repeat(${columns.length}, minmax(180px, 1fr))` }}>
+    <div className="overflow-x-auto rounded-xl border bg-card">
+      <div className="grid min-w-fit" style={{ gridTemplateColumns: `64px repeat(${columns.length}, minmax(180px, 1fr))` }}>
         <div className="border-b bg-muted/30" />
         {columns.map(({ doctor, color, activeAppts }) => (
-          <div key={doctor.id} className="flex items-center gap-2 border-b border-l bg-muted/30 px-3 py-2.5">
-            <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold", color.avatarBg, color.avatarText)}>
+          <div key={doctor.id} className="flex items-center gap-[7px] border-b border-l bg-muted/30 px-2.5 py-2.5">
+            <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold", color.avatarBg, color.avatarText)}>
               {doctorInitial(doctor.name)}
             </span>
             <span className="truncate text-[12.5px] font-semibold">{formatDoctorName(doctor.name)}</span>
-            <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{activeAppts.length} appts</span>
+            <span className="ml-auto shrink-0 text-[10.5px] text-muted-foreground">{activeAppts.length} appts</span>
           </div>
         ))}
 
@@ -696,12 +703,12 @@ function MultiDoctorDayView({
 
         {times.map((time) => (
           <div key={time} className="contents">
-            <div className="flex items-start border-b px-2 py-2 text-[10.5px] text-muted-foreground">{to12h(time)}</div>
+            <div className="flex items-start border-b bg-muted/10 px-2.5 py-2.5 text-[10.5px] text-muted-foreground">{to12h(time)}</div>
             {columns.map((col) => {
               const list = col.byTime.get(time);
               const slot = col.slots.find((s) => s.time === time);
               return (
-                <div key={col.doctor.id} className="min-h-[52px] border-b border-l p-1">
+                <div key={col.doctor.id} className="min-h-[52px] border-b border-l p-[5px]">
                   {list && list.length > 0 ? (
                     <div className="flex h-full flex-col gap-1">
                       {list.map((a) => renderApptContent(a))}
@@ -728,7 +735,7 @@ function MultiDoctorDayView({
       </div>
 
       {columns.some((c) => c.cancelledAppts.length > 0) && (
-        <div className="border-t p-3">
+        <div className="border-t bg-card p-3">
           <div className="mb-1 text-[10px] font-semibold uppercase text-red-700">Cancelled</div>
           <div className="space-y-1">
             {columns.flatMap((c) => c.cancelledAppts).map((a) => (
@@ -746,6 +753,6 @@ function MultiDoctorDayView({
           </div>
         </div>
       )}
-    </CardContent></Card>
+    </div>
   );
 }
