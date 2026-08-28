@@ -75,8 +75,8 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
   const [cancelledRows, setCancelledRows] = useState<CancelledRow[]>([]);
   const [cancelNotes, setCancelNotes] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useUrlState("tab", "lead") as [
-    "appt" | "care" | "cancel" | "lead",
-    (v: "appt" | "care" | "cancel" | "lead") => void,
+    "appt" | "care" | "cancel" | "lead" | "all",
+    (v: "appt" | "care" | "cancel" | "lead" | "all") => void,
   ];
   const [statusTab, setStatusTab] = useUrlState("status", "overdue") as [
     "overdue" | "due" | "done",
@@ -373,41 +373,55 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
               { key: "done", label: "Done Today", count: doneCount },
             ];
             const activeCount = statusOptions.find((s) => s.key === statusTab)?.count ?? 0;
-            const typeOptions: { key: "appt" | "care" | "cancel" | "lead"; label: string; icon: any; count: number }[] = [
+            const totalTypeCount = tomorrowAppts.length + careRows.length + cancelledRows.filter((r) => !isInformed(r.notes)).length + leadTotal;
+            const typeOptions: { key: "all" | "appt" | "care" | "cancel" | "lead"; label: string; icon: any; count: number }[] = [
+              { key: "all", label: "All", icon: Clock, count: totalTypeCount },
               { key: "appt", label: "Appointment Tomorrow", icon: CalendarClock, count: tomorrowAppts.length },
               { key: "care", label: "Care Call", icon: HeartHandshake, count: careRows.length },
               { key: "cancel", label: "Cancelled Call", icon: XCircle, count: cancelledRows.filter((r) => !isInformed(r.notes)).length },
               { key: "lead", label: "Lead Call", icon: Phone, count: leadTotal },
             ];
             const activeType = typeOptions.find((t) => t.key === activeTab);
+            const dotCls = { overdue: "bg-destructive", due: "bg-warning", done: "bg-success" } as const;
             return (
               <>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Select value={statusTab} onValueChange={(v) => setStatusTab(v as any)}>
-                    <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                  {statusOptions.map((s) => {
+                    const active = statusTab === s.key;
+                    return (
+                      <button
+                        key={s.key}
+                        type="button"
+                        onClick={() => setStatusTab(s.key)}
+                        className={cn(
+                          "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
+                          active ? "border-primary bg-primary/10 font-semibold text-foreground" : "border-border bg-card text-muted-foreground hover:bg-accent",
+                        )}
+                      >
+                        <span className={cn("h-2 w-2 rounded-full", dotCls[s.key])} />
+                        <span className="font-semibold">{s.count}</span>
+                        <span>{s.key === "overdue" ? "overdue" : s.key === "due" ? "due today" : "done today"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {statusTab !== "done" && (
+                  <Select value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+                    <SelectTrigger className="w-[220px]"><SelectValue placeholder="Type: All" /></SelectTrigger>
                     <SelectContent>
-                      {statusOptions.map((s) => (
-                        <SelectItem key={s.key} value={s.key}>{s.label} ({s.count})</SelectItem>
+                      {typeOptions.map((t) => (
+                        <SelectItem key={t.key} value={t.key}>{t.key === "all" ? "Type: All" : t.label} ({t.count})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {statusTab !== "done" && (
-                    <Select value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-                      <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {typeOptions.map((t) => (
-                          <SelectItem key={t.key} value={t.key}>{t.label} ({t.count})</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
+                )}
 
                 {statusTab !== "done" && (
                   <div
                     className={cn(
                       "flex items-center gap-2 px-1 pt-1 text-sm font-semibold",
-                      statusTab === "overdue" ? "text-red-600" : "text-amber-600",
+                      statusTab === "overdue" ? "text-destructive" : "text-warning",
                     )}
                   >
                     {statusTab === "overdue" ? (
