@@ -350,7 +350,35 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
     loadAll();
   };
 
+  const showType = (k: "appt" | "care" | "cancel" | "lead") =>
+    activeTab === k || (activeTab as string) === "all";
+
+  const visibleAppts = tomorrowAppts.filter((a) => {
+    const called = !!calledMap[a.patient_id];
+    if ((statusTab as string) === "done") return called;
+    if (statusTab === "overdue") return false;
+    return !called;
+  });
+  const visibleCare = careRows.filter((r) => {
+    const due = r.care_call_due_date ?? "";
+    if (statusTab === "overdue") return due && due < today;
+    if (statusTab === "due") return due === today;
+    return false;
+  });
+  const visibleCancel = cancelledRows.filter((r) => {
+    const informed = isInformed(r.notes);
+    const day = r.called_at.slice(0, 10);
+    if ((statusTab as string) === "done") return informed && day === today;
+    if (statusTab === "overdue") return !informed && day < today;
+    return !informed && day === today;
+  });
+  const shownRowCount =
+    (showType("appt") ? visibleAppts.length : 0) +
+    (showType("care") ? visibleCare.length : 0) +
+    (showType("cancel") ? visibleCancel.length : 0);
+
   const body = (
+
     <>
       {!clinicId ? (
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">Loading clinic...</div>
