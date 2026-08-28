@@ -137,9 +137,23 @@ export default function TodoListPage({ bare = false }: { bare?: boolean } = {}) 
           <Button onClick={() => setOpen(true)}><Plus className="mr-1 h-3.5 w-3.5" /> Add task</Button>
         </div>
 
-        <Section label="High priority" color="text-red-600" items={highPending} onToggle={toggle} />
-        <Section label="Medium & low" color="text-amber-600" items={otherPending} onToggle={toggle} />
-        <Section label="Completed today" color="text-green-600" items={completedToday} onToggle={toggle} collapsible />
+        {highPending.length === 0 && otherPending.length === 0 && completedToday.length === 0 ? (
+          <div className="rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+            No tasks match these filters.
+          </div>
+        ) : (
+          <>
+            {highPending.length > 0 && (
+              <Section label="High priority" color="text-red-600" items={highPending} onToggle={toggle} />
+            )}
+            {otherPending.length > 0 && (
+              <Section label="Medium & low" color="text-amber-600" items={otherPending} onToggle={toggle} />
+            )}
+            {completedToday.length > 0 && (
+              <Section label="Completed today" color="text-green-600" items={completedToday} onToggle={toggle} collapsible />
+            )}
+          </>
+        )}
       </div>
 
       <TodoModal

@@ -205,67 +205,87 @@ export default function PatientDetailPage() {
   return (
     <DashboardLayout>
       {/* Patient Header */}
-      <Card className="shadow-card mb-6">
-        <CardContent className="p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-3 min-w-0">
-              <Button variant="outline" size="icon" className="h-9 w-9 flex-shrink-0" onClick={() => navigate("/dashboard/patients")} aria-label="Back to patients">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-primary/10 font-display text-xl font-bold text-primary">
-                {patient.name.charAt(0).toUpperCase()}
+      <Card className="mb-4 rounded-xl border-border shadow-none">
+        <CardContent className="flex flex-wrap items-start justify-between gap-5 p-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              className="mt-0.5 h-[34px] w-[34px] flex-shrink-0 rounded-lg"
+              onClick={() => navigate("/dashboard/patients")}
+              aria-label="Back to patients"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-accent font-display text-base font-semibold text-accent-foreground">
+              {patient.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="font-display text-[22px] font-semibold leading-tight tracking-tight text-foreground">
+                  {patient.name}
+                </h1>
+                <span className="rounded-full bg-success-soft px-2.5 py-0.5 text-[11px] font-semibold text-success">
+                  Current
+                </span>
               </div>
-              <div className="min-w-0">
-                <h1 className="font-display text-2xl font-bold text-foreground">{patient.name}</h1>
-                {patient.healthcare_id && <p className="font-mono text-sm text-primary">{patient.healthcare_id}</p>}
-                <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
-                  {patient.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{patient.phone}</span>}
-                  {patient.dob && <span>{getAge(patient.dob)}y</span>}
-                  {patient.gender && <span className="capitalize">{patient.gender}</span>}
-                  {patient.blood_group && <Badge variant="outline" className="text-xs">{patient.blood_group}</Badge>}
-                  {patient.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{patient.email}</span>}
-                </div>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {patient.allergies && Array.isArray(patient.allergies) && (patient.allergies as string[]).map((a: string) => (
-                    <Badge key={a} variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive text-xs">
-                      <AlertTriangle className="mr-1 h-3 w-3" /> {a}
-                    </Badge>
-                  ))}
-                  {patient.chronic_conditions && Array.isArray(patient.chronic_conditions) && (patient.chronic_conditions as string[]).map((c: string) => (
-                    <Badge key={c} variant="outline" className="border-orange-400/30 bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400 text-xs">
-                      <Activity className="mr-1 h-3 w-3" /> {c}
-                    </Badge>
-                  ))}
-                </div>
+              {patient.healthcare_id && <p className="mt-0.5 font-mono text-xs text-primary">{patient.healthcare_id}</p>}
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] text-muted-foreground">
+                {patient.phone && (
+                  <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{patient.phone}</span>
+                )}
+                {patient.dob && <span>· {getAge(patient.dob)}y</span>}
+                {patient.gender && <span className="capitalize">· {patient.gender}</span>}
+                {patient.blood_group && <Badge variant="outline" className="ml-1 text-xs">{patient.blood_group}</Badge>}
+                {patient.email && (
+                  <span className="flex items-center gap-1">· <Mail className="h-3 w-3" />{patient.email}</span>
+                )}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {patient.allergies && Array.isArray(patient.allergies) && (patient.allergies as string[]).map((a: string) => (
+                  <Badge key={a} variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive text-xs">
+                    <AlertTriangle className="mr-1 h-3 w-3" /> {a}
+                  </Badge>
+                ))}
+                {patient.chronic_conditions && Array.isArray(patient.chronic_conditions) && (patient.chronic_conditions as string[]).map((c: string) => (
+                  <Badge key={c} variant="outline" className="border-warning/30 bg-warning-soft text-warning text-xs">
+                    <Activity className="mr-1 h-3 w-3" /> {c}
+                  </Badge>
+                ))}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 sm:flex-shrink-0">
-              <Button size="sm" onClick={() => navigate(`/availability?patient=${patient.id}&book=1`)}>
-                <Calendar className="mr-2 h-4 w-4" /> Add Appointment
+          </div>
+          <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+            <Button size="sm" className="rounded-lg" onClick={() => navigate(`/availability?patient=${patient.id}&book=1`)}>
+              <Calendar className="mr-2 h-4 w-4" /> Add Appointment
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-lg" onClick={handleSendFormLink} disabled={sendingLink}>
+              {sendingLink ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}
+              Send Form Link
+            </Button>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-lg text-destructive border-destructive/30 hover:bg-destructive/10"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Delete
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSendFormLink} disabled={sendingLink}>
-                {sendingLink ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}
-                Send Form Link
-              </Button>
-              {isAdmin && (
-                <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteOpen(true)}>
-                  <Trash2 className="mr-2 h-4 w-4" /> Delete
-                </Button>
-              )}
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
       {/* Tab strip */}
-      <div className="mb-5 flex gap-6 overflow-x-auto border-b">
+      <div className="mb-4 flex gap-5 overflow-x-auto border-b border-border">
         {TABS.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setActiveTab(t.key)}
             className={cn(
-              "-mb-px whitespace-nowrap border-b-2 pb-2 text-sm transition-colors",
+              "-mb-px whitespace-nowrap border-b-2 pb-2 text-[13.5px] transition-colors",
               activeTab === t.key
                 ? "border-primary font-medium text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground",
@@ -280,9 +300,9 @@ export default function PatientDetailPage() {
       {activeTab === "general" && (
         <div className="grid gap-4 lg:grid-cols-2 items-start">
           <div className="space-y-4">
-            <Card className="shadow-card">
-              <CardContent className="p-4">
-                <h3 className="font-display font-semibold mb-3">Contact details</h3>
+            <Card className="rounded-xl border-border shadow-none">
+              <CardContent className="p-3.5">
+                <h3 className="mb-3.5 font-display text-sm font-semibold text-foreground">Contact details</h3>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                   <InfoRow label="Phone" value={patient.phone ?? "—"} />
                   <InfoRow label="Email" value={patient.email ?? "—"} />
@@ -292,9 +312,9 @@ export default function PatientDetailPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="shadow-card">
-              <CardContent className="p-4 space-y-2">
-                <h3 className="font-display font-semibold mb-2">Lifestyle & Habits</h3>
+            <Card className="rounded-xl border-border shadow-none">
+              <CardContent className="p-3.5 space-y-2">
+                <h3 className="mb-2.5 font-display text-sm font-semibold text-foreground">Lifestyle & Habits</h3>
                 {patient.food_habits ? <p className="text-sm flex items-center gap-2"><Coffee className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Diet:</span> <span className="capitalize">{patient.food_habits}</span></p> : null}
                 {patient.smoking ? <p className="text-sm flex items-center gap-2"><Cigarette className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Smoking:</span> <span className="capitalize">{patient.smoking}</span></p> : null}
                 {patient.alcohol ? <p className="text-sm flex items-center gap-2"><Wine className="h-3.5 w-3.5 text-muted-foreground" /> <span className="text-muted-foreground">Alcohol:</span> <span className="capitalize">{patient.alcohol}</span></p> : null}
@@ -305,9 +325,9 @@ export default function PatientDetailPage() {
                 )}
               </CardContent>
             </Card>
-            <Card className="shadow-card">
-              <CardContent className="p-4 space-y-2">
-                <h3 className="font-display font-semibold mb-2">Medical History</h3>
+            <Card className="rounded-xl border-border shadow-none">
+              <CardContent className="p-3.5 space-y-2">
+                <h3 className="mb-2.5 font-display text-sm font-semibold text-foreground">Medical History</h3>
                 {patient.medication_history ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><Pill className="h-3.5 w-3.5" /> Current medication</div><p>{patient.medication_history}</p></div> : null}
                 {patient.past_surgery_details ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><Scissors className="h-3.5 w-3.5" /> Past surgery</div><p>{patient.past_surgery_details}</p></div> : null}
                 {Array.isArray(patient.allergies) && patient.allergies.length > 0 ? <div className="text-sm"><div className="flex items-center gap-2 text-muted-foreground mb-0.5"><AlertTriangle className="h-3.5 w-3.5" /> Allergies</div><p>{patient.allergies.join(", ")}</p></div> : null}
@@ -328,9 +348,9 @@ export default function PatientDetailPage() {
 
       {/* Clinical notes tab */}
       {activeTab === "clinical" && (
-        <Card className="shadow-card">
-          <CardContent className="p-4">
-            <h3 className="font-display font-semibold mb-3">Clinical notes</h3>
+        <Card className="rounded-xl border-border shadow-none">
+          <CardContent className="p-3.5">
+            <h3 className="mb-3.5 font-display text-sm font-semibold text-foreground">Clinical notes</h3>
             {visits.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <Calendar className="mb-4 h-12 w-12 text-muted-foreground/20" />
@@ -356,7 +376,7 @@ export default function PatientDetailPage() {
                   );
 
                   return (
-                    <Card key={visit.id} className="shadow-card">
+                    <Card key={visit.id} className="rounded-xl border-border shadow-none">
                       <CardContent className="p-4 space-y-3">
                         <div className="flex items-start justify-between">
                           <div>
@@ -449,9 +469,9 @@ export default function PatientDetailPage() {
 
       {/* Invoices tab */}
       {activeTab === "invoices" && patientId && profile?.clinic_id && (
-        <Card className="shadow-card">
-          <CardContent className="p-4">
-            <h3 className="font-display font-semibold mb-3">Invoices</h3>
+        <Card className="rounded-xl border-border shadow-none">
+          <CardContent className="p-3.5">
+            <h3 className="mb-3.5 font-display text-sm font-semibold text-foreground">Invoices</h3>
             <PatientInvoicesTab patientId={patientId} clinicId={profile.clinic_id} />
           </CardContent>
         </Card>
@@ -459,9 +479,9 @@ export default function PatientDetailPage() {
 
       {/* Appointments tab */}
       {activeTab === "appointments" && (
-        <Card className="shadow-card">
-          <CardContent className="p-4">
-            <h3 className="font-display font-semibold mb-3">Appointments</h3>
+        <Card className="rounded-xl border-border shadow-none">
+          <CardContent className="p-3.5">
+            <h3 className="mb-3.5 font-display text-sm font-semibold text-foreground">Appointments</h3>
             {visits.length === 0 ? (
               <p className="text-sm text-muted-foreground italic py-6 text-center">No appointments recorded yet</p>
             ) : (
@@ -485,9 +505,9 @@ export default function PatientDetailPage() {
 
       {/* Treatment tab */}
       {activeTab === "treatment" && (
-        <Card className="shadow-card">
-          <CardContent className="p-4">
-            <h3 className="font-display font-semibold mb-3">Treatment</h3>
+        <Card className="rounded-xl border-border shadow-none">
+          <CardContent className="p-3.5">
+            <h3 className="mb-3.5 font-display text-sm font-semibold text-foreground">Treatment</h3>
             {patientId && <VitalsTrends patientId={patientId} />}
           </CardContent>
         </Card>
