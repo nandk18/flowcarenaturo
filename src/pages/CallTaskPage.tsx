@@ -466,13 +466,13 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
 
           {statusTab === "done" && (
             <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
-              <header className="flex items-center justify-between border-b bg-green-50 px-4 py-3">
-                <h2 className="font-display text-sm font-semibold text-green-900 flex items-center gap-2">
+              <header className="flex items-center justify-between border-b bg-success/10 px-4 py-3">
+                <h2 className="flex items-center gap-2 text-sm font-semibold text-success">
                   <CheckCircle2 className="h-4 w-4" />
-                  Done Today
-                  <span className="ml-2 rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-bold text-white">{doneCalls.length}</span>
+                  Done today
+                  <span className="ml-1 rounded-full bg-success/20 px-2 py-0.5 text-[10px] font-bold text-success">{doneCalls.length}</span>
                 </h2>
-                <span className="text-xs text-green-800">All calls logged today</span>
+                <span className="text-xs text-muted-foreground">All calls logged today</span>
               </header>
               {doneCalls.length === 0 ? (
                 <p className="p-6 text-center text-sm text-muted-foreground">No calls logged today yet</p>
@@ -515,29 +515,21 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
           <>
 
 
-          {activeTab === "appt" && tomorrowAppts.length > 0 && (
-            <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
-              <header className="flex items-center justify-between border-b bg-blue-50 px-4 py-3">
-                <h2 className="font-display text-sm font-semibold text-blue-900">
-                  Appointment Tomorrow
-                  <span className="ml-2 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold text-white">{tomorrowAppts.length}</span>
-                </h2>
-                <span className="text-xs text-blue-700">Confirm tomorrow's bookings</span>
-              </header>
-              <ul className="divide-y">
-                {tomorrowAppts
-                  .filter((a) => {
-                    const called = !!calledMap[a.patient_id];
-                    if ((statusTab as string) === "done") return called;
-                    if (statusTab === "overdue") return false;
-                    return !called;
-                  })
-                  .map((a) => {
+          {showType("appt") && visibleAppts.length > 0 && (
+            <section className="space-y-2">
+              <div className="flex items-center gap-2 px-1 text-[12.5px] font-semibold text-info">
+                <CalendarClock className="h-3.5 w-3.5" />
+                Appointment tomorrow — {visibleAppts.length}
+              </div>
+              <ul className="space-y-2">
+                {visibleAppts.map((a) => {
                   const called = calledMap[a.patient_id];
                   return (
-                    <li key={a.id} className="grid gap-2 px-4 py-3 sm:grid-cols-[auto_1fr_auto] sm:items-start">
+                    <li key={a.id} className="grid gap-2 rounded-[10px] border bg-card px-3 py-2.5 sm:grid-cols-[auto_1fr_auto] sm:items-start">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200 text-[10px]">Appt Tomorrow</Badge>
+                        <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[7px] bg-info/10 text-info">
+                          <CalendarClock className="h-3.5 w-3.5" />
+                        </span>
                         {a.patient && (
                           <PatientLink patientId={a.patient.id} className="text-sm font-semibold">{a.patient.name}</PatientLink>
                         )}
@@ -549,7 +541,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
                             <button
                               type="button"
                               onClick={() => sendApptReminder(a)}
-                              className="inline-flex items-center text-green-600 text-xs hover:underline"
+                              className="inline-flex items-center text-xs text-success hover:underline"
                               aria-label="Send WhatsApp reminder"
                             >
                               <MessageCircle className="h-3 w-3" />
@@ -566,7 +558,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
                       />
                       <div className="sm:row-start-1 sm:col-start-3 sm:row-span-2 sm:self-center">
                         {called ? (
-                          <Badge variant="outline" className="text-green-700 border-green-300">
+                          <Badge variant="outline" className="border-success/30 text-success">
                             <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Called
                           </Badge>
                         ) : (
@@ -590,35 +582,24 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
             </section>
           )}
 
-          {activeTab === "care" && careRows.length > 0 && (
-            <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
-              <header className="flex items-center justify-between border-b bg-amber-50 px-4 py-3">
-                <h2 className="font-display text-sm font-semibold text-amber-900 flex items-center gap-2">
-                  <HeartHandshake className="h-4 w-4" />
-                  Care Call
-                  <span className="ml-2 rounded-full bg-amber-600 px-2 py-0.5 text-[10px] font-bold text-white">{careRows.length}</span>
-                </h2>
-                <span className="text-xs text-amber-800">First-visit follow-ups</span>
-              </header>
-              <ul className="divide-y">
-                {careRows
-                  .filter((r) => {
-                    const due = r.care_call_due_date ?? "";
-                    if (statusTab === "overdue") return due && due < today;
-                    if (statusTab === "due") return due === today;
-                    return false; // "done" — care_call_done=true rows already excluded by query
-                  })
-                  .map((r) => {
+          {showType("care") && visibleCare.length > 0 && (
+            <section className="space-y-2">
+              <div className={cn("flex items-center gap-2 px-1 text-[12.5px] font-semibold", statusTab === "overdue" ? "text-destructive" : "text-warning")}>
+                <HeartHandshake className="h-3.5 w-3.5" />
+                Care call — {visibleCare.length}
+              </div>
+              <ul className="space-y-2">
+                {visibleCare.map((r) => {
                   const apptDate = new Date(r.appointment_date);
                   const daysSince = differenceInCalendarDays(new Date(), apptDate);
                   const overdue = (r.care_call_due_date ?? "") < today;
                   return (
-                    <li key={r.id} className="grid gap-2 px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-start">
+                    <li key={r.id} className="grid gap-2 rounded-[10px] border bg-card px-3 py-2.5 sm:grid-cols-[1fr_auto] sm:items-start">
                       <div className="space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline" className={cn("text-[10px]", overdue ? "bg-red-100 text-red-700 border-red-200" : "bg-amber-100 text-amber-700 border-amber-200")}>
-                            {overdue ? "Overdue" : "Care Call"}
-                          </Badge>
+                          <span className={cn("flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[7px]", overdue ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary")}>
+                            <HeartHandshake className="h-3.5 w-3.5" />
+                          </span>
                           {r.patient && (
                             <PatientLink patientId={r.patient.id} className="text-sm font-semibold">
                               {r.patient.name}
@@ -630,7 +611,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
                               <button
                                 type="button"
                                 onClick={() => sendCareWhatsApp(r)}
-                                className="inline-flex items-center text-green-600 text-xs hover:underline"
+                                className="inline-flex items-center text-xs text-success hover:underline"
                                 aria-label="Send WhatsApp care call"
                               >
                                 <MessageCircle className="h-3 w-3" />
@@ -673,37 +654,23 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
             </section>
           )}
 
-          {activeTab === "cancel" && cancelledRows.length > 0 && (
-            <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
-              <header className="flex items-center justify-between border-b bg-red-50 px-4 py-3">
-                <h2 className="font-display text-sm font-semibold text-red-900 flex items-center gap-2">
-                  <XCircle className="h-4 w-4" />
-                  Cancelled Appointments
-                  <span className="ml-2 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">
-                    {cancelledRows.filter((r) => !isInformed(r.notes)).length}
-                  </span>
-                </h2>
-                <span className="text-xs text-red-700">Last 7 days</span>
-              </header>
-              <ul className="divide-y">
-                {cancelledRows
-                  .filter((r) => {
-                    const informed = isInformed(r.notes);
-                    const day = r.called_at.slice(0, 10);
-                    if ((statusTab as string) === "done") return informed && day === today;
-                    if (statusTab === "overdue") return !informed && day < today;
-                    return !informed && day === today;
-                  })
-                  .map((r) => {
+          {showType("cancel") && visibleCancel.length > 0 && (
+            <section className="space-y-2">
+              <div className="flex items-center gap-2 px-1 text-[12.5px] font-semibold text-warning">
+                <XCircle className="h-3.5 w-3.5" />
+                Cancelled appointments — {visibleCancel.length}
+              </div>
+              <ul className="space-y-2">
+                {visibleCancel.map((r) => {
                   const informed = isInformed(r.notes);
                   const reason = parseReason(r.notes);
                   return (
-                    <li key={r.id} className="grid gap-2 px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-start">
+                    <li key={r.id} className="grid gap-2 rounded-[10px] border bg-card px-3 py-2.5 sm:grid-cols-[1fr_auto] sm:items-start">
                       <div className="space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-[10px]">
-                            Cancelled
-                          </Badge>
+                          <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[7px] bg-warning/10 text-warning">
+                            <XCircle className="h-3.5 w-3.5" />
+                          </span>
                           {r.patient && (
                             <PatientLink patientId={r.patient.id} className="text-sm font-semibold">
                               {r.patient.name}
@@ -715,7 +682,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
                               <button
                                 type="button"
                                 onClick={() => sendCancelWhatsApp(r)}
-                                className="inline-flex items-center text-green-600 text-xs hover:underline"
+                                className="inline-flex items-center text-xs text-success hover:underline"
                                 aria-label="Send WhatsApp cancellation"
                               >
                                 <MessageCircle className="h-3 w-3" />
@@ -739,7 +706,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
                       </div>
                       <div className="sm:self-center">
                         {informed ? (
-                          <Badge variant="outline" className="text-green-700 border-green-300">
+                          <Badge variant="outline" className="border-success/30 text-success">
                             <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Informed
                           </Badge>
                         ) : (
@@ -763,7 +730,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
             </section>
           )}
 
-          {activeTab === "lead" && (
+          {showType("lead") && (
             <CallTask
               clinicId={clinicId}
               onDoneClick={() => setShowDone(true)}
@@ -772,6 +739,16 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
               statusFilter={statusTab}
               onCountsChange={(c) => setLeadCounts(c)}
             />
+          )}
+
+          {!showType("lead") && shownRowCount === 0 && (
+            <div className="rounded-xl border border-dashed bg-card px-7 py-8 text-center">
+              <div className="mx-auto mb-3.5 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+              </div>
+              <p className="text-[14.5px] font-semibold">Rest of today's tasks are clear</p>
+              <p className="mt-1 text-[13px] text-muted-foreground">Nothing due right now — check back later.</p>
+            </div>
           )}
           </>
           )}
