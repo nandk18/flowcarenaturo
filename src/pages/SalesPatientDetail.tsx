@@ -299,6 +299,10 @@ export default function SalesPatientDetail() {
   const [sendingLink, setSendingLink] = useState(false);
   const [activeTab, setActiveTab] = useUrlState("tab", "general");
   const { enabled: treatmentEnabled } = useTreatmentEnabled();
+  const [waMsgs, setWaMsgs] = useState<WaMsg[]>([]);
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [txProgress, setTxProgress] = useState<{ done: number; total: number } | null>(null);
 
   const handleSendFormLink = async () => {
     if (!patient) return;
