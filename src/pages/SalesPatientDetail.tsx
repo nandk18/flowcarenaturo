@@ -647,41 +647,86 @@ export default function SalesPatientDetail() {
   const content = (
     <>
       <div className="border-b bg-card">
-        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate(backTo)} aria-label="Back">
+        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-start gap-3 px-4 py-4 sm:px-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(backTo)}
+            aria-label="Back"
+            className="mt-0.5 shrink-0"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="font-display text-2xl font-semibold">{patient.name}</h1>
-          {patient.lead_status && (
-            <span
-              className={cn(
-                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide",
-                STATUS_STYLES[patient.lead_status],
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-display text-2xl font-semibold">{patient.name}</h1>
+              {patient.lead_status && (
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize",
+                    STATUS_STYLES[patient.lead_status],
+                  )}
+                >
+                  {STATUS_OPTIONS.find((o) => o.value === patient.lead_status)?.label ?? patient.lead_status}
+                </span>
               )}
-            >
-              {patient.lead_status}
-            </span>
-          )}
-          <div className="ml-auto flex flex-wrap gap-2">
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              <MessageSquare className="h-3.5 w-3.5" />
+              {lastContact
+                ? `Last contacted ${relTime(lastContact.created_at)}${lastContact.kind === "whatsapp" ? " via WhatsApp" : ""}`
+                : "No contact yet"}
+              {overdue && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700 border border-red-200">
+                  <AlertCircle className="h-3 w-3" />
+                  ₹{overdue.amount.toLocaleString("en-IN")} overdue {overdue.days}d
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
             {patient.phone && (
-              <Button asChild className="bg-green-600 hover:bg-green-700 text-white">
+              <Button asChild size="sm" className="bg-green-600 hover:bg-green-700 text-white">
                 <a href={`https://wa.me/${phoneDigits}`} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle className="mr-1.5 h-4 w-4" /> WhatsApp
+                  <MessageCircle className="h-4 w-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline">WhatsApp</span>
                 </a>
               </Button>
             )}
             <Button
+              size="sm"
               className="bg-blue-600 hover:bg-blue-700 text-white"
               onClick={() => navigate(`/availability?patient=${patient.id}&book=1`)}
             >
-              <CalendarPlus className="mr-1.5 h-4 w-4" /> Add Appointment
+              <CalendarPlus className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Add appointment</span>
             </Button>
-            <Button variant="outline" onClick={handleSendFormLink} disabled={sendingLink}>
-              <Share2 className="mr-1.5 h-4 w-4" /> {sendingLink ? "Generating..." : "Send Form Link"}
-            </Button>
-            <Button variant="outline" onClick={() => setEditOpen(true)}>
-              <Pencil className="mr-1.5 h-4 w-4" /> Edit Patient
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="More actions">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                  <Pencil className="mr-2 h-4 w-4" /> Edit patient
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSendFormLink} disabled={sendingLink}>
+                  <Share2 className="mr-2 h-4 w-4" /> {sendingLink ? "Generating..." : "Send form link"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.print()}>
+                  <Printer className="mr-2 h-4 w-4" /> Print summary
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => {
+                    if (confirm("Mark this patient as lapsed?")) updateStatus("lapsed");
+                  }}
+                >
+                  <AlertCircle className="mr-2 h-4 w-4" /> Mark as lapsed
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
