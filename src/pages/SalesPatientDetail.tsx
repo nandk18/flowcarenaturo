@@ -475,14 +475,48 @@ export default function SalesPatientDetail() {
     setInvoices((data ?? []) as InvoiceRow[]);
   };
 
+  const loadWaMessages = async () => {
+    if (!patientId) return;
+    const { data } = await supabase
+      .from("whatsapp_messages")
+      .select("id, event, followup_stage, status, created_at")
+      .eq("patient_id", patientId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setWaMsgs((data ?? []) as WaMsg[]);
+  };
+
+  const loadTxProgress = async () => {
+    if (!patientId || !treatmentEnabled) return;
+    const { data: plans } = await supabase
+      .from("treatment_plans")
+      .select("id, status, treatment_plan_items(total_sessions, sessions_completed)")
+      .eq("patient_id", patientId);
+    let done = 0;
+    let total = 0;
+    (plans ?? []).forEach((p: any) => {
+      (p.treatment_plan_items ?? []).forEach((i: any) => {
+        total += Number(i.total_sessions ?? 0);
+        done += Number(i.sessions_completed ?? 0);
+      });
+    });
+    setTxProgress(total > 0 ? { done, total } : null);
+  };
+
   useEffect(() => {
     loadPatient();
     loadNotes();
     loadAppointments();
     loadClinicalNotes();
     loadInvoices();
+    loadWaMessages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientId]);
+
+  useEffect(() => {
+    loadTxProgress();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientId, treatmentEnabled]);
 
   const apptStats = useMemo(() => {
     const list = Array.isArray(appointments) ? appointments : [];
