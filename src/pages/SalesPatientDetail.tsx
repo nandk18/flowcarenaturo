@@ -535,6 +535,57 @@ export default function SalesPatientDetail() {
     };
   }, [appointments, invoices]);
 
+  const waLabel = (m: WaMsg) => {
+    const base =
+      m.event === "booked"
+        ? "Appointment booked confirmation sent"
+        : m.event === "reminder"
+          ? "Appointment reminder sent"
+          : m.event === "review"
+            ? "Therapist review link sent"
+            : m.event === "followup"
+              ? `Follow-up reminder sent${m.followup_stage ? ` — day ${m.followup_stage}` : ""}`
+              : `WhatsApp message sent (${m.event})`;
+    return m.status === "failed" ? `${base} (failed)` : base;
+  };
+
+  const history = useMemo<HistoryItem[]>(() => {
+    const items: HistoryItem[] = [];
+    notes.forEach((n) =>
+      items.push({
+        id: `n-${n.id}`,
+        kind: "note",
+        text: n.note,
+        meta: `Manual note · ${n.author_name ?? "Staff"} · ${new Date(n.created_at).toLocaleString()}`,
+        created_at: n.created_at,
+      }),
+    );
+    waMsgs.forEach((m) =>
+      items.push({
+        id: `w-${m.id}`,
+        kind: "whatsapp",
+        text: waLabel(m),
+        meta: `WhatsApp automated · ${new Date(m.created_at).toLocaleString()}`,
+        created_at: m.created_at,
+      }),
+    );
+    return items.sort((a, b) => b.created_at.localeCompare(a.created_at));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes, waMsgs]);
+
+  const lastContact = history[0] ?? null;
+
+  const overdue = useMemo(() => {
+    const open = invoices.filter(
+      (i) => (i.status === "unpaid" || i.status === "partial") && Number(i.outstanding_amount) > 0,
+    );
+    if (!open.length) return null;
+    const amount = open.reduce((s, i) => s + Number(i.outstanding_amount || 0), 0);
+    const oldest = open.map((i) => i.invoice_date).sort()[0];
+    const days = Math.max(0, Math.floor((Date.now() - new Date(oldest).getTime()) / 86400000));
+    return { amount, days };
+  }, [invoices]);
+
   const saveNote = async () => {
     if (!newNote.trim() || !patient) return;
     if (!profile?.id || !patient.clinic_id) {
