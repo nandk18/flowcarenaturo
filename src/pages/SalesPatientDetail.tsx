@@ -812,28 +812,47 @@ export default function SalesPatientDetail() {
           </TabsList>
 
           {/* ===== GENERAL ===== */}
-          <TabsContent value="general" className="mt-6">
-            <div className="grid gap-6 lg:grid-cols-10">
-              <div className="space-y-6 lg:col-span-3">
-                <section className="rounded-2xl border bg-card p-5 shadow-card">
-                  <h2 className="font-display text-base font-semibold">Patient Details</h2>
-                  <dl className="mt-4 space-y-3 text-sm">
-                    <Field label="Full Name" value={patient.name} />
-                    <Field
-                      label="Date of Birth"
-                      value={patient.dob ? `${fmtDate(patient.dob)}${age !== null ? ` (${age} yrs)` : ""}` : "—"}
+          <TabsContent value="general" className="mt-5">
+            <div className="grid gap-4 lg:grid-cols-2">
+              {/* ---- Left column ---- */}
+              <div className="space-y-4">
+                <section className="rounded-xl border bg-card p-4 shadow-card">
+                  <h2 className="font-display text-sm font-semibold">Contact details</h2>
+                  <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                    <Kv label="Phone">
+                      <span className="flex items-center gap-2">
+                        {patient.phone ?? "—"}
+                        {patient.phone && (
+                          <a
+                            href={`https://wa.me/${phoneDigits}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-green-600 hover:underline text-xs"
+                          >
+                            <MessageCircle className="mr-0.5 h-3 w-3" /> WhatsApp
+                          </a>
+                        )}
+                      </span>
+                    </Kv>
+                    <Kv label="Email" value={patient.email ?? "—"} />
+                    <Kv
+                      label="Date of birth"
+                      value={patient.dob ? `${fmtDateShort(patient.dob)}${age !== null ? ` (${age} yrs)` : ""}` : "—"}
                     />
-                    <Field label="Gender" value={patient.gender ?? "—"} />
-                    <Field label="Blood Group" value={patient.blood_group ?? "—"} />
-                    <div>
-                      <dt className="text-xs uppercase tracking-wide text-muted-foreground">Lead Status</dt>
+                    <Kv label="Gender" value={patient.gender ?? "—"} />
+                    <Kv label="Lead source" value={patient.lead_source ?? "—"} />
+                    <Kv label="Added on" value={fmtDateShort(patient.created_at)} />
+                    <div className="sm:col-span-2">
+                      <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Lead status
+                      </dt>
                       <dd className="mt-1">
                         <Select
                           value={patient.lead_status ?? undefined}
                           onValueChange={(v) => updateStatus(v as LeadStatus)}
                           disabled={statusSaving}
                         >
-                          <SelectTrigger className="h-9">
+                          <SelectTrigger className="h-9 max-w-xs">
                             <SelectValue placeholder="Select status" />
                           </SelectTrigger>
                           <SelectContent>
@@ -846,174 +865,156 @@ export default function SalesPatientDetail() {
                         </Select>
                       </dd>
                     </div>
-                    <Field label="Lead Source" value={patient.lead_source ?? "—"} />
-                    <Field label="Added On" value={fmtDate(patient.created_at)} />
                   </dl>
                 </section>
 
-                <section className="rounded-2xl border bg-card p-5 shadow-card">
-                  <h2 className="font-display text-base font-semibold">Contact Details</h2>
-                  <dl className="mt-4 space-y-3 text-sm">
-                    <div>
-                      <dt className="text-xs uppercase tracking-wide text-muted-foreground">Phone</dt>
-                      <dd className="mt-1 flex items-center gap-2">
-                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>{patient.phone ?? "—"}</span>
-                        {patient.phone && (
-                          <a
-                            href={`https://wa.me/${phoneDigits}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center text-green-600 hover:underline text-xs"
-                          >
-                            <MessageCircle className="mr-1 h-3.5 w-3.5" /> WhatsApp
-                          </a>
+                {/* ---- More details (collapsible) ---- */}
+                <section className="rounded-xl border bg-card shadow-card">
+                  <button
+                    type="button"
+                    onClick={() => setMoreOpen((o) => !o)}
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left"
+                  >
+                    <span className="flex items-center gap-1.5 font-display text-sm font-semibold">
+                      <ChevronDown
+                        className={cn("h-4 w-4 transition-transform", moreOpen ? "rotate-180" : "-rotate-90")}
+                      />
+                      More details
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      Emergency contact · Lifestyle · Medical history · Documents
+                    </span>
+                  </button>
+                  {moreOpen && (
+                    <div className="space-y-3 border-t px-4 py-4">
+                      <div className="rounded-lg border bg-background p-3">
+                        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Emergency contact
+                        </h3>
+                        {patient.emergency_contact_name ||
+                        patient.emergency_contact_phone ||
+                        patient.emergency_contact_relation ? (
+                          <p className="mt-1.5 text-sm">
+                            {patient.emergency_contact_name ?? "—"}
+                            {patient.emergency_contact_relation ? ` (${patient.emergency_contact_relation})` : ""}
+                            {patient.emergency_contact_phone && (
+                              <>
+                                <br />
+                                {patient.emergency_contact_phone}
+                              </>
+                            )}
+                          </p>
+                        ) : (
+                          <p className="mt-1.5 text-sm text-muted-foreground">Not provided</p>
                         )}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs uppercase tracking-wide text-muted-foreground">Email</dt>
-                      <dd className="mt-1 flex items-center gap-2">
-                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>{patient.email ?? "—"}</span>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs uppercase tracking-wide text-muted-foreground">Convenient Time to Call</dt>
-                      <dd className="mt-1 text-sm">{patient.convenient_time ?? "—"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs uppercase tracking-wide text-muted-foreground">Address</dt>
-                      <dd className="mt-1 flex items-start gap-2">
-                        <MapPin className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="whitespace-pre-wrap">{patient.address ?? "—"}</span>
-                      </dd>
-                    </div>
-                  </dl>
-                </section>
+                      </div>
 
-                <section className="rounded-2xl border bg-card p-5 shadow-card">
-                  <h2 className="font-display text-base font-semibold">Emergency Contact</h2>
-                  {patient.emergency_contact_name ||
-                  patient.emergency_contact_phone ||
-                  patient.emergency_contact_relation ? (
-                    <dl className="mt-4 space-y-3 text-sm">
-                      <Field label="Name" value={patient.emergency_contact_name ?? "—"} />
-                      <Field label="Phone" value={patient.emergency_contact_phone ?? "—"} />
-                      <Field label="Relation" value={patient.emergency_contact_relation ?? "—"} />
-                    </dl>
-                  ) : (
-                    <p className="mt-3 text-sm text-muted-foreground">Not provided</p>
-                  )}
-                </section>
+                      <div className="rounded-lg border bg-background p-3">
+                        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Lifestyle & habits
+                        </h3>
+                        {patient.food_habits ||
+                        patient.smoking ||
+                        patient.alcohol ||
+                        patient.sleep_hours ||
+                        patient.dinner_time ? (
+                          <dl className="mt-1.5 space-y-1.5 text-sm">
+                            <div className="flex items-center gap-2">
+                              <Utensils className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span>Diet: {patient.food_habits ?? "—"}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Cigarette className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span>Smoking: {patient.smoking ?? "—"}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Wine className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span>Alcohol: {patient.alcohol ?? "—"}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Moon className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span>Sleep: {patient.sleep_hours != null ? `${patient.sleep_hours} hrs` : "—"}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span>Dinner: {patient.dinner_time ?? "—"}</span>
+                            </div>
+                          </dl>
+                        ) : (
+                          <p className="mt-1.5 text-sm italic text-muted-foreground">
+                            No lifestyle info recorded. Use "Send form link" to ask the patient.
+                          </p>
+                        )}
+                      </div>
 
-                <section className="rounded-2xl border bg-card p-5 shadow-card">
-                  <h2 className="font-display text-base font-semibold flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-muted-foreground" /> Lifestyle & Habits
-                  </h2>
-                  {patient.food_habits ||
-                  patient.smoking ||
-                  patient.alcohol ||
-                  patient.sleep_hours ||
-                  patient.dinner_time ? (
-                    <dl className="mt-4 space-y-3 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Utensils className="h-3.5 w-3.5 text-muted-foreground" />
-                        <Field label="Diet" value={patient.food_habits ?? "—"} />
+                      <div className="rounded-lg border bg-background p-3">
+                        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Medical history
+                        </h3>
+                        {patient.medication_history ||
+                        patient.past_surgery_details ||
+                        (Array.isArray(patient.allergies) && patient.allergies.length) ||
+                        (Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length) ? (
+                          <dl className="mt-1.5 space-y-2 text-sm">
+                            <Field label="Current medications" value={patient.medication_history ?? "—"} />
+                            <Field label="Past surgeries" value={patient.past_surgery_details ?? "—"} />
+                            <Field
+                              label="Allergies"
+                              value={
+                                Array.isArray(patient.allergies) && patient.allergies.length
+                                  ? patient.allergies.join(", ")
+                                  : "—"
+                              }
+                            />
+                            <Field
+                              label="Chronic conditions"
+                              value={
+                                Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length
+                                  ? patient.chronic_conditions.join(", ")
+                                  : "—"
+                              }
+                            />
+                          </dl>
+                        ) : (
+                          <p className="mt-1.5 text-sm italic text-muted-foreground">
+                            No medical history recorded. Use "Send form link" to collect it.
+                          </p>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Cigarette className="h-3.5 w-3.5 text-muted-foreground" />
-                        <Field label="Smoking" value={patient.smoking ?? "—"} />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Wine className="h-3.5 w-3.5 text-muted-foreground" />
-                        <Field label="Alcohol" value={patient.alcohol ?? "—"} />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Moon className="h-3.5 w-3.5 text-muted-foreground" />
-                        <Field
-                          label="Sleep (hrs)"
-                          value={patient.sleep_hours != null ? String(patient.sleep_hours) : "—"}
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
-                        <Field label="Dinner Time" value={patient.dinner_time ?? "—"} />
-                      </div>
-                    </dl>
-                  ) : (
-                    <p className="mt-3 text-sm text-muted-foreground italic">
-                      No lifestyle info recorded. Use "Send Form Link" to ask the patient.
-                    </p>
-                  )}
-                </section>
 
-                <section className="rounded-2xl border bg-card p-5 shadow-card">
-                  <h2 className="font-display text-base font-semibold flex items-center gap-2">
-                    <ClipboardList className="h-4 w-4 text-muted-foreground" /> Medical History
-                  </h2>
-                  {patient.medication_history ||
-                  patient.past_surgery_details ||
-                  (Array.isArray(patient.allergies) && patient.allergies.length) ||
-                  (Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length) ? (
-                    <dl className="mt-4 space-y-3 text-sm">
-                      <Field label="Current Medications" value={patient.medication_history ?? "—"} />
-                      <div className="flex items-start gap-2">
-                        <Scissors className="mt-1 h-3.5 w-3.5 text-muted-foreground" />
-                        <Field label="Past Surgeries" value={patient.past_surgery_details ?? "—"} />
-                      </div>
-                      <Field
-                        label="Allergies"
-                        value={
-                          Array.isArray(patient.allergies) && patient.allergies.length
-                            ? patient.allergies.join(", ")
-                            : "—"
-                        }
-                      />
-                      <Field
-                        label="Chronic Conditions"
-                        value={
-                          Array.isArray(patient.chronic_conditions) && patient.chronic_conditions.length
-                            ? patient.chronic_conditions.join(", ")
-                            : "—"
-                        }
-                      />
-                    </dl>
-                  ) : (
-                    <p className="mt-3 text-sm text-muted-foreground italic">
-                      No medical history recorded. Use "Send Form Link" to collect it.
-                    </p>
+                      {(patient.address || patient.convenient_time || patient.blood_group) && (
+                        <div className="rounded-lg border bg-background p-3">
+                          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            Other details
+                          </h3>
+                          <dl className="mt-1.5 space-y-2 text-sm">
+                            <Field label="Blood group" value={patient.blood_group ?? "—"} />
+                            <Field label="Convenient time to call" value={patient.convenient_time ?? "—"} />
+                            <Field label="Address" value={patient.address ?? "—"} />
+                          </dl>
+                        </div>
+                      )}
+
+                      <PatientDocumentsCard patientId={patient.id} clinicId={patient.clinic_id} />
+                    </div>
                   )}
                 </section>
               </div>
 
-              <div className="space-y-6 lg:col-span-7">
-                <section className="rounded-2xl border bg-card p-5 shadow-card">
-                  <h2 className="font-display text-base font-semibold">Appointments Overview</h2>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <StatBox label="Total Appointments" value={String(apptStats.total)} />
-                    <StatBox label="Last Appointment" value={apptStats.last ? fmtDate(apptStats.last) : "None"} />
-                    <StatBox label="Next Appointment" value={apptStats.next ? fmtDate(apptStats.next) : "None"} />
-                    <StatBox
-                      label="Pending Payment"
-                      value={`₹${Number(apptStats.pendingPayment || 0).toLocaleString("en-IN")}`}
-                      valueClassName={apptStats.pendingPayment > 0 ? "text-red-600" : "text-green-600"}
-                    />
-                  </div>
-                </section>
-
-                <section className="rounded-2xl border bg-card p-5 shadow-card">
+              {/* ---- Right column ---- */}
+              <div className="space-y-4">
+                <section className="rounded-xl border bg-card p-4 shadow-card">
                   <div className="flex items-center justify-between">
-                    <h2 className="font-display text-base font-semibold">Contact Notes</h2>
+                    <h2 className="font-display text-sm font-semibold">Contact history</h2>
                     {!addingNote && (
-                      <Button size="sm" onClick={() => setAddingNote(true)}>
-                        <Pencil className="mr-1.5 h-3.5 w-3.5" /> Add Note
+                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setAddingNote(true)}>
+                        <Pencil className="mr-1 h-3 w-3" /> Add note
                       </Button>
                     )}
                   </div>
 
                   {addingNote && (
-                    <div className="mt-4 space-y-2 rounded-lg border bg-background p-3">
+                    <div className="mt-3 space-y-2 rounded-lg border bg-background p-3">
                       <Textarea
                         value={newNote}
                         onChange={(e) => setNewNote(e.target.value)}
@@ -1033,36 +1034,37 @@ export default function SalesPatientDetail() {
                           Cancel
                         </Button>
                         <Button size="sm" onClick={saveNote} disabled={saving || !newNote.trim()}>
-                          {saving ? "Saving..." : "Save Note"}
+                          {saving ? "Saving..." : "Save note"}
                         </Button>
                       </div>
                     </div>
                   )}
 
-                  <div className="mt-4 space-y-3">
-                    {notes.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No notes yet</p>
+                  <div className="mt-3 divide-y">
+                    {history.length === 0 ? (
+                      <p className="py-3 text-sm text-muted-foreground">No contact history yet</p>
                     ) : (
-                      notes.map((n) => (
-                        <div key={n.id} className="rounded-lg border bg-background p-3">
-                          <p className="text-sm whitespace-pre-wrap">{n.note}</p>
-                          <p className="mt-2 text-xs text-muted-foreground">
-                            {n.author_name ?? "Unknown"} · {new Date(n.created_at).toLocaleString()}
-                          </p>
+                      (showAllHistory ? history : history.slice(0, 3)).map((h) => (
+                        <div key={h.id} className="py-2.5 first:pt-0">
+                          <p className="text-sm whitespace-pre-wrap">{h.text}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{h.meta}</p>
                         </div>
                       ))
                     )}
                   </div>
+                  {history.length > 3 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllHistory((s) => !s)}
+                      className="mt-1 text-xs font-medium text-blue-600 hover:underline"
+                    >
+                      {showAllHistory ? "Show less" : "View all history"}
+                    </button>
+                  )}
                 </section>
+
+                <PatientTodoCard patientId={patient.id} clinicId={patient.clinic_id} />
               </div>
-            </div>
-
-            <div className="mt-6">
-              <PatientTodoCard patientId={patient.id} clinicId={patient.clinic_id} />
-            </div>
-
-            <div className="mt-6">
-              <PatientDocumentsCard patientId={patient.id} clinicId={patient.clinic_id} />
             </div>
           </TabsContent>
 
