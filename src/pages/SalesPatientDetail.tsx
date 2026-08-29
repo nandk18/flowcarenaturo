@@ -744,31 +744,71 @@ export default function SalesPatientDetail() {
       </div>
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
+        {/* ===== GLANCE STRIP ===== */}
+        <div className="mb-5 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border bg-card p-4 shadow-card">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Next appointment</p>
+            {apptStats.next ? (
+              <p className="mt-1.5 font-display text-lg font-semibold">{fmtDateShort(apptStats.next)}</p>
+            ) : (
+              <p className="mt-1.5 text-[15px] font-medium text-muted-foreground">Not yet scheduled</p>
+            )}
+            {txProgress && txProgress.done < txProgress.total && (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Session {txProgress.done + 1} of {txProgress.total} due
+              </p>
+            )}
+          </div>
+          {treatmentEnabled && txProgress ? (
+            <div className="rounded-xl border bg-card p-4 shadow-card">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Treatment progress</p>
+              <p className="mt-1.5 font-display text-lg font-semibold">
+                {txProgress.done} of {txProgress.total} sessions
+              </p>
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-[#1D9E75] transition-all"
+                  style={{ width: `${Math.round((txProgress.done / Math.max(txProgress.total, 1)) * 100)}%` }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border bg-card p-4 shadow-card">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Appointments</p>
+              <p className="mt-1.5 font-display text-lg font-semibold">{apptStats.total} total</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {apptStats.next ? `Next on ${fmtDateShort(apptStats.next)}` : "None upcoming"}
+              </p>
+            </div>
+          )}
+          <div className="rounded-xl border bg-card p-4 shadow-card">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Last visit</p>
+            <p className="mt-1.5 font-display text-lg font-semibold">
+              {apptStats.last ? fmtDateShort(apptStats.last) : "None yet"}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{apptStats.total} total appointments</p>
+          </div>
+        </div>
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList
-            className={cn(
-              "-mx-4 flex w-auto gap-1 overflow-x-auto px-4 sm:mx-0 sm:grid sm:w-full sm:max-w-2xl sm:px-0",
-              treatmentEnabled ? "sm:grid-cols-5" : "sm:grid-cols-4",
-              "[&>button]:shrink-0 [&>button]:whitespace-nowrap [&>button]:px-3",
-            )}
-          >
-            <TabsTrigger value="general">
-              <User className="mr-1.5 h-3.5 w-3.5" /> General
-            </TabsTrigger>
-            <TabsTrigger value="clinical">
-              <FileText className="mr-1.5 h-3.5 w-3.5" /> Clinical Notes
-            </TabsTrigger>
-            <TabsTrigger value="invoices">
-              <Receipt className="mr-1.5 h-3.5 w-3.5" /> Invoices
-            </TabsTrigger>
-            <TabsTrigger value="appointments">
-              <Calendar className="mr-1.5 h-3.5 w-3.5" /> Appointments
-            </TabsTrigger>
-            {treatmentEnabled && (
-              <TabsTrigger value="treatment">
-                <HeartPulse className="mr-1.5 h-3.5 w-3.5" /> Treatment
+          <TabsList className="-mx-4 flex h-auto w-auto justify-start gap-5 overflow-x-auto rounded-none border-b bg-transparent p-0 px-4 sm:mx-0 sm:px-0">
+            {(
+              [
+                { v: "general", label: "General" },
+                { v: "clinical", label: "Clinical notes" },
+                { v: "invoices", label: "Invoices" },
+                { v: "appointments", label: "Appointments" },
+                ...(treatmentEnabled ? [{ v: "treatment", label: "Treatment" }] : []),
+              ] as { v: string; label: string }[]
+            ).map((t) => (
+              <TabsTrigger
+                key={t.v}
+                value={t.v}
+                className="shrink-0 whitespace-nowrap rounded-none border-b-2 border-transparent bg-transparent px-1 pb-2.5 pt-1 text-sm text-muted-foreground shadow-none data-[state=active]:border-blue-600 data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              >
+                {t.label}
               </TabsTrigger>
-            )}
+            ))}
           </TabsList>
 
           {/* ===== GENERAL ===== */}
