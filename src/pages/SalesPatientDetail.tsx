@@ -110,6 +110,22 @@ type Note = {
   author_name?: string | null;
 };
 
+type WaMsg = {
+  id: string;
+  event: string;
+  followup_stage: number | null;
+  status: string;
+  created_at: string;
+};
+
+type HistoryItem = {
+  id: string;
+  kind: "note" | "whatsapp";
+  text: string;
+  meta: string;
+  created_at: string;
+};
+
 type AppointmentRow = {
   id: string;
   appointment_date: string;
