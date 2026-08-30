@@ -37,6 +37,7 @@ type TeamMember = {
   qualification: string;
   specialty: string;
   registration_number: string;
+  is_doctor: boolean;
 };
 
 export default function Settings() {
@@ -186,6 +187,7 @@ export default function Settings() {
         qualification: doctorDetail?.qualification || "",
         specialty: doctorDetail?.specialty || "",
         registration_number: doctorDetail?.registration_number || "",
+        is_doctor: !!doctorDetail,
       };
     });
 
@@ -308,7 +310,7 @@ export default function Settings() {
     if (!editMember || !profile?.clinic_id) return;
     setEditSaving(true);
     try {
-      if (editMember.role === "doctor") {
+      if (editMember.role === "doctor" || editMember.is_doctor) {
         const { error } = await supabase.from("doctors").update({
           name: editName, qualification: editQualification,
           specialty: editSpecialty, registration_number: editRegNumber,
@@ -741,11 +743,24 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Invite additional admins. They'll receive an email to activate their account.
+                Invite admins or doctors. They'll receive an email to activate their account.
               </p>
-              <div className="space-y-2">
-                <Label>Email Address</Label>
-                <Input type="email" placeholder="admin@clinic.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} className="rounded-lg" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Email Address</Label>
+                  <Input type="email" placeholder="admin@clinic.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} className="rounded-lg" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Select value={inviteRole} onValueChange={setInviteRole}>
+                    <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="doctor_admin">Doctor (full admin access)</SelectItem>
+                      <SelectItem value="receptionist">Receptionist</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <Button onClick={handleInviteStaff} disabled={inviting || !inviteEmail.trim()} className="rounded-lg">
                 <Send className="mr-2 h-4 w-4" /> {inviting ? "Sending..." : "Send Invitation"}
@@ -788,6 +803,9 @@ export default function Settings() {
                                   <p className="font-medium text-foreground text-sm">{member.display_name}</p>
                                   <div className="flex items-center gap-2 mt-0.5">
                                     <Badge className={`capitalize text-xs ${roleBadgeClass[member.role] || ""} border-0`}>{member.role}</Badge>
+                                    {member.is_doctor && member.role !== "doctor" && (
+                                      <Badge className="text-xs bg-info/10 text-info border-0">Doctor</Badge>
+                                    )}
                                     {member.qualification && <span className="text-xs text-muted-foreground">{member.qualification}</span>}
                                   </div>
                                 </div>
@@ -1093,14 +1111,14 @@ export default function Settings() {
       <Sheet open={editOpen} onOpenChange={setEditOpen}>
         <SheetContent className="sm:max-w-md">
           <SheetHeader>
-            <SheetTitle>Edit {editMember?.role === "doctor" ? "Doctor" : "Staff Member"}</SheetTitle>
+            <SheetTitle>Edit {editMember?.role === "doctor" || editMember?.is_doctor ? "Doctor" : "Staff Member"}</SheetTitle>
           </SheetHeader>
           <div className="space-y-4 mt-6">
             <div className="space-y-2">
               <Label>Name</Label>
               <Input value={editName} onChange={e => setEditName(e.target.value)} className="rounded-lg" />
             </div>
-            {editMember?.role === "doctor" && (
+            {(editMember?.role === "doctor" || editMember?.is_doctor) && (
               <>
                 <div className="space-y-2">
                   <Label>Qualification</Label>

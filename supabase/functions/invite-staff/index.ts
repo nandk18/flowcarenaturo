@@ -101,10 +101,29 @@ serve(async (req) => {
     if (!profile?.clinic_id) throw new Error("No clinic found for this user")
     if (profile.role !== "admin") throw new Error("Only admins can invite staff")
 
-    const { email, role, lab_id } = body
-    if (!email || !role) throw new Error("Email and role are required")
-    if (!["doctor", "receptionist", "lab"].includes(role)) throw new Error("Invalid role")
-    if (role === "lab" && !lab_id) throw new Error("lab_id is required when inviting a lab user")
+    const { email, role: requestedRole, lab_id } = body
+    if (!email || !requestedRole) throw new Error("Email and role are required")
+    if (!["doctor", "doctor_admin", "admin", "receptionist", "lab"].includes(requestedRole)) {
+      throw new Error("Invalid role")
+    }
+    if (requestedRole === "lab" && !lab_id) throw new Error("lab_id is required when inviting a lab user")
+
+    // "doctor_admin" = a doctor who also gets full admin access.
+    const role = requestedRole === "doctor_admin" ? "admin" : requestedRole
+    const needsDoctorRecord = requestedRole === "doctor" || requestedRole === "doctor_admin"
+
+    const ensureDoctor = async (userId: string, fallbackName: string) => {
+      const { data: existingDoctor } = await supabaseAdmin
+        .from("doctors").select("id").eq("user_id", userId).maybeSingle()
+      if (!existingDoctor) {
+        await supabaseAdmin.from("doctors").insert({
+          clinic_id: profile.clinic_id,
+          user_id: userId,
+          name: fallbackName,
+          specialty: "General Medicine",
+        })
+      }
+    }
 
     const { data: clinic } = await supabaseAdmin
       .from("clinics").select("name").eq("id", profile.clinic_id).single()
@@ -127,21 +146,15 @@ serve(async (req) => {
         user_id: existingUser.id, role
       }, { onConflict: "user_id,role" })
 
-      if (role === "doctor") {
-        const { data: existingDoctor } = await supabaseAdmin
-          .from("doctors").select("id").eq("user_id", existingUser.id).maybeSingle()
-        if (!existingDoctor) {
-          await supabaseAdmin.from("doctors").insert({
-            clinic_id: profile.clinic_id,
-            user_id: existingUser.id,
-            name: existingUser.user_metadata?.full_name || email.split("@")[0],
-            specialty: "General Medicine"
-          })
-        }
+      if (needsDoctorRecord) {
+        await ensureDoctor(
+          existingUser.id,
+          existingUser.user_metadata?.full_name || email.split("@")[0],
+        )
       }
 
       return new Response(
-        JSON.stringify({ success: true, message: "Existing user added as " + role }),
+        JSON.stringify({ success: true, message: "Existing user added as " + requestedRole.replace("_", " ") }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       )
     }
@@ -178,6 +191,10 @@ serve(async (req) => {
     await supabaseAdmin.from("user_roles").upsert({
       user_id: inviteData.user.id, role
     }, { onConflict: "user_id,role" })
+
+    if (needsDoctorRecord) {
+      await ensureDoctor(inviteData.user.id, email.split("@")[0])
+    }
 
     return new Response(
       JSON.stringify({ success: true, message: "Invitation sent to " + email }),

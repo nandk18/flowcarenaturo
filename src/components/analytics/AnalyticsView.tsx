@@ -50,7 +50,12 @@ type Props = {
 export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
   const [range, setRange] = useState<Range>("This Month");
   const [tab, setTab] = useState("overview");
-  const { start, end } = useMemo(() => dateRange(range), [range]);
+  const [customStart, setCustomStart] = useState(() => dateRange("This Month").start);
+  const [customEnd, setCustomEnd] = useState(() => dateRange("Today").end);
+  const { start, end } = useMemo(
+    () => dateRange(range, { start: customStart, end: customEnd }),
+    [range, customStart, customEnd],
+  );
 
   const [rev, setRev] = useState<any>(null);
   const [pat, setPat] = useState<any>(null);
@@ -193,8 +198,9 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
     "This Month": "This month",
     "Last 3 Months": "Last 3 months",
     "This Year": "This year",
+    "Custom": "Custom range",
   };
-  const PERIODS: Range[] = ["Today", "This Week", "This Month", "This Year"];
+  const PERIODS: Range[] = ["Today", "This Week", "This Month", "This Year", "Custom"];
 
   const TAB_LABEL: Record<string, string> = {
     overview: "Overview", revenue: "Revenue", patients: "Patients",
@@ -268,6 +274,25 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
             </button>
           ))}
         </div>
+        {range === "Custom" && (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={customStart}
+              max={customEnd}
+              onChange={(e) => setCustomStart(e.target.value)}
+              className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+            />
+            <span className="text-xs text-muted-foreground">to</span>
+            <input
+              type="date"
+              value={customEnd}
+              min={customStart}
+              onChange={(e) => setCustomEnd(e.target.value)}
+              className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+            />
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
