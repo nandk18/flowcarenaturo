@@ -743,11 +743,24 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Invite additional admins. They'll receive an email to activate their account.
+                Invite admins or doctors. They'll receive an email to activate their account.
               </p>
-              <div className="space-y-2">
-                <Label>Email Address</Label>
-                <Input type="email" placeholder="admin@clinic.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} className="rounded-lg" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Email Address</Label>
+                  <Input type="email" placeholder="admin@clinic.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} className="rounded-lg" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Select value={inviteRole} onValueChange={setInviteRole}>
+                    <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="doctor_admin">Doctor (full admin access)</SelectItem>
+                      <SelectItem value="receptionist">Receptionist</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <Button onClick={handleInviteStaff} disabled={inviting || !inviteEmail.trim()} className="rounded-lg">
                 <Send className="mr-2 h-4 w-4" /> {inviting ? "Sending..." : "Send Invitation"}
