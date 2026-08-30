@@ -242,7 +242,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
       patient_id: a.patient_id,
       clinic_id: clinicId,
       outcome,
-      notes: `[${outcome}] ${note}`,
+      notes: `[type:appt][${outcome}] ${note}`,
       called_by: userId,
       called_at: new Date().toISOString(),
     });
@@ -288,7 +288,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
       patient_id: r.patient_id,
       clinic_id: clinicId,
       outcome,
-      notes: combined,
+      notes: `[type:care] ${combined}`,
       called_by: userId,
       called_at: new Date().toISOString(),
     });
@@ -341,7 +341,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
       patient_id: r.patient_id,
       clinic_id: clinicId,
       outcome,
-      notes: informedNote,
+      notes: `[type:cancel] ${informedNote}`,
       called_by: userId,
       called_at: new Date().toISOString(),
     });
@@ -359,6 +359,19 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
   const cancelStatus = (r: CancelledRow): "overdue" | "due" | "done" =>
     isInformed(r.notes) ? "done" : r.called_at.slice(0, 10) < today ? "overdue" : "due";
 
+  /** Classify a logged call so the Done group can honour the Type filter. */
+  const callType = (c: CallLogEntry): "appt" | "care" | "cancel" | "lead" => {
+    const n = c.notes ?? "";
+    const tag = n.match(/^\[type:(appt|care|cancel|lead)\]/);
+    if (tag) return tag[1] as "appt" | "care" | "cancel" | "lead";
+    if (/care call/i.test(n)) return "care";
+    if (/cancellation outcome/i.test(n) || /^\[informed:/.test(n)) return "cancel";
+    if (/reminder call made|appt-tomorrow call/i.test(n)) return "appt";
+    return "lead";
+  };
+
+  const doneFor = () => doneCalls.filter((c) => showType(callType(c)));
+
   const apptsFor = (status: "overdue" | "due" | "done") =>
     status === "due" ? tomorrowAppts.filter((a) => !calledMap[a.patient_id]) : [];
   const careFor = (status: "overdue" | "due" | "done") =>
@@ -375,15 +388,15 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
         <div className="space-y-5">
           {(() => {
             const overdueCount =
-              cancelledRows.filter((r) => cancelStatus(r) === "overdue").length +
-              careRows.filter((r) => careStatus(r) === "overdue").length +
-              leadCounts.overdue;
+              (showType("cancel") ? cancelledRows.filter((r) => cancelStatus(r) === "overdue").length : 0) +
+              (showType("care") ? careRows.filter((r) => careStatus(r) === "overdue").length : 0) +
+              (showType("lead") ? leadCounts.overdue : 0);
             const dueCount =
-              tomorrowAppts.filter((a) => !calledMap[a.patient_id]).length +
-              careRows.filter((r) => careStatus(r) === "due").length +
-              cancelledRows.filter((r) => cancelStatus(r) === "due").length +
-              leadCounts.due;
-            const doneCount = doneCalls.length;
+              (showType("appt") ? tomorrowAppts.filter((a) => !calledMap[a.patient_id]).length : 0) +
+              (showType("care") ? careRows.filter((r) => careStatus(r) === "due").length : 0) +
+              (showType("cancel") ? cancelledRows.filter((r) => cancelStatus(r) === "due").length : 0) +
+              (showType("lead") ? leadCounts.due : 0);
+            const doneCount = doneFor().length;
             const statusOptions: { key: "all" | "overdue" | "due" | "done"; label: string; count: number }[] = [
               { key: "all", label: "All", count: overdueCount + dueCount + doneCount },
               { key: "overdue", label: "Overdue", count: overdueCount },
@@ -407,7 +420,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
             } as const;
             const groupCount = (g: "overdue" | "due" | "done") =>
               g === "done"
-                ? doneCalls.length
+                ? doneCount
                 : (showType("appt") ? apptsFor(g).length : 0) +
                   (showType("care") ? careFor(g).length : 0) +
                   (showType("cancel") ? cancelFor(g).length : 0) +
@@ -439,7 +452,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
                 {groups.map((g) => {
                   const meta = groupMeta[g];
                   const count = groupCount(g);
-                  if ((statusTab as string) === "all" && count === 0) return null;
+                  if (count === 0) return null;
                   return (
                     <section key={g} className="space-y-2">
                       <div className={cn("flex items-center gap-2 px-1 pt-1 text-sm font-semibold", meta.cls)}>
@@ -448,16 +461,16 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
                       </div>
 
                       {g === "done" ? (
-                        doneCalls.length === 0 ? (
+                        doneFor().length === 0 ? (
                           <p className="rounded-[10px] border bg-card px-3 py-6 text-center text-sm text-muted-foreground">
                             No calls logged today yet
                           </p>
                         ) : (
                           <ul className="space-y-2">
-                            {doneCalls.map((c) => {
+                            {doneFor().map((c) => {
                               const cleanNotes = (c.notes ?? "")
                                 .replace(INFORMED_PREFIX_RE, "")
-                                .replace(/^\[[^\]]+\]\s*/, "");
+                                .replace(/^(\[[^\]]+\]\s*)+/, "");
                               return (
                                 <CallTaskRow
                                   key={c.id}
