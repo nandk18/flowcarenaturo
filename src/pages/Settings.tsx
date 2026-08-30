@@ -1102,7 +1102,7 @@ export default function Settings() {
               <Label>Name</Label>
               <Input value={editName} onChange={e => setEditName(e.target.value)} className="rounded-lg" />
             </div>
-            {editMember?.role === "doctor" && (
+            {(editMember?.role === "doctor" || editMember?.is_doctor) && (
               <>
                 <div className="space-y-2">
                   <Label>Qualification</Label>
