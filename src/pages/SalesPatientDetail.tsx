@@ -17,21 +17,14 @@ import {
   CalendarPlus,
   Pencil,
   Phone,
-  Mail,
-  MapPin,
   Search,
   FileText,
-  Receipt,
-  Calendar,
-  User,
   Share2,
   Coffee,
   Cigarette,
   Wine,
   Moon,
   Utensils,
-  ClipboardList,
-  Scissors,
   Activity,
   Plus,
   MoreVertical,
@@ -1147,14 +1140,6 @@ function Kv({ label, value, children }: { label: string; value?: string; childre
   );
 }
 
-function StatBox({ label, value, valueClassName }: { label: string; value: string; valueClassName?: string }) {
-  return (
-    <div className="rounded-xl border bg-background p-4">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={cn("mt-2 font-display text-2xl font-semibold", valueClassName)}>{value}</p>
-    </div>
-  );
-}
 
 // ============ CLINICAL NOTES TAB ============
 
