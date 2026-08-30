@@ -47,7 +47,6 @@ import { LeadForm } from "./Sales";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
 import PatientTreatmentTab from "@/components/patient/PatientTreatmentTab";
-import { HeartPulse } from "lucide-react";
 import PatientTodoCard from "@/components/patient/PatientTodoCard";
 import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 import { openWhatsApp } from "@/lib/whatsapp";
