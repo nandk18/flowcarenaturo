@@ -1167,7 +1167,7 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, 
         patient_id: p.id,
         clinic_id: p.clinic_id,
         outcome,
-        notes: note || null,
+        notes: `[type:lead] ${note || ""}`.trim(),
         called_by: profile.id,
         called_at: new Date().toISOString(),
       });
