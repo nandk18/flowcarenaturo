@@ -1138,6 +1138,15 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
+function Kv({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 text-sm font-medium">{children ?? value}</dd>
+    </div>
+  );
+}
+
 function StatBox({ label, value, valueClassName }: { label: string; value: string; valueClassName?: string }) {
   return (
     <div className="rounded-xl border bg-background p-4">
