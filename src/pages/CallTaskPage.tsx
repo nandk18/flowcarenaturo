@@ -242,7 +242,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
       patient_id: a.patient_id,
       clinic_id: clinicId,
       outcome,
-      notes: `[${outcome}] ${note}`,
+      notes: `[type:appt][${outcome}] ${note}`,
       called_by: userId,
       called_at: new Date().toISOString(),
     });
