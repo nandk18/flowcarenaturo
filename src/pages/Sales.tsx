@@ -9,6 +9,7 @@ import { usePersistedForm } from "@/hooks/usePersistedForm";
 import { useUnsavedChangesPrompt } from "@/hooks/useUnsavedChangesPrompt";
 import RestoreBanner from "@/components/RestoreBanner";
 import PatientDocumentsCard from "@/components/patient/PatientDocumentsCard";
+import SharedCallTaskRow from "@/components/dailyops/CallTaskRow";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -949,70 +950,62 @@ function CallTaskRow({
 
   const noteEmpty = note.trim().length === 0;
 
+  const tone: "overdue" | "due" | "done" = due && due < today ? "overdue" : "due";
+
   return (
-    <div className="rounded-lg border bg-card p-4 space-y-3">
-      <div className="flex flex-wrap items-center gap-3">
-        {statusBadge(patient.lead_status)}
-        <button
-          onClick={() => navigate(`/sales/patient/${patient.id}`)}
-          className="font-medium text-primary hover:underline"
-        >
-          {patient.name}
-        </button>
-        <span className={cn("ml-auto text-xs", sla.cls)}>{sla.label}</span>
-      </div>
-      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-        <span>{patient.phone ?? "—"}</span>
-        {patient.phone && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Send WhatsApp"
-            className="h-7 w-7"
-            onClick={sendWhatsApp}
-          >
-            <MessageCircle className="h-4 w-4 text-green-600" />
-          </Button>
-        )}
-        {patient.convenient_time && (
-          <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700">
-            🕒 {patient.convenient_time}
-          </span>
-        )}
-      </div>
+    <SharedCallTaskRow
+      icon={Phone}
+      tone={tone}
+      patientId={patient.id}
+      name={patient.name}
+      phone={patient.phone ?? undefined}
+      meta={
+        <>
+          Lead call · {sla.label}
+          {patient.convenient_time ? ` · prefers ${patient.convenient_time}` : ""}
+        </>
+      }
+      actions={
+        <>
+          {patient.phone && (
+            <Button type="button" variant="outline" size="sm" onClick={sendWhatsApp}>
+              <MessageCircle className="mr-1 h-3.5 w-3.5 text-success" /> WhatsApp
+            </Button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <span title={noteEmpty ? "Add a note before logging the call" : undefined}>
+                <Button size="sm" disabled={busy || noteEmpty}>
+                  Log call <ChevronDown className="ml-1 h-3.5 w-3.5" />
+                </Button>
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("no_answer")}>
+                <PhoneOff className="mr-2 h-4 w-4" /> No Answer
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("follow_up")}>
+                <RotateCw className="mr-2 h-4 w-4" /> Follow Up
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("not_interested")}>
+                <XCircle className="mr-2 h-4 w-4" /> Not Interested
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("booked")}>
+                <CalendarCheck className="mr-2 h-4 w-4" /> Appointment Booked
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
+      }
+    >
       <Textarea
-        rows={2}
+        rows={1}
         placeholder="Add a note..."
         value={note}
         onChange={(e) => setNote(e.target.value)}
+        className="min-h-[36px] text-sm"
       />
-      <div className="flex justify-end">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <span title={noteEmpty ? "Add a note before logging the call" : undefined}>
-              <Button size="sm" disabled={busy || noteEmpty}>
-                Log Call <ChevronDown className="ml-1 h-4 w-4" />
-              </Button>
-            </span>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("no_answer")}>
-              <PhoneOff className="mr-2 h-4 w-4" /> No Answer
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("follow_up")}>
-              <RotateCw className="mr-2 h-4 w-4" /> Follow Up
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("not_interested")}>
-              <XCircle className="mr-2 h-4 w-4" /> Not Interested
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={noteEmpty} onClick={() => handle("booked")}>
-              <CalendarCheck className="mr-2 h-4 w-4" /> Appointment Booked
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
+    </SharedCallTaskRow>
   );
 }
 
@@ -1062,7 +1055,7 @@ function CallSection({
   );
 }
 
-export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, statusFilter, onCountsChange }: { clinicId: string; onDoneClick?: () => void; doneTodayOverride?: number; hidePills?: boolean; statusFilter?: "overdue" | "due" | "done"; onCountsChange?: (c: { overdue: number; due: number }) => void }) {
+export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, statusFilter, onCountsChange, flat }: { clinicId: string; onDoneClick?: () => void; doneTodayOverride?: number; hidePills?: boolean; flat?: boolean; statusFilter?: "overdue" | "due" | "done"; onCountsChange?: (c: { overdue: number; due: number }) => void }) {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [rows, setRows] = useState<Patient[]>([]);
@@ -1268,6 +1261,39 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, 
     </div>
   );
 
+  const bookingModal = (
+    <BookAppointmentModal
+      open={!!bookFor}
+      initialPatientId={bookFor?.patient.id}
+      lockPatient
+      onBooked={() => {
+        const cur = bookFor;
+        setBookFor(null);
+        if (cur) {
+          toast.success("Appointment booked and call logged");
+          cur.resolve(true);
+        }
+      }}
+      onClose={() => {
+        const cur = bookFor;
+        setBookFor(null);
+        if (cur) cur.resolve(false);
+      }}
+    />
+  );
+
+  if (flat) {
+    const flatRows = statusFilter === "overdue" ? overdue : statusFilter === "done" ? [] : dueToday;
+    return (
+      <>
+        {flatRows.map((p) => (
+          <CallTaskRow key={p.id} patient={p} onAction={handleAction} />
+        ))}
+        {bookingModal}
+      </>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {!hidePills && (
@@ -1292,24 +1318,8 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, 
         </div>
       )}
 
-      <BookAppointmentModal
-        open={!!bookFor}
-        initialPatientId={bookFor?.patient.id}
-        lockPatient
-        onBooked={() => {
-          const cur = bookFor;
-          setBookFor(null);
-          if (cur) {
-            toast.success("Appointment booked and call logged");
-            cur.resolve(true);
-          }
-        }}
-        onClose={() => {
-          const cur = bookFor;
-          setBookFor(null);
-          if (cur) cur.resolve(false);
-        }}
-      />
+      {bookingModal}
+
     </div>
   );
 }
