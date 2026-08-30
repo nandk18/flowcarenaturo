@@ -359,6 +359,19 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
   const cancelStatus = (r: CancelledRow): "overdue" | "due" | "done" =>
     isInformed(r.notes) ? "done" : r.called_at.slice(0, 10) < today ? "overdue" : "due";
 
+  /** Classify a logged call so the Done group can honour the Type filter. */
+  const callType = (c: CallLogEntry): "appt" | "care" | "cancel" | "lead" => {
+    const n = c.notes ?? "";
+    const tag = n.match(/^\[type:(appt|care|cancel|lead)\]/);
+    if (tag) return tag[1] as "appt" | "care" | "cancel" | "lead";
+    if (/care call/i.test(n)) return "care";
+    if (/cancellation outcome/i.test(n) || /^\[informed:/.test(n)) return "cancel";
+    if (/reminder call made|appt-tomorrow call/i.test(n)) return "appt";
+    return "lead";
+  };
+
+  const doneFor = () => doneCalls.filter((c) => showType(callType(c)));
+
   const apptsFor = (status: "overdue" | "due" | "done") =>
     status === "due" ? tomorrowAppts.filter((a) => !calledMap[a.patient_id]) : [];
   const careFor = (status: "overdue" | "due" | "done") =>
