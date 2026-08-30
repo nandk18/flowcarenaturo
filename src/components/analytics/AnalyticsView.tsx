@@ -193,8 +193,9 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
     "This Month": "This month",
     "Last 3 Months": "Last 3 months",
     "This Year": "This year",
+    "Custom": "Custom range",
   };
-  const PERIODS: Range[] = ["Today", "This Week", "This Month", "This Year"];
+  const PERIODS: Range[] = ["Today", "This Week", "This Month", "This Year", "Custom"];
 
   const TAB_LABEL: Record<string, string> = {
     overview: "Overview", revenue: "Revenue", patients: "Patients",
