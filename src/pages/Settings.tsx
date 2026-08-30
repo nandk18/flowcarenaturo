@@ -310,7 +310,7 @@ export default function Settings() {
     if (!editMember || !profile?.clinic_id) return;
     setEditSaving(true);
     try {
-      if (editMember.role === "doctor") {
+      if (editMember.role === "doctor" || editMember.is_doctor) {
         const { error } = await supabase.from("doctors").update({
           name: editName, qualification: editQualification,
           specialty: editSpecialty, registration_number: editRegNumber,
