@@ -16,7 +16,7 @@ import {
   MessageCircle,
   CalendarPlus,
   Pencil,
-  Phone,
+
   Search,
   FileText,
   Share2,
