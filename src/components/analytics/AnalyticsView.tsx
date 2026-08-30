@@ -274,6 +274,25 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
             </button>
           ))}
         </div>
+        {range === "Custom" && (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={customStart}
+              max={customEnd}
+              onChange={(e) => setCustomStart(e.target.value)}
+              className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+            />
+            <span className="text-xs text-muted-foreground">to</span>
+            <input
+              type="date"
+              value={customEnd}
+              min={customStart}
+              onChange={(e) => setCustomEnd(e.target.value)}
+              className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+            />
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
