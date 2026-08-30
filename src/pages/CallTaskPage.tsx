@@ -353,29 +353,17 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
   const showType = (k: "appt" | "care" | "cancel" | "lead") =>
     activeTab === k || (activeTab as string) === "all";
 
-  const visibleAppts = tomorrowAppts.filter((a) => {
-    const called = !!calledMap[a.patient_id];
-    if ((statusTab as string) === "done") return called;
-    if (statusTab === "overdue") return false;
-    return !called;
-  });
-  const visibleCare = careRows.filter((r) => {
-    const due = r.care_call_due_date ?? "";
-    if (statusTab === "overdue") return due && due < today;
-    if (statusTab === "due") return due === today;
-    return false;
-  });
-  const visibleCancel = cancelledRows.filter((r) => {
-    const informed = isInformed(r.notes);
-    const day = r.called_at.slice(0, 10);
-    if ((statusTab as string) === "done") return informed && day === today;
-    if (statusTab === "overdue") return !informed && day < today;
-    return !informed && day === today;
-  });
-  const shownRowCount =
-    (showType("appt") ? visibleAppts.length : 0) +
-    (showType("care") ? visibleCare.length : 0) +
-    (showType("cancel") ? visibleCancel.length : 0);
+  const careStatus = (r: CareCallRow): "overdue" | "due" =>
+    r.care_call_due_date && r.care_call_due_date < today ? "overdue" : "due";
+  const cancelStatus = (r: CancelledRow): "overdue" | "due" | "done" =>
+    isInformed(r.notes) ? "done" : r.called_at.slice(0, 10) < today ? "overdue" : "due";
+
+  const apptsFor = (status: "overdue" | "due" | "done") =>
+    status === "due" ? tomorrowAppts.filter((a) => !calledMap[a.patient_id]) : [];
+  const careFor = (status: "overdue" | "due" | "done") =>
+    status === "done" ? [] : careRows.filter((r) => careStatus(r) === status);
+  const cancelFor = (status: "overdue" | "due" | "done") =>
+    status === "done" ? [] : cancelledRows.filter((r) => cancelStatus(r) === status);
 
   const body = (
 
@@ -386,375 +374,286 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
         <div className="space-y-5">
           {(() => {
             const overdueCount =
-              cancelledRows.filter((r) => !isInformed(r.notes) && r.called_at.slice(0, 10) < today).length +
-              careRows.filter((r) => r.care_call_due_date && r.care_call_due_date < today).length +
+              cancelledRows.filter((r) => cancelStatus(r) === "overdue").length +
+              careRows.filter((r) => careStatus(r) === "overdue").length +
               leadCounts.overdue;
             const dueCount =
               tomorrowAppts.filter((a) => !calledMap[a.patient_id]).length +
-              careRows.filter((r) => !r.care_call_due_date || r.care_call_due_date === today).length +
-              cancelledRows.filter((r) => !isInformed(r.notes) && r.called_at.slice(0, 10) === today).length +
+              careRows.filter((r) => careStatus(r) === "due").length +
+              cancelledRows.filter((r) => cancelStatus(r) === "due").length +
               leadCounts.due;
             const doneCount = doneCalls.length;
-            const statusOptions: { key: "overdue" | "due" | "done"; label: string; count: number }[] = [
+            const statusOptions: { key: "all" | "overdue" | "due" | "done"; label: string; count: number }[] = [
+              { key: "all", label: "All", count: overdueCount + dueCount + doneCount },
               { key: "overdue", label: "Overdue", count: overdueCount },
-              { key: "due", label: "Due Today", count: dueCount },
-              { key: "done", label: "Done Today", count: doneCount },
+              { key: "due", label: "Due today", count: dueCount },
+              { key: "done", label: "Done today", count: doneCount },
             ];
-            const activeCount = statusOptions.find((s) => s.key === statusTab)?.count ?? 0;
             const totalTypeCount = tomorrowAppts.length + careRows.length + cancelledRows.filter((r) => !isInformed(r.notes)).length + leadTotal;
-            const typeOptions: { key: "all" | "appt" | "care" | "cancel" | "lead"; label: string; icon: any; count: number }[] = [
-              { key: "all", label: "All", icon: Clock, count: totalTypeCount },
-              { key: "appt", label: "Appointment Tomorrow", icon: CalendarClock, count: tomorrowAppts.length },
-              { key: "care", label: "Care Call", icon: HeartHandshake, count: careRows.length },
-              { key: "cancel", label: "Cancelled Call", icon: XCircle, count: cancelledRows.filter((r) => !isInformed(r.notes)).length },
-              { key: "lead", label: "Lead Call", icon: Phone, count: leadTotal },
+            const typeOptions: { key: "all" | "appt" | "care" | "cancel" | "lead"; label: string; count: number }[] = [
+              { key: "all", label: "Type: All", count: totalTypeCount },
+              { key: "appt", label: "Appointment Tomorrow", count: tomorrowAppts.length },
+              { key: "care", label: "Care Call", count: careRows.length },
+              { key: "cancel", label: "Cancelled Call", count: cancelledRows.filter((r) => !isInformed(r.notes)).length },
+              { key: "lead", label: "Lead Call", count: leadTotal },
             ];
-            const activeType = typeOptions.find((t) => t.key === activeTab);
-            const dotCls = { overdue: "bg-destructive", due: "bg-warning", done: "bg-success" } as const;
+            const groups: ("overdue" | "due" | "done")[] =
+              (statusTab as string) === "all" ? ["overdue", "due", "done"] : [statusTab as "overdue" | "due" | "done"];
+            const groupMeta = {
+              overdue: { label: "Overdue", cls: "text-destructive", Icon: AlertCircle },
+              due: { label: "Due today", cls: "text-warning", Icon: Clock },
+              done: { label: "Done today", cls: "text-success", Icon: CheckCircle2 },
+            } as const;
+            const groupCount = (g: "overdue" | "due" | "done") =>
+              g === "done"
+                ? doneCalls.length
+                : (showType("appt") ? apptsFor(g).length : 0) +
+                  (showType("care") ? careFor(g).length : 0) +
+                  (showType("cancel") ? cancelFor(g).length : 0) +
+                  (showType("lead") ? (g === "overdue" ? leadCounts.overdue : leadCounts.due) : 0);
+
+            const anyRows = groups.some((g) => groupCount(g) > 0);
+
             return (
               <>
                 <div className="flex flex-wrap items-center gap-2">
-                  {statusOptions.map((s) => {
-                    const active = statusTab === s.key;
-                    return (
-                      <button
-                        key={s.key}
-                        type="button"
-                        onClick={() => setStatusTab(s.key)}
-                        className={cn(
-                          "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
-                          active ? "border-primary bg-primary/10 font-semibold text-foreground" : "border-border bg-card text-muted-foreground hover:bg-accent",
-                        )}
-                      >
-                        <span className={cn("h-2 w-2 rounded-full", dotCls[s.key])} />
-                        <span className="font-semibold">{s.count}</span>
-                        <span>{s.key === "overdue" ? "overdue" : s.key === "due" ? "due today" : "done today"}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {statusTab !== "done" && (
+                  <Select value={statusTab as string} onValueChange={(v) => setStatusTab(v as any)}>
+                    <SelectTrigger className="w-[190px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map((s) => (
+                        <SelectItem key={s.key} value={s.key}>{s.label} ({s.count})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Select value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
                     <SelectTrigger className="w-[220px]"><SelectValue placeholder="Type: All" /></SelectTrigger>
                     <SelectContent>
                       {typeOptions.map((t) => (
-                        <SelectItem key={t.key} value={t.key}>{t.key === "all" ? "Type: All" : t.label} ({t.count})</SelectItem>
+                        <SelectItem key={t.key} value={t.key}>{t.label} ({t.count})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                )}
+                </div>
 
-                {statusTab !== "done" && (
-                  <div
-                    className={cn(
-                      "flex items-center gap-2 px-1 pt-1 text-sm font-semibold",
-                      statusTab === "overdue" ? "text-destructive" : "text-warning",
-                    )}
-                  >
-                    {statusTab === "overdue" ? (
-                      <AlertCircle className="h-3.5 w-3.5" />
-                    ) : (
-                      <Clock className="h-3.5 w-3.5" />
-                    )}
-                    {statusOptions.find((s) => s.key === statusTab)?.label} — {activeType ? activeType.count : activeCount}
+                {groups.map((g) => {
+                  const meta = groupMeta[g];
+                  const count = groupCount(g);
+                  if ((statusTab as string) === "all" && count === 0) return null;
+                  return (
+                    <section key={g} className="space-y-2">
+                      <div className={cn("flex items-center gap-2 px-1 pt-1 text-sm font-semibold", meta.cls)}>
+                        <meta.Icon className="h-3.5 w-3.5" />
+                        {meta.label} — {count}
+                      </div>
+
+                      {g === "done" ? (
+                        doneCalls.length === 0 ? (
+                          <p className="rounded-[10px] border bg-card px-3 py-6 text-center text-sm text-muted-foreground">
+                            No calls logged today yet
+                          </p>
+                        ) : (
+                          <ul className="space-y-2">
+                            {doneCalls.map((c) => {
+                              const cleanNotes = (c.notes ?? "")
+                                .replace(INFORMED_PREFIX_RE, "")
+                                .replace(/^\[[^\]]+\]\s*/, "");
+                              return (
+                                <CallTaskRow
+                                  key={c.id}
+                                  icon={CheckCircle2}
+                                  tone="done"
+                                  patientId={c.patient?.id}
+                                  name={c.patient?.name ?? "—"}
+                                  meta={
+                                    <>
+                                      {c.outcome ? outcomeLabel(c.outcome) : "Call"} · done {format(new Date(c.called_at), "h:mm a")}
+                                      {c.caller_name ? ` · by ${c.caller_name}` : ""}
+                                    </>
+                                  }
+                                  actions={
+                                    <Badge variant="outline" className="border-success/30 text-success">
+                                      <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Done
+                                    </Badge>
+                                  }
+                                >
+                                  {cleanNotes ? <p className="text-xs text-muted-foreground">{cleanNotes}</p> : null}
+                                </CallTaskRow>
+                              );
+                            })}
+                          </ul>
+                        )
+                      ) : (
+                        <ul className="space-y-2">
+                          {showType("appt") && apptsFor(g).map((a) => (
+                            <CallTaskRow
+                              key={a.id}
+                              icon={CalendarClock}
+                              tone={g}
+                              patientId={a.patient?.id}
+                              name={a.patient?.name ?? "—"}
+                              phone={a.patient?.phone ?? undefined}
+                              meta={`Appointment tomorrow · ${a.appointment_time?.slice(0, 5) ?? ""} · ${a.doctor?.name ?? "Doctor"}`}
+                              actions={
+                                <>
+                                  {a.patient?.phone && (
+                                    <Button size="sm" variant="outline" onClick={() => sendApptReminder(a)}>
+                                      <MessageCircle className="mr-1 h-3.5 w-3.5 text-success" /> WhatsApp
+                                    </Button>
+                                  )}
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button size="sm">Log call <ChevronDown className="ml-1 h-3.5 w-3.5" /></Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => markCalled(a, "confirmed")}>Confirmed</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => markCalled(a, "rescheduled")}>Rescheduled</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => markCalled(a, "cancelled")}>Cancelled</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => markCalled(a, "no_answer")}>No Answer</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </>
+                              }
+                            >
+                              <Textarea
+                                value={noteMap[a.patient_id] ?? ""}
+                                onChange={(e) => setNoteForPatient(a.patient_id, e.target.value)}
+                                placeholder="Add reminder note…"
+                                rows={1}
+                                className="min-h-[36px] text-sm"
+                              />
+                            </CallTaskRow>
+                          ))}
+
+                          {showType("care") && careFor(g).map((r) => {
+                            const daysSince = differenceInCalendarDays(new Date(), new Date(r.appointment_date));
+                            const overdueDays = r.care_call_due_date
+                              ? differenceInCalendarDays(new Date(), new Date(r.care_call_due_date))
+                              : 0;
+                            return (
+                              <CallTaskRow
+                                key={r.id}
+                                icon={HeartHandshake}
+                                tone={g}
+                                patientId={r.patient?.id}
+                                name={r.patient?.name ?? "—"}
+                                phone={r.patient?.phone ?? undefined}
+                                meta={
+                                  g === "overdue"
+                                    ? `Care call · overdue ${overdueDays} day${overdueDays === 1 ? "" : "s"}`
+                                    : `Care call · due today · last visit ${daysSince}d ago`
+                                }
+                                actions={
+                                  <>
+                                    {r.patient?.phone && (
+                                      <Button size="sm" variant="outline" onClick={() => sendCareWhatsApp(r)}>
+                                        <MessageCircle className="mr-1 h-3.5 w-3.5 text-success" /> WhatsApp
+                                      </Button>
+                                    )}
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button size="sm">Log call <ChevronDown className="ml-1 h-3.5 w-3.5" /></Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => markCareCalled(r, "doing_well")}>Doing Well</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => markCareCalled(r, "needs_follow_up")}>Needs Follow-up</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => markCareCalled(r, "no_answer")}>No Answer</DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </>
+                                }
+                              >
+                                <Textarea
+                                  value={careNotes[r.id] ?? ""}
+                                  onChange={(e) => setCareNote(r.id, e.target.value)}
+                                  placeholder="Add care call note…"
+                                  rows={1}
+                                  className="min-h-[36px] text-sm"
+                                />
+                              </CallTaskRow>
+                            );
+                          })}
+
+                          {showType("cancel") && cancelFor(g).map((r) => {
+                            const reason = parseReason(r.notes);
+                            const daysAgo = differenceInCalendarDays(new Date(), new Date(r.called_at));
+                            return (
+                              <CallTaskRow
+                                key={r.id}
+                                icon={XCircle}
+                                tone={g}
+                                patientId={r.patient?.id}
+                                name={r.patient?.name ?? "—"}
+                                phone={r.patient?.phone ?? undefined}
+                                meta={
+                                  g === "overdue"
+                                    ? `Cancelled call · overdue ${daysAgo} day${daysAgo === 1 ? "" : "s"}${reason ? ` · ${reason}` : ""}`
+                                    : `Cancelled call · due today${reason ? ` · ${reason}` : ""}`
+                                }
+                                actions={
+                                  <>
+                                    {r.patient?.phone && (
+                                      <Button size="sm" variant="outline" onClick={() => sendCancelWhatsApp(r)}>
+                                        <MessageCircle className="mr-1 h-3.5 w-3.5 text-success" /> WhatsApp
+                                      </Button>
+                                    )}
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button size="sm">Log call <ChevronDown className="ml-1 h-3.5 w-3.5" /></Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => markInformed(r, "rebooked")}>Rebooked</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => markInformed(r, "not_interested")}>Not Interested</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => markInformed(r, "no_answer")}>No Answer</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => markInformed(r, "informed")}>Informed</DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </>
+                                }
+                              >
+                                <Textarea
+                                  value={cancelNotes[r.id] ?? ""}
+                                  onChange={(e) => setCancelNote(r.id, e.target.value)}
+                                  placeholder="Add note about informing…"
+                                  rows={1}
+                                  className="min-h-[36px] text-sm"
+                                />
+                              </CallTaskRow>
+                            );
+                          })}
+
+                          {showType("lead") && (
+                            <CallTask
+                              clinicId={clinicId}
+                              onDoneClick={() => setShowDone(true)}
+                              doneTodayOverride={doneCalls.length}
+                              hidePills
+                              flat
+                              statusFilter={g}
+                              onCountsChange={(c) => setLeadCounts(c)}
+                            />
+                          )}
+                        </ul>
+                      )}
+                    </section>
+                  );
+                })}
+
+                {!anyRows && (
+                  <div className="rounded-xl border border-dashed bg-card px-7 py-8 text-center">
+                    <div className="mx-auto mb-3.5 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                    </div>
+                    <p className="text-[14.5px] font-semibold">Rest of today's tasks are clear</p>
+                    <p className="mt-1 text-[13px] text-muted-foreground">Nothing due right now — check back later.</p>
                   </div>
                 )}
               </>
             );
           })()}
-
-          {statusTab === "done" && (
-            <section className="rounded-2xl border bg-card shadow-card overflow-hidden">
-              <header className="flex items-center justify-between border-b bg-success/10 px-4 py-3">
-                <h2 className="flex items-center gap-2 text-sm font-semibold text-success">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Done today
-                  <span className="ml-1 rounded-full bg-success/20 px-2 py-0.5 text-[10px] font-bold text-success">{doneCalls.length}</span>
-                </h2>
-                <span className="text-xs text-muted-foreground">All calls logged today</span>
-              </header>
-              {doneCalls.length === 0 ? (
-                <p className="p-6 text-center text-sm text-muted-foreground">No calls logged today yet</p>
-              ) : (
-                <ul className="divide-y">
-                  {doneCalls.map((c) => {
-                    const cleanNotes = (c.notes ?? "")
-                      .replace(INFORMED_PREFIX_RE, "")
-                      .replace(/^\[[^\]]+\]\s*/, "");
-                    return (
-                      <li key={c.id} className="px-4 py-3 space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {c.patient ? (
-                            <PatientLink patientId={c.patient.id} className="text-sm font-semibold">
-                              {c.patient.name}
-                            </PatientLink>
-                          ) : (
-                            <span className="text-sm">—</span>
-                          )}
-                          {c.outcome && (
-                            <Badge variant="outline" className={cn("text-[10px] capitalize", outcomeStyle(c.outcome))}>
-                              {outcomeLabel(c.outcome)}
-                            </Badge>
-                          )}
-                          <span className="ml-auto text-xs text-muted-foreground">{format(new Date(c.called_at), "h:mm a")}</span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                          {c.caller_name && <span>by {c.caller_name}</span>}
-                        </div>
-                        {cleanNotes && <p className="text-xs text-muted-foreground">{cleanNotes}</p>}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-          )}
-
-          {statusTab !== "done" && (
-          <>
-
-
-          {showType("appt") && visibleAppts.length > 0 && (
-            <section className="space-y-2">
-              <div className="flex items-center gap-2 px-1 text-[12.5px] font-semibold text-info">
-                <CalendarClock className="h-3.5 w-3.5" />
-                Appointment tomorrow — {visibleAppts.length}
-              </div>
-              <ul className="space-y-2">
-                {visibleAppts.map((a) => {
-                  const called = calledMap[a.patient_id];
-                  return (
-                    <li key={a.id} className="grid gap-2 rounded-[10px] border bg-card px-3 py-2.5 sm:grid-cols-[auto_1fr_auto] sm:items-start">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[7px] bg-info/10 text-info">
-                          <CalendarClock className="h-3.5 w-3.5" />
-                        </span>
-                        {a.patient && (
-                          <PatientLink patientId={a.patient.id} className="text-sm font-semibold">{a.patient.name}</PatientLink>
-                        )}
-                        <span className="text-xs text-muted-foreground">{a.appointment_time?.slice(0, 5)}</span>
-                        <span className="text-xs text-muted-foreground">· {a.doctor?.name ?? "Doctor"}</span>
-                        {a.patient?.phone && (
-                          <>
-                            <span className="text-xs text-muted-foreground">· {a.patient.phone}</span>
-                            <button
-                              type="button"
-                              onClick={() => sendApptReminder(a)}
-                              className="inline-flex items-center text-xs text-success hover:underline"
-                              aria-label="Send WhatsApp reminder"
-                            >
-                              <MessageCircle className="h-3 w-3" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                      <Textarea
-                        value={noteMap[a.patient_id] ?? ""}
-                        onChange={(e) => setNoteForPatient(a.patient_id, e.target.value)}
-                        placeholder="Add reminder note…"
-                        rows={1}
-                        className="min-h-[36px] text-sm sm:col-start-1 sm:col-span-2"
-                      />
-                      <div className="sm:row-start-1 sm:col-start-3 sm:row-span-2 sm:self-center">
-                        {called ? (
-                          <Badge variant="outline" className="border-success/30 text-success">
-                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Called
-                          </Badge>
-                        ) : (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm">Log Call <ChevronDown className="ml-1 h-3.5 w-3.5" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => markCalled(a, "confirmed")}>Confirmed</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => markCalled(a, "rescheduled")}>Rescheduled</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => markCalled(a, "cancelled")}>Cancelled</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => markCalled(a, "no_answer")}>No Answer</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          )}
-
-          {showType("care") && visibleCare.length > 0 && (
-            <section className="space-y-2">
-              <div className={cn("flex items-center gap-2 px-1 text-[12.5px] font-semibold", statusTab === "overdue" ? "text-destructive" : "text-warning")}>
-                <HeartHandshake className="h-3.5 w-3.5" />
-                Care call — {visibleCare.length}
-              </div>
-              <ul className="space-y-2">
-                {visibleCare.map((r) => {
-                  const apptDate = new Date(r.appointment_date);
-                  const daysSince = differenceInCalendarDays(new Date(), apptDate);
-                  const overdue = (r.care_call_due_date ?? "") < today;
-                  return (
-                    <li key={r.id} className="grid gap-2 rounded-[10px] border bg-card px-3 py-2.5 sm:grid-cols-[1fr_auto] sm:items-start">
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={cn("flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[7px]", overdue ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary")}>
-                            <HeartHandshake className="h-3.5 w-3.5" />
-                          </span>
-                          {r.patient && (
-                            <PatientLink patientId={r.patient.id} className="text-sm font-semibold">
-                              {r.patient.name}
-                            </PatientLink>
-                          )}
-                          {r.patient?.phone && (
-                            <>
-                              <span className="text-xs text-muted-foreground">· {r.patient.phone}</span>
-                              <button
-                                type="button"
-                                onClick={() => sendCareWhatsApp(r)}
-                                className="inline-flex items-center text-xs text-success hover:underline"
-                                aria-label="Send WhatsApp care call"
-                              >
-                                <MessageCircle className="h-3 w-3" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                          <span>Visited {format(apptDate, "dd MMM")}</span>
-                          <span>· {r.doctor?.name ?? "Doctor"}</span>
-                          <span>· {daysSince}d ago</span>
-                          {r.care_call_due_date && (
-                            <span>· Due {format(new Date(r.care_call_due_date), "dd MMM")}</span>
-                          )}
-                        </div>
-                        <Textarea
-                          value={careNotes[r.id] ?? ""}
-                          onChange={(e) => setCareNote(r.id, e.target.value)}
-                          placeholder="Add care call note..."
-                          rows={1}
-                          className="min-h-[36px] text-sm"
-                        />
-                      </div>
-                      <div className="sm:self-center">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button size="sm">Log Call <ChevronDown className="ml-1 h-3.5 w-3.5" /></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => markCareCalled(r, "doing_well")}>Doing Well</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => markCareCalled(r, "needs_follow_up")}>Needs Follow-up</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => markCareCalled(r, "no_answer")}>No Answer</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          )}
-
-          {showType("cancel") && visibleCancel.length > 0 && (
-            <section className="space-y-2">
-              <div className="flex items-center gap-2 px-1 text-[12.5px] font-semibold text-warning">
-                <XCircle className="h-3.5 w-3.5" />
-                Cancelled appointments — {visibleCancel.length}
-              </div>
-              <ul className="space-y-2">
-                {visibleCancel.map((r) => {
-                  const informed = isInformed(r.notes);
-                  const reason = parseReason(r.notes);
-                  return (
-                    <li key={r.id} className="grid gap-2 rounded-[10px] border bg-card px-3 py-2.5 sm:grid-cols-[1fr_auto] sm:items-start">
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[7px] bg-warning/10 text-warning">
-                            <XCircle className="h-3.5 w-3.5" />
-                          </span>
-                          {r.patient && (
-                            <PatientLink patientId={r.patient.id} className="text-sm font-semibold">
-                              {r.patient.name}
-                            </PatientLink>
-                          )}
-                          {r.patient?.phone && (
-                            <>
-                              <span className="text-xs text-muted-foreground">· {r.patient.phone}</span>
-                              <button
-                                type="button"
-                                onClick={() => sendCancelWhatsApp(r)}
-                                className="inline-flex items-center text-xs text-success hover:underline"
-                                aria-label="Send WhatsApp cancellation"
-                              >
-                                <MessageCircle className="h-3 w-3" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                          <span>Cancelled {format(new Date(r.called_at), "dd MMM, h:mm a")}</span>
-                          {reason && <span>· {reason}</span>}
-                        </div>
-                        {!informed && (
-                          <Textarea
-                            value={cancelNotes[r.id] ?? ""}
-                            onChange={(e) => setCancelNote(r.id, e.target.value)}
-                            placeholder="Add note about informing..."
-                            rows={1}
-                            className="min-h-[36px] text-sm"
-                          />
-                        )}
-                      </div>
-                      <div className="sm:self-center">
-                        {informed ? (
-                          <Badge variant="outline" className="border-success/30 text-success">
-                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Informed
-                          </Badge>
-                        ) : (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm">Log Call <ChevronDown className="ml-1 h-3.5 w-3.5" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => markInformed(r, "rebooked")}>Rebooked</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => markInformed(r, "not_interested")}>Not Interested</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => markInformed(r, "no_answer")}>No Answer</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => markInformed(r, "informed")}>Informed</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          )}
-
-          {showType("lead") && (
-            <CallTask
-              clinicId={clinicId}
-              onDoneClick={() => setShowDone(true)}
-              doneTodayOverride={doneCalls.length}
-              hidePills
-              statusFilter={statusTab}
-              onCountsChange={(c) => setLeadCounts(c)}
-            />
-          )}
-
-          {!showType("lead") && shownRowCount === 0 && (
-            <div className="rounded-xl border border-dashed bg-card px-7 py-8 text-center">
-              <div className="mx-auto mb-3.5 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <CheckCircle2 className="h-5 w-5 text-primary" />
-              </div>
-              <p className="text-[14.5px] font-semibold">Rest of today's tasks are clear</p>
-              <p className="mt-1 text-[13px] text-muted-foreground">Nothing due right now — check back later.</p>
-            </div>
-          )}
-          </>
-          )}
         </div>
 
       )}
+
 
       <Sheet open={showDone} onOpenChange={setShowDone}>
         <SheetContent className="w-full sm:max-w-md overflow-y-auto">
