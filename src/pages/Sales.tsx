@@ -1317,25 +1317,8 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, 
         </div>
       )}
 
+      {bookingModal}
 
-      <BookAppointmentModal
-        open={!!bookFor}
-        initialPatientId={bookFor?.patient.id}
-        lockPatient
-        onBooked={() => {
-          const cur = bookFor;
-          setBookFor(null);
-          if (cur) {
-            toast.success("Appointment booked and call logged");
-            cur.resolve(true);
-          }
-        }}
-        onClose={() => {
-          const cur = bookFor;
-          setBookFor(null);
-          if (cur) cur.resolve(false);
-        }}
-      />
     </div>
   );
 }
