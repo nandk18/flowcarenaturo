@@ -1,9 +1,12 @@
 import { format, startOfDay, startOfWeek, startOfMonth, startOfYear, subMonths } from "date-fns";
 
-export const RANGES = ["Today", "This Week", "This Month", "Last 3 Months", "This Year"] as const;
+export const RANGES = ["Today", "This Week", "This Month", "Last 3 Months", "This Year", "Custom"] as const;
 export type Range = typeof RANGES[number];
 
-export function dateRange(range: Range): { start: string; end: string } {
+export function dateRange(
+  range: Range,
+  custom?: { start: string; end: string },
+): { start: string; end: string } {
   const now = new Date();
   const end = format(now, "yyyy-MM-dd");
   switch (range) {
@@ -12,6 +15,11 @@ export function dateRange(range: Range): { start: string; end: string } {
     case "This Month": return { start: format(startOfMonth(now), "yyyy-MM-dd"), end };
     case "Last 3 Months": return { start: format(subMonths(now, 3), "yyyy-MM-dd"), end };
     case "This Year": return { start: format(startOfYear(now), "yyyy-MM-dd"), end };
+    case "Custom": {
+      const s = custom?.start || format(startOfMonth(now), "yyyy-MM-dd");
+      const e = custom?.end || end;
+      return s <= e ? { start: s, end: e } : { start: e, end: s };
+    }
   }
 }
 
