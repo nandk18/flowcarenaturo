@@ -803,6 +803,9 @@ export default function Settings() {
                                   <p className="font-medium text-foreground text-sm">{member.display_name}</p>
                                   <div className="flex items-center gap-2 mt-0.5">
                                     <Badge className={`capitalize text-xs ${roleBadgeClass[member.role] || ""} border-0`}>{member.role}</Badge>
+                                    {member.is_doctor && member.role !== "doctor" && (
+                                      <Badge className="text-xs bg-info/10 text-info border-0">Doctor</Badge>
+                                    )}
                                     {member.qualification && <span className="text-xs text-muted-foreground">{member.qualification}</span>}
                                   </div>
                                 </div>
