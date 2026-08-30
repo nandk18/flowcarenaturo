@@ -470,7 +470,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
                             {doneFor().map((c) => {
                               const cleanNotes = (c.notes ?? "")
                                 .replace(INFORMED_PREFIX_RE, "")
-                                .replace(/^\[[^\]]+\]\s*/, "");
+                                .replace(/^(\[[^\]]+\]\s*)+/, "");
                               return (
                                 <CallTaskRow
                                   key={c.id}
