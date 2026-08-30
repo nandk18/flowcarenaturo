@@ -50,7 +50,12 @@ type Props = {
 export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
   const [range, setRange] = useState<Range>("This Month");
   const [tab, setTab] = useState("overview");
-  const { start, end } = useMemo(() => dateRange(range), [range]);
+  const [customStart, setCustomStart] = useState(() => dateRange("This Month").start);
+  const [customEnd, setCustomEnd] = useState(() => dateRange("Today").end);
+  const { start, end } = useMemo(
+    () => dateRange(range, { start: customStart, end: customEnd }),
+    [range, customStart, customEnd],
+  );
 
   const [rev, setRev] = useState<any>(null);
   const [pat, setPat] = useState<any>(null);
