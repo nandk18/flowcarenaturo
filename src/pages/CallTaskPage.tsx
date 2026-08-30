@@ -420,7 +420,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
             } as const;
             const groupCount = (g: "overdue" | "due" | "done") =>
               g === "done"
-                ? doneCalls.length
+                ? doneCount
                 : (showType("appt") ? apptsFor(g).length : 0) +
                   (showType("care") ? careFor(g).length : 0) +
                   (showType("cancel") ? cancelFor(g).length : 0) +
