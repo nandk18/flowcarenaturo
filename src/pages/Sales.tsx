@@ -9,6 +9,7 @@ import { usePersistedForm } from "@/hooks/usePersistedForm";
 import { useUnsavedChangesPrompt } from "@/hooks/useUnsavedChangesPrompt";
 import RestoreBanner from "@/components/RestoreBanner";
 import PatientDocumentsCard from "@/components/patient/PatientDocumentsCard";
+import SharedCallTaskRow from "@/components/dailyops/CallTaskRow";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1054,7 +1055,7 @@ function CallSection({
   );
 }
 
-export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, statusFilter, onCountsChange }: { clinicId: string; onDoneClick?: () => void; doneTodayOverride?: number; hidePills?: boolean; statusFilter?: "overdue" | "due" | "done"; onCountsChange?: (c: { overdue: number; due: number }) => void }) {
+export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, statusFilter, onCountsChange, flat }: { clinicId: string; onDoneClick?: () => void; doneTodayOverride?: number; hidePills?: boolean; flat?: boolean; statusFilter?: "overdue" | "due" | "done"; onCountsChange?: (c: { overdue: number; due: number }) => void }) {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [rows, setRows] = useState<Patient[]>([]);
