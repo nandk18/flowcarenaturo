@@ -452,7 +452,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
                 {groups.map((g) => {
                   const meta = groupMeta[g];
                   const count = groupCount(g);
-                  if ((statusTab as string) === "all" && count === 0) return null;
+                  if (count === 0) return null;
                   return (
                     <section key={g} className="space-y-2">
                       <div className={cn("flex items-center gap-2 px-1 pt-1 text-sm font-semibold", meta.cls)}>
@@ -461,13 +461,13 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
                       </div>
 
                       {g === "done" ? (
-                        doneCalls.length === 0 ? (
+                        doneFor().length === 0 ? (
                           <p className="rounded-[10px] border bg-card px-3 py-6 text-center text-sm text-muted-foreground">
                             No calls logged today yet
                           </p>
                         ) : (
                           <ul className="space-y-2">
-                            {doneCalls.map((c) => {
+                            {doneFor().map((c) => {
                               const cleanNotes = (c.notes ?? "")
                                 .replace(INFORMED_PREFIX_RE, "")
                                 .replace(/^\[[^\]]+\]\s*/, "");
