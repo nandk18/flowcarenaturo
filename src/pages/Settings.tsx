@@ -1095,7 +1095,7 @@ export default function Settings() {
       <Sheet open={editOpen} onOpenChange={setEditOpen}>
         <SheetContent className="sm:max-w-md">
           <SheetHeader>
-            <SheetTitle>Edit {editMember?.role === "doctor" ? "Doctor" : "Staff Member"}</SheetTitle>
+            <SheetTitle>Edit {editMember?.role === "doctor" || editMember?.is_doctor ? "Doctor" : "Staff Member"}</SheetTitle>
           </SheetHeader>
           <div className="space-y-4 mt-6">
             <div className="space-y-2">
