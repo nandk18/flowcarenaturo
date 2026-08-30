@@ -192,6 +192,10 @@ serve(async (req) => {
       user_id: inviteData.user.id, role
     }, { onConflict: "user_id,role" })
 
+    if (needsDoctorRecord) {
+      await ensureDoctor(inviteData.user.id, email.split("@")[0])
+    }
+
     return new Response(
       JSON.stringify({ success: true, message: "Invitation sent to " + email }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
