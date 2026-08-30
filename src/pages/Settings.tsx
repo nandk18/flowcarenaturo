@@ -37,6 +37,7 @@ type TeamMember = {
   qualification: string;
   specialty: string;
   registration_number: string;
+  is_doctor: boolean;
 };
 
 export default function Settings() {
