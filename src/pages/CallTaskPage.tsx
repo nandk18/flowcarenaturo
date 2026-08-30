@@ -78,9 +78,9 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
     "appt" | "care" | "cancel" | "lead" | "all",
     (v: "appt" | "care" | "cancel" | "lead" | "all") => void,
   ];
-  const [statusTab, setStatusTab] = useUrlState("status", "overdue") as [
-    "overdue" | "due" | "done",
-    (v: "overdue" | "due" | "done") => void,
+  const [statusTab, setStatusTab] = useUrlState("status", "all") as [
+    "all" | "overdue" | "due" | "done",
+    (v: "all" | "overdue" | "due" | "done") => void,
   ];
   const [leadCounts, setLeadCounts] = useState<{ overdue: number; due: number }>({ overdue: 0, due: 0 });
   const [leadTotal, setLeadTotal] = useState(0);
