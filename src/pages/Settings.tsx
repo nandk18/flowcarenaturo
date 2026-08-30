@@ -187,6 +187,7 @@ export default function Settings() {
         qualification: doctorDetail?.qualification || "",
         specialty: doctorDetail?.specialty || "",
         registration_number: doctorDetail?.registration_number || "",
+        is_doctor: !!doctorDetail,
       };
     });
 
