@@ -388,15 +388,15 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
         <div className="space-y-5">
           {(() => {
             const overdueCount =
-              cancelledRows.filter((r) => cancelStatus(r) === "overdue").length +
-              careRows.filter((r) => careStatus(r) === "overdue").length +
-              leadCounts.overdue;
+              (showType("cancel") ? cancelledRows.filter((r) => cancelStatus(r) === "overdue").length : 0) +
+              (showType("care") ? careRows.filter((r) => careStatus(r) === "overdue").length : 0) +
+              (showType("lead") ? leadCounts.overdue : 0);
             const dueCount =
-              tomorrowAppts.filter((a) => !calledMap[a.patient_id]).length +
-              careRows.filter((r) => careStatus(r) === "due").length +
-              cancelledRows.filter((r) => cancelStatus(r) === "due").length +
-              leadCounts.due;
-            const doneCount = doneCalls.length;
+              (showType("appt") ? tomorrowAppts.filter((a) => !calledMap[a.patient_id]).length : 0) +
+              (showType("care") ? careRows.filter((r) => careStatus(r) === "due").length : 0) +
+              (showType("cancel") ? cancelledRows.filter((r) => cancelStatus(r) === "due").length : 0) +
+              (showType("lead") ? leadCounts.due : 0);
+            const doneCount = doneFor().length;
             const statusOptions: { key: "all" | "overdue" | "due" | "done"; label: string; count: number }[] = [
               { key: "all", label: "All", count: overdueCount + dueCount + doneCount },
               { key: "overdue", label: "Overdue", count: overdueCount },
