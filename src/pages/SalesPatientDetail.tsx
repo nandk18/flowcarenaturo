@@ -16,22 +16,15 @@ import {
   MessageCircle,
   CalendarPlus,
   Pencil,
-  Phone,
-  Mail,
-  MapPin,
+
   Search,
   FileText,
-  Receipt,
-  Calendar,
-  User,
   Share2,
   Coffee,
   Cigarette,
   Wine,
   Moon,
   Utensils,
-  ClipboardList,
-  Scissors,
   Activity,
   Plus,
   MoreVertical,
@@ -54,7 +47,6 @@ import { LeadForm } from "./Sales";
 import PatientInvoicesTab from "@/components/billing/PatientInvoicesTab";
 import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
 import PatientTreatmentTab from "@/components/patient/PatientTreatmentTab";
-import { HeartPulse } from "lucide-react";
 import PatientTodoCard from "@/components/patient/PatientTodoCard";
 import EditVisitSheet from "@/components/doctor/EditVisitSheet";
 import { openWhatsApp } from "@/lib/whatsapp";
@@ -1138,14 +1130,15 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StatBox({ label, value, valueClassName }: { label: string; value: string; valueClassName?: string }) {
+function Kv({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) {
   return (
-    <div className="rounded-xl border bg-background p-4">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={cn("mt-2 font-display text-2xl font-semibold", valueClassName)}>{value}</p>
+    <div>
+      <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 text-sm font-medium">{children ?? value}</dd>
     </div>
   );
 }
+
 
 // ============ CLINICAL NOTES TAB ============
 
