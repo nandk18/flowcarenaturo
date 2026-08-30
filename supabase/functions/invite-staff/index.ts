@@ -146,21 +146,15 @@ serve(async (req) => {
         user_id: existingUser.id, role
       }, { onConflict: "user_id,role" })
 
-      if (role === "doctor") {
-        const { data: existingDoctor } = await supabaseAdmin
-          .from("doctors").select("id").eq("user_id", existingUser.id).maybeSingle()
-        if (!existingDoctor) {
-          await supabaseAdmin.from("doctors").insert({
-            clinic_id: profile.clinic_id,
-            user_id: existingUser.id,
-            name: existingUser.user_metadata?.full_name || email.split("@")[0],
-            specialty: "General Medicine"
-          })
-        }
+      if (needsDoctorRecord) {
+        await ensureDoctor(
+          existingUser.id,
+          existingUser.user_metadata?.full_name || email.split("@")[0],
+        )
       }
 
       return new Response(
-        JSON.stringify({ success: true, message: "Existing user added as " + role }),
+        JSON.stringify({ success: true, message: "Existing user added as " + requestedRole.replace("_", " ") }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       )
     }
