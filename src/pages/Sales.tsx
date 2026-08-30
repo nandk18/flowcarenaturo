@@ -1260,6 +1260,39 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, 
     </div>
   );
 
+  const bookingModal = (
+    <BookAppointmentModal
+      open={!!bookFor}
+      initialPatientId={bookFor?.patient.id}
+      lockPatient
+      onBooked={() => {
+        const cur = bookFor;
+        setBookFor(null);
+        if (cur) {
+          toast.success("Appointment booked and call logged");
+          cur.resolve(true);
+        }
+      }}
+      onClose={() => {
+        const cur = bookFor;
+        setBookFor(null);
+        if (cur) cur.resolve(false);
+      }}
+    />
+  );
+
+  if (flat) {
+    const flatRows = statusFilter === "overdue" ? overdue : statusFilter === "done" ? [] : dueToday;
+    return (
+      <>
+        {flatRows.map((p) => (
+          <CallTaskRow key={p.id} patient={p} onAction={handleAction} />
+        ))}
+        {bookingModal}
+      </>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {!hidePills && (
@@ -1283,6 +1316,7 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, 
           Completed lead calls today appear in the "Completed Calls Today" side panel — open it from the Done Today pill.
         </div>
       )}
+
 
       <BookAppointmentModal
         open={!!bookFor}
