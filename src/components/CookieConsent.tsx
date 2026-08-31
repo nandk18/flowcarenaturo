@@ -35,7 +35,7 @@ export default function CookieConsent() {
               <span className="text-sm font-semibold">Cookie Notice</span>
             </div>
             <p className="text-xs text-background/80 leading-relaxed">
-              StethoScribe uses essential cookies and browser storage only for
+              FlowCare uses essential cookies and browser storage only for
               authentication and user preferences. We do not use advertising cookies
               or track you across other websites. No patient data is stored in cookies.{" "}
               <Link to="/privacy" className="underline hover:text-background">Learn more</Link>
