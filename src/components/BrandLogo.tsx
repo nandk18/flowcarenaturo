@@ -1,4 +1,4 @@
-import markAsset from "@/assets/flowcare-mark.png.asset.json";
+import markSrc from "@/assets/flowcare-mark.png";
 import { cn } from "@/lib/utils";
 
 interface BrandLogoProps {
