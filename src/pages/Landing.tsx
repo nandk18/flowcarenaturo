@@ -9,16 +9,16 @@ import shotCalendar from "@/assets/landing/calendar.png";
 import shotDailyOps from "@/assets/landing/daily-ops.png";
 import shotAnalytics from "@/assets/landing/analytics.png";
 import shotPatient from "@/assets/landing/patient-profile.png";
-import landingLogo from "@/assets/flowcare-logo-landing.jpg";
+import BrandLogo from "@/components/BrandLogo";
 
-const PAPER = "#F6F8F7";
-const PAPER_2 = "#EFF3F1";
-const INK = "#0E2A38";
-const INK_SOFT = "#4A5F68";
-const TEAL = "#1C8C82";
-const GREEN = "#3FA66B";
+const PAPER = "#F6F9FA";
+const PAPER_2 = "#EDF3F4";
+const INK = "#16233A";
+const INK_SOFT = "#5A6B7B";
+const TEAL = "#002E71";
+const GREEN = "#3FAE6E";
 const AMBER = "#DB9A3C";
-const LINE = "#D7E0DD";
+const LINE = "#DCE6E9";
 const WA = "#25D366";
 
 const LAPSE_RATE = 0.49;
@@ -56,7 +56,7 @@ function AppShot({
   return (
     <div
       className={`overflow-hidden rounded-2xl border bg-white ${className}`}
-      style={{ borderColor: LINE, boxShadow: "0 30px 60px -24px rgba(14,42,56,0.28)" }}
+      style={{ borderColor: LINE, boxShadow: "0 30px 60px -24px rgba(22,35,58,0.28)" }}
     >
       <div
         className="flex items-center gap-2 border-b px-4 py-2.5"
@@ -114,13 +114,13 @@ function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: stri
   return (
     <div
       className="group rounded-2xl border bg-white p-7 transition-all duration-200 hover:-translate-y-1"
-      style={{ borderColor: LINE, boxShadow: "0 1px 2px rgba(14,42,56,0.04)" }}
+      style={{ borderColor: LINE, boxShadow: "0 1px 2px rgba(22,35,58,0.04)" }}
     >
       <div
-        className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl transition-colors duration-200 group-hover:bg-[#1C8C82]"
-        style={{ background: "rgba(28,140,130,0.09)" }}
+        className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl transition-colors duration-200 group-hover:bg-[#002E71]"
+        style={{ background: "rgba(0,46,113,0.09)" }}
       >
-        <div className="[&_svg]:stroke-[#1C8C82] group-hover:[&_svg]:stroke-white">{icon}</div>
+        <div className="[&_svg]:stroke-[#002E71] group-hover:[&_svg]:stroke-white">{icon}</div>
       </div>
       <h3 className="mb-2 font-display text-[18px] font-semibold" style={{ color: INK }}>
         {title}
@@ -312,8 +312,8 @@ export default function Landing() {
           .dot-travel, .dot-leak { animation: none; opacity: 1; }
         }
         @keyframes pulseGlowTeal {
-          0%,100% { box-shadow: 0 0 0 0 rgba(28,140,130,0.32); }
-          50% { box-shadow: 0 0 0 10px rgba(28,140,130,0); }
+          0%,100% { box-shadow: 0 0 0 0 rgba(0,46,113,0.32); }
+          50% { box-shadow: 0 0 0 10px rgba(0,46,113,0); }
         }
         @keyframes pulseGlow {
           0%,100% { box-shadow: 0 0 0 0 rgba(37,211,102,0.35); }
@@ -325,16 +325,11 @@ export default function Landing() {
       {/* Header */}
       <header
         className="sticky top-0 z-50 border-b"
-        style={{ background: "rgba(246,248,247,0.85)", backdropFilter: "blur(10px)", borderColor: LINE }}
+        style={{ background: "rgba(246,249,250,0.85)", backdropFilter: "blur(10px)", borderColor: LINE }}
       >
         <div className="mx-auto flex max-w-[1200px] items-center justify-between px-5 py-3.5 sm:px-8">
           <Link to="/" className="flex items-center gap-2.5">
-            <img
-              src={landingLogo}
-              alt="FlowCare"
-              className="h-9 w-auto object-contain"
-              draggable={false}
-            />
+            <BrandLogo height={34} showTagline />
           </Link>
 
           <nav className="hidden items-center gap-8 lg:flex">
@@ -347,7 +342,7 @@ export default function Landing() {
               <a
                 key={l.href}
                 href={l.href}
-                className="text-sm font-medium transition-colors hover:text-[#1C8C82]"
+                className="text-sm font-medium transition-colors hover:text-[#002E71]"
                 style={{ color: INK_SOFT }}
               >
                 {l.label}
@@ -362,7 +357,7 @@ export default function Landing() {
             <Link
               to="/login?tab=signup"
               className="hidden rounded-full px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 sm:inline-block"
-              style={{ background: TEAL, boxShadow: "0 6px 18px -8px rgba(28,140,130,0.9)" }}
+              style={{ background: TEAL, boxShadow: "0 6px 18px -8px rgba(0,46,113,0.9)" }}
             >
               Sign up
             </Link>
@@ -385,13 +380,13 @@ export default function Landing() {
           className="pointer-events-none absolute inset-x-0 top-0 h-[620px]"
           style={{
             background:
-              "radial-gradient(90% 60% at 50% -10%, rgba(28,140,130,0.16), rgba(63,166,107,0.07) 45%, transparent 72%)",
+              "radial-gradient(90% 60% at 50% -10%, rgba(0,46,113,0.16), rgba(63,166,107,0.07) 45%, transparent 72%)",
           }}
         />
         <div className="relative mx-auto max-w-[1200px] px-5 pb-16 pt-16 text-center sm:px-8 md:pt-24">
           <span
             className="mb-6 inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.1em]"
-            style={{ color: TEAL, background: "rgba(28,140,130,0.07)", borderColor: "rgba(28,140,130,0.2)" }}
+            style={{ color: TEAL, background: "rgba(0,46,113,0.07)", borderColor: "rgba(0,46,113,0.2)" }}
           >
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: TEAL }} />
             For clinics running multi-session treatment plans
@@ -426,7 +421,7 @@ export default function Landing() {
             </a>
           </div>
           <p className="mt-4 flex items-center justify-center gap-1.5 text-sm" style={{ color: INK_SOFT }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A5F68" strokeWidth="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A6B7B" strokeWidth="2">
               <path d="M9 12l2 2 4-4" />
               <circle cx="12" cy="12" r="9" />
             </svg>
@@ -554,7 +549,7 @@ export default function Landing() {
           />
           <div
             className="grid gap-8 rounded-[24px] border bg-white p-6 md:grid-cols-2 md:p-10"
-            style={{ borderColor: LINE, boxShadow: "0 24px 48px -32px rgba(14,42,56,0.35)" }}
+            style={{ borderColor: LINE, boxShadow: "0 24px 48px -32px rgba(22,35,58,0.35)" }}
           >
             <div>
               <div className="mb-7">
@@ -615,14 +610,14 @@ export default function Landing() {
             <div className="flex flex-col justify-center rounded-[20px] p-7" style={{ background: INK }}>
               <span
                 className="mb-2.5 text-xs font-semibold uppercase tracking-[0.12em]"
-                style={{ color: "rgba(246,248,247,0.55)" }}
+                style={{ color: "rgba(246,249,250,0.55)" }}
               >
                 Estimated monthly leak
               </span>
               <div className="font-num text-[40px] font-bold leading-[1.1]" style={{ color: AMBER }}>
                 {formatINR(monthlyLeak)}
               </div>
-              <p className="mt-2 text-sm leading-[1.5]" style={{ color: "rgba(246,248,247,0.7)" }}>
+              <p className="mt-2 text-sm leading-[1.5]" style={{ color: "rgba(246,249,250,0.7)" }}>
                 at ~49% of patients lapsing before finishing a {sessions}-session plan
               </p>
               <button
@@ -634,7 +629,7 @@ export default function Landing() {
                 <WhatsAppIcon size={16} />
                 Message us this number on WhatsApp
               </button>
-              <p className="mt-5 text-xs leading-[1.5]" style={{ color: "rgba(246,248,247,0.4)" }}>
+              <p className="mt-5 text-xs leading-[1.5]" style={{ color: "rgba(246,249,250,0.4)" }}>
                 Illustrative only, based on the ~49% lapse rate seen in one clinic's real data. Your clinic's actual number may differ — FlowCare calculates it precisely once you're set up.
               </p>
             </div>
@@ -651,7 +646,7 @@ export default function Landing() {
           <div className="rounded-[28px] p-8 md:p-14" style={{ background: INK, color: PAPER }}>
             <span
               className="mb-8 block text-xs font-semibold uppercase tracking-[0.12em]"
-              style={{ color: "rgba(246,248,247,0.6)" }}
+              style={{ color: "rgba(246,249,250,0.6)" }}
             >
               From one clinic's own billing data
             </span>
@@ -660,7 +655,7 @@ export default function Landing() {
                 <div className="font-num text-[clamp(38px,4.6vw,54px)] font-bold leading-none" style={{ color: AMBER }}>
                   49%
                 </div>
-                <p className="mt-3 max-w-[340px] text-sm leading-[1.6]" style={{ color: "rgba(246,248,247,0.75)" }}>
+                <p className="mt-3 max-w-[340px] text-sm leading-[1.6]" style={{ color: "rgba(246,249,250,0.75)" }}>
                   of patients lapse before finishing their treatment plan — completely invisible until the billing data was actually pulled and checked.
                 </p>
               </div>
@@ -668,14 +663,14 @@ export default function Landing() {
                 <div className="font-num text-[clamp(38px,4.6vw,54px)] font-bold leading-none" style={{ color: "#7CD9A5" }}>
                   ₹13L<span className="text-lg">/mo</span>
                 </div>
-                <p className="mt-3 max-w-[340px] text-sm leading-[1.6]" style={{ color: "rgba(246,248,247,0.75)" }}>
+                <p className="mt-3 max-w-[340px] text-sm leading-[1.6]" style={{ color: "rgba(246,249,250,0.75)" }}>
                   in unbilled sessions at just one mid-size clinic — patients who started a plan, paid session-by-session for a while, and never came back to finish it.
                 </p>
               </div>
             </div>
             <p
               className="mt-10 border-t pt-6 text-xs leading-[1.6]"
-              style={{ color: "rgba(246,248,247,0.55)", borderColor: "rgba(246,248,247,0.15)" }}
+              style={{ color: "rgba(246,249,250,0.55)", borderColor: "rgba(246,249,250,0.15)" }}
             >
               Based on 6 months of real billing data from a wellness clinic in Chennai, where treatment plan length varies by patient. Your own numbers will differ — the calculator above gives you a rough version for your clinic specifically.
             </p>
@@ -692,11 +687,11 @@ export default function Landing() {
 
           <div
             className="rounded-[28px] px-5 pb-0 pt-10 md:px-10"
-            style={{ background: "linear-gradient(180deg, rgba(28,140,130,0.07), transparent 60%)" }}
+            style={{ background: "linear-gradient(180deg, rgba(0,46,113,0.07), transparent 60%)" }}
           >
             <div
               className="mx-auto max-w-[760px] overflow-hidden rounded-t-2xl border border-b-0 bg-white"
-              style={{ borderColor: LINE, boxShadow: "0 30px 60px -20px rgba(14,42,56,0.18)" }}
+              style={{ borderColor: LINE, boxShadow: "0 30px 60px -20px rgba(22,35,58,0.18)" }}
             >
               <div className="flex items-center gap-1.5 border-b px-4 py-3" style={{ borderColor: LINE }}>
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: LINE }} />
@@ -708,7 +703,7 @@ export default function Landing() {
                   <div className="mb-4 flex items-center gap-2.5">
                     <div
                       className="h-[34px] w-[34px] rounded-full"
-                      style={{ background: "linear-gradient(135deg,#1C8C82,#3FA66B)" }}
+                      style={{ background: "linear-gradient(135deg,#002E71,#3FAE6E)" }}
                     />
                     <div>
                       <div className="text-sm font-semibold" style={{ color: INK }}>
@@ -726,7 +721,7 @@ export default function Landing() {
                   <div className="mt-1.5 h-2 overflow-hidden rounded-full" style={{ background: PAPER_2 }}>
                     <div
                       className="h-full rounded-full"
-                      style={{ width: "38%", background: "linear-gradient(90deg,#1C8C82,#3FA66B)" }}
+                      style={{ width: "38%", background: "linear-gradient(90deg,#002E71,#3FAE6E)" }}
                     />
                   </div>
                   <div
@@ -740,7 +735,7 @@ export default function Landing() {
                     <b style={{ color: INK }}>WhatsApp reminder sent</b> — "Hi Priya, you're due for session 4 of your treatment plan. Book anytime this week?"
                   </div>
                 </div>
-                <div className="bg-[#EFF3F1] p-5">
+                <div className="bg-[#EDF3F4] p-5">
                   <div className="mb-2 flex justify-between font-num text-xs" style={{ color: INK_SOFT }}>
                     <span className="font-semibold" style={{ color: INK }}>
                       FRONT DESK QUEUE
@@ -818,7 +813,7 @@ export default function Landing() {
           <div className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <FeatureCard
               icon={
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C8C82" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#002E71" strokeWidth="2">
                   <circle cx="12" cy="12" r="9" />
                   <path d="M12 7v5l3 3" />
                 </svg>
@@ -828,7 +823,7 @@ export default function Landing() {
             />
             <FeatureCard
               icon={
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C8C82" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#002E71" strokeWidth="2">
                   <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
                   <path d="M14 2v6h6M9 13h6M9 17h6M9 9h1" />
                 </svg>
@@ -838,7 +833,7 @@ export default function Landing() {
             />
             <FeatureCard
               icon={
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C8C82" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#002E71" strokeWidth="2">
                   <rect x="3" y="5" width="18" height="14" rx="2" />
                   <path d="M3 10h18M7 15h4" />
                 </svg>
@@ -848,7 +843,7 @@ export default function Landing() {
             />
             <FeatureCard
               icon={
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C8C82" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#002E71" strokeWidth="2">
                   <rect x="3" y="3" width="7" height="7" rx="1" />
                   <rect x="14" y="3" width="7" height="7" rx="1" />
                   <rect x="3" y="14" width="7" height="7" rx="1" />
@@ -860,7 +855,7 @@ export default function Landing() {
             />
             <FeatureCard
               icon={
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C8C82" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#002E71" strokeWidth="2">
                   <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
                 </svg>
               }
@@ -869,7 +864,7 @@ export default function Landing() {
             />
             <FeatureCard
               icon={
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C8C82" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#002E71" strokeWidth="2">
                   <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
                   <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
@@ -880,7 +875,7 @@ export default function Landing() {
             />
             <FeatureCard
               icon={
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C8C82" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#002E71" strokeWidth="2">
                   <rect x="3" y="4" width="18" height="16" rx="2" />
                   <path d="M3 9h18M8 4v5" />
                 </svg>
@@ -890,7 +885,7 @@ export default function Landing() {
             />
             <FeatureCard
               icon={
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C8C82" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#002E71" strokeWidth="2">
                   <path d="M4 4h16v16H4z" />
                   <path d="M4 9h16M9 9v11" />
                 </svg>
@@ -938,11 +933,11 @@ export default function Landing() {
             </div>
             <div
               className="rounded-2xl border bg-white p-7 md:p-8"
-              style={{ borderColor: "rgba(28,140,130,0.3)", boxShadow: "0 20px 40px -32px rgba(28,140,130,0.8)" }}
+              style={{ borderColor: "rgba(0,46,113,0.3)", boxShadow: "0 20px 40px -32px rgba(0,46,113,0.8)" }}
             >
               <span
                 className="mb-4 inline-block rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em]"
-                style={{ background: "rgba(28,140,130,0.1)", color: TEAL }}
+                style={{ background: "rgba(0,46,113,0.1)", color: TEAL }}
               >
                 With FlowCare
               </span>
@@ -994,8 +989,16 @@ export default function Landing() {
           <div className="grid gap-4 md:grid-cols-2">
             {[
               {
-                q: "Do I have to switch my whole system?",
-                a: "No. FlowCare is built to layer onto how your clinic already runs — your front desk, your doctor's flow, your billing — not replace it overnight.",
+                q: "Does FlowCare integrate with Practo Ray, MocDoc, or whatever I use now?",
+                a: "No — FlowCare isn't a plug-in or add-on that connects to your existing software. It's a standalone system built to run your clinic on its own, not sit alongside another tool.",
+              },
+              {
+                q: "Do I have to stop using my current system once I switch?",
+                a: "Yes. Running two systems side by side usually causes more confusion than it solves — once you're set up on FlowCare, it becomes your main system.",
+              },
+              {
+                q: "Will I lose my existing patient records?",
+                a: "No — your existing patient data is migrated over during setup, so your history moves with you rather than starting from zero.",
               },
               {
                 q: "What if my staff aren't comfortable with new software?",
@@ -1004,6 +1007,10 @@ export default function Landing() {
               {
                 q: "What if my clinic doesn't sell treatment plans?",
                 a: "FlowCare is built specifically for clinics running multi-session treatment plans — wellness, aesthetic, physio, and dental. If that's not your clinic, it may not be the right fit yet.",
+              },
+              {
+                q: "If my clinic relies on several connected tools today, is FlowCare still a fit?",
+                a: "Possibly not yet. FlowCare is built to be your one self-contained system, not a piece that plugs into a larger stack of separate tools. If your clinic depends on deep integrations across multiple platforms, that's worth talking through honestly before switching.",
               },
               {
                 q: "Is my patients' data secure?",
@@ -1030,7 +1037,7 @@ export default function Landing() {
           >
             <div
               className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full"
-              style={{ background: "rgba(28,140,130,0.35)", filter: "blur(80px)" }}
+              style={{ background: "rgba(0,46,113,0.35)", filter: "blur(80px)" }}
             />
             <div
               className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full"
@@ -1042,7 +1049,7 @@ export default function Landing() {
             >
               See where your clinic stands
             </h2>
-            <p className="relative max-w-[420px] text-base leading-[1.6]" style={{ color: "rgba(246,248,247,0.72)" }}>
+            <p className="relative max-w-[420px] text-base leading-[1.6]" style={{ color: "rgba(246,249,250,0.72)" }}>
               No sales pitch — just tell us about your clinic and we'll take it from there.
             </p>
             <button
@@ -1087,12 +1094,7 @@ export default function Landing() {
       <footer className="border-t bg-white" style={{ borderColor: LINE, padding: "48px 0 40px" }}>
         <div className="mx-auto flex max-w-[1080px] flex-wrap items-center justify-between gap-5 px-5 sm:px-8">
           <Link to="/" className="flex items-center gap-2.5">
-            <img
-              src={landingLogo}
-              alt="FlowCare"
-              className="h-8 w-auto object-contain"
-              draggable={false}
-            />
+            <BrandLogo height={32} showTagline />
           </Link>
           <button
             type="button"
