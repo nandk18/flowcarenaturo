@@ -2,11 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 
+import { openWhatsApp } from "@/lib/whatsapp";
+
 import shotDashboard from "@/assets/landing/dashboard.png";
 import shotCalendar from "@/assets/landing/calendar.png";
 import shotDailyOps from "@/assets/landing/daily-ops.png";
 import shotAnalytics from "@/assets/landing/analytics.png";
 import shotPatient from "@/assets/landing/patient-profile.png";
+import landingLogo from "@/assets/flowcare-logo-landing.jpg";
 
 const PAPER = "#F6F8F7";
 const PAPER_2 = "#EFF3F1";
@@ -19,6 +22,8 @@ const LINE = "#D7E0DD";
 const WA = "#25D366";
 
 const LAPSE_RATE = 0.49;
+const WHATSAPP_NUMBER = "+91 9042866990";
+const WA_MESSAGE = "Hi, I'd like to know more about FlowCare for my clinic.";
 
 function formatINR(n: number) {
   if (n >= 100000) {
@@ -27,24 +32,6 @@ function formatINR(n: number) {
   return "₹" + Math.round(n).toLocaleString("en-IN");
 }
 
-function LogoSvg({ width = 30, height = 30 }: { width?: number; height?: number }) {
-  return (
-    <svg width={width} height={height} viewBox="0 0 40 40" fill="none">
-      <path
-        d="M4 22C10 14 14 30 20 22C26 14 30 30 36 22"
-        stroke="url(#landing-logo-gradient)"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-      />
-      <defs>
-        <linearGradient id="landing-logo-gradient" x1="4" y1="22" x2="36" y2="22">
-          <stop stopColor={TEAL} />
-          <stop offset="1" stopColor={GREEN} />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
 
 function WhatsAppIcon({ size = 16 }: { size?: number }) {
   return (
@@ -214,9 +201,7 @@ export default function Landing() {
   const lostPatients = patients * LAPSE_RATE;
   const unbilledSessionsPerPatient = Math.max(sessions - avgSessionsBeforeLapse, 0);
   const monthlyLeak = lostPatients * unbilledSessionsPerPatient * price;
-  const waText = encodeURIComponent(
-    `Hi, I saw on your site I might be losing around ${formatINR(monthlyLeak)}/month to lapsed patients. Can you tell me more?`,
-  );
+  const waCalculatorMessage = `Hi, I saw on your site I might be losing around ${formatINR(monthlyLeak)}/month to lapsed patients. Can you tell me more?`;
 
   useScrollReveal();
 
@@ -344,10 +329,12 @@ export default function Landing() {
       >
         <div className="mx-auto flex max-w-[1200px] items-center justify-between px-5 py-3.5 sm:px-8">
           <Link to="/" className="flex items-center gap-2.5">
-            <LogoSvg width={28} height={28} />
-            <span className="font-display text-xl font-bold tracking-[-0.02em]" style={{ color: INK }}>
-              FlowCare
-            </span>
+            <img
+              src={landingLogo}
+              alt="FlowCare"
+              className="h-9 w-auto object-contain"
+              draggable={false}
+            />
           </Link>
 
           <nav className="hidden items-center gap-8 lg:flex">
@@ -379,16 +366,15 @@ export default function Landing() {
             >
               Sign up
             </Link>
-            <a
-              href="https://wa.me/?text=Hi,%20I%27d%20like%20to%20know%20more%20about%20FlowCare%20for%20my%20clinic."
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={() => openWhatsApp(WHATSAPP_NUMBER, WA_MESSAGE)}
               className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-lg"
               style={{ background: WA }}
             >
               <WhatsAppIcon size={15} />
               Talk to us
-            </a>
+            </button>
           </div>
         </div>
       </header>
@@ -639,16 +625,15 @@ export default function Landing() {
               <p className="mt-2 text-sm leading-[1.5]" style={{ color: "rgba(246,248,247,0.7)" }}>
                 at ~49% of patients lapsing before finishing a {sessions}-session plan
               </p>
-              <a
-                href={`https://wa.me/?text=${waText}`}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
+                onClick={() => openWhatsApp(WHATSAPP_NUMBER, waCalculatorMessage)}
                 className="mt-5 inline-flex w-fit items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-lg"
                 style={{ background: WA }}
               >
                 <WhatsAppIcon size={16} />
                 Message us this number on WhatsApp
-              </a>
+              </button>
               <p className="mt-5 text-xs leading-[1.5]" style={{ color: "rgba(246,248,247,0.4)" }}>
                 Illustrative only, based on the ~49% lapse rate seen in one clinic's real data. Your clinic's actual number may differ — FlowCare calculates it precisely once you're set up.
               </p>
@@ -1060,25 +1045,23 @@ export default function Landing() {
             <p className="relative max-w-[420px] text-base leading-[1.6]" style={{ color: "rgba(246,248,247,0.72)" }}>
               No sales pitch — just tell us about your clinic and we'll take it from there.
             </p>
-            <a
-              href="https://wa.me/?text=Hi,%20I%27d%20like%20to%20know%20more%20about%20FlowCare%20for%20my%20clinic."
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={() => openWhatsApp(WHATSAPP_NUMBER, WA_MESSAGE)}
               className="relative inline-flex items-center gap-2 rounded-full px-7 py-4 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-xl"
               style={{ background: WA }}
             >
               <WhatsAppIcon size={16} />
               Message us on WhatsApp
-            </a>
+            </button>
           </div>
         </section>
       </div>
 
       {/* Floating WhatsApp button */}
-      <a
-        href="https://wa.me/?text=Hi,%20I%27d%20like%20to%20know%20more%20about%20FlowCare%20for%20my%20clinic."
-        target="_blank"
-        rel="noreferrer"
+      <button
+        type="button"
+        onClick={() => openWhatsApp(WHATSAPP_NUMBER, WA_MESSAGE)}
         aria-label="Message us on WhatsApp"
         className="fixed bottom-6 right-6 z-[100] flex h-14 w-14 items-center justify-center rounded-full text-white transition-all hover:scale-105"
         style={{
@@ -1098,29 +1081,27 @@ export default function Landing() {
             boxShadow: "0 0 0 0 rgba(37,211,102,0.35)",
           }}
         />
-      </a>
+      </button>
 
       {/* Footer */}
       <footer className="border-t bg-white" style={{ borderColor: LINE, padding: "48px 0 40px" }}>
         <div className="mx-auto flex max-w-[1080px] flex-wrap items-center justify-between gap-5 px-5 sm:px-8">
           <Link to="/" className="flex items-center gap-2.5">
-            <LogoSvg width={24} height={24} />
-            <span className="font-display text-base font-bold" style={{ color: INK }}>
-              FlowCare
-            </span>
+            <img
+              src={landingLogo}
+              alt="FlowCare"
+              className="h-8 w-auto object-contain"
+              draggable={false}
+            />
           </Link>
-          <span className="text-sm" style={{ color: INK_SOFT }}>
-            Your Remote Admin Partner
-          </span>
-          <a
-            href="https://wa.me/?text=Hi,%20I%27d%20like%20to%20know%20more%20about%20FlowCare%20for%20my%20clinic."
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={() => openWhatsApp(WHATSAPP_NUMBER, WA_MESSAGE)}
             className="inline-flex items-center gap-2 border-b border-transparent pb-1 text-sm font-medium transition-colors hover:border-current"
             style={{ color: INK }}
           >
             Message on WhatsApp →
-          </a>
+          </button>
         </div>
         <div
           className="mx-auto mt-6 flex max-w-[1080px] flex-wrap items-center gap-4 px-5 text-xs sm:px-8"
