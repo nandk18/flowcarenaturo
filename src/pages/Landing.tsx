@@ -1063,16 +1063,15 @@ export default function Landing() {
             <p className="relative max-w-[420px] text-base leading-[1.6]" style={{ color: "rgba(246,248,247,0.72)" }}>
               No sales pitch — just tell us about your clinic and we'll take it from there.
             </p>
-            <a
-              href="https://wa.me/?text=Hi,%20I%27d%20like%20to%20know%20more%20about%20FlowCare%20for%20my%20clinic."
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={() => openWhatsApp(WHATSAPP_NUMBER, WA_MESSAGE)}
               className="relative inline-flex items-center gap-2 rounded-full px-7 py-4 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-xl"
               style={{ background: WA }}
             >
               <WhatsAppIcon size={16} />
               Message us on WhatsApp
-            </a>
+            </button>
           </div>
         </section>
       </div>
