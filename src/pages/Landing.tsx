@@ -1077,10 +1077,9 @@ export default function Landing() {
       </div>
 
       {/* Floating WhatsApp button */}
-      <a
-        href="https://wa.me/?text=Hi,%20I%27d%20like%20to%20know%20more%20about%20FlowCare%20for%20my%20clinic."
-        target="_blank"
-        rel="noreferrer"
+      <button
+        type="button"
+        onClick={() => openWhatsApp(WHATSAPP_NUMBER, WA_MESSAGE)}
         aria-label="Message us on WhatsApp"
         className="fixed bottom-6 right-6 z-[100] flex h-14 w-14 items-center justify-center rounded-full text-white transition-all hover:scale-105"
         style={{
@@ -1100,7 +1099,7 @@ export default function Landing() {
             boxShadow: "0 0 0 0 rgba(37,211,102,0.35)",
           }}
         />
-      </a>
+      </button>
 
       {/* Footer */}
       <footer className="border-t bg-white" style={{ borderColor: LINE, padding: "48px 0 40px" }}>
