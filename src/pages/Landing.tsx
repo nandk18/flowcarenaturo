@@ -329,12 +329,7 @@ export default function Landing() {
       >
         <div className="mx-auto flex max-w-[1200px] items-center justify-between px-5 py-3.5 sm:px-8">
           <Link to="/" className="flex items-center gap-2.5">
-            <img
-              src={landingLogo}
-              alt="FlowCare"
-              className="h-9 w-auto object-contain"
-              draggable={false}
-            />
+            <BrandLogo height={34} showTagline />
           </Link>
 
           <nav className="hidden items-center gap-8 lg:flex">
