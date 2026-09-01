@@ -1105,23 +1105,21 @@ export default function Landing() {
       <footer className="border-t bg-white" style={{ borderColor: LINE, padding: "48px 0 40px" }}>
         <div className="mx-auto flex max-w-[1080px] flex-wrap items-center justify-between gap-5 px-5 sm:px-8">
           <Link to="/" className="flex items-center gap-2.5">
-            <LogoSvg width={24} height={24} />
-            <span className="font-display text-base font-bold" style={{ color: INK }}>
-              FlowCare
-            </span>
+            <img
+              src={landingLogoAsset.url}
+              alt="FlowCare"
+              className="h-8 w-auto object-contain"
+              draggable={false}
+            />
           </Link>
-          <span className="text-sm" style={{ color: INK_SOFT }}>
-            Your Remote Admin Partner
-          </span>
-          <a
-            href="https://wa.me/?text=Hi,%20I%27d%20like%20to%20know%20more%20about%20FlowCare%20for%20my%20clinic."
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={() => openWhatsApp(WHATSAPP_NUMBER, WA_MESSAGE)}
             className="inline-flex items-center gap-2 border-b border-transparent pb-1 text-sm font-medium transition-colors hover:border-current"
             style={{ color: INK }}
           >
             Message on WhatsApp →
-          </a>
+          </button>
         </div>
         <div
           className="mx-auto mt-6 flex max-w-[1080px] flex-wrap items-center gap-4 px-5 text-xs sm:px-8"
