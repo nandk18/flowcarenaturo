@@ -9,7 +9,7 @@ import shotCalendar from "@/assets/landing/calendar.png";
 import shotDailyOps from "@/assets/landing/daily-ops.png";
 import shotAnalytics from "@/assets/landing/analytics.png";
 import shotPatient from "@/assets/landing/patient-profile.png";
-import landingLogo from "@/assets/flowcare-logo-landing.jpg";
+import BrandLogo from "@/components/BrandLogo";
 
 const PAPER = "#F6F9FA";
 const PAPER_2 = "#EDF3F4";
