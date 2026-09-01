@@ -643,16 +643,15 @@ export default function Landing() {
               <p className="mt-2 text-sm leading-[1.5]" style={{ color: "rgba(246,248,247,0.7)" }}>
                 at ~49% of patients lapsing before finishing a {sessions}-session plan
               </p>
-              <a
-                href={`https://wa.me/?text=${waText}`}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
+                onClick={() => openWhatsApp(WHATSAPP_NUMBER, waCalculatorMessage)}
                 className="mt-5 inline-flex w-fit items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-lg"
                 style={{ background: WA }}
               >
                 <WhatsAppIcon size={16} />
                 Message us this number on WhatsApp
-              </a>
+              </button>
               <p className="mt-5 text-xs leading-[1.5]" style={{ color: "rgba(246,248,247,0.4)" }}>
                 Illustrative only, based on the ~49% lapse rate seen in one clinic's real data. Your clinic's actual number may differ — FlowCare calculates it precisely once you're set up.
               </p>
