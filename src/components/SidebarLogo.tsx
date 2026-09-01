@@ -1,5 +1,5 @@
 import { useState } from "react";
-import logoAsset from "@/assets/flowcare-logo.png.asset.json";
+import logoAsset from "@/assets/flowcare-mark.png.asset.json";
 
 interface SidebarLogoProps {
   clinicName?: string | null;
