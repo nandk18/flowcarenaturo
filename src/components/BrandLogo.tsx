@@ -29,7 +29,7 @@ export default function BrandLogo({
   return (
     <span className={cn("inline-flex select-none items-center gap-2", className)}>
       <img
-        src={markAsset.url}
+        src={markSrc}
         alt="FlowCare"
         style={{ height, width: "auto" }}
         className="object-contain"

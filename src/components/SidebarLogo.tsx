@@ -1,5 +1,5 @@
 import { useState } from "react";
-import logoAsset from "@/assets/flowcare-mark.png.asset.json";
+import logoSrc from "@/assets/flowcare-mark.png";
 
 interface SidebarLogoProps {
   clinicName?: string | null;
@@ -16,7 +16,7 @@ interface SidebarLogoProps {
  */
 export default function SidebarLogo({
   clinicName,
-  src = logoAsset.url,
+  src = logoSrc,
   size = 32,
 }: SidebarLogoProps) {
   const [failed, setFailed] = useState(false);
