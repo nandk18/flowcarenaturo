@@ -1088,7 +1088,7 @@ export default function Landing() {
         <div className="mx-auto flex max-w-[1080px] flex-wrap items-center justify-between gap-5 px-5 sm:px-8">
           <Link to="/" className="flex items-center gap-2.5">
             <img
-              src={landingLogoAsset.url}
+              src={landingLogo}
               alt="FlowCare"
               className="h-8 w-auto object-contain"
               draggable={false}
