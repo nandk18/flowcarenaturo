@@ -219,9 +219,7 @@ export default function Landing() {
   const lostPatients = patients * LAPSE_RATE;
   const unbilledSessionsPerPatient = Math.max(sessions - avgSessionsBeforeLapse, 0);
   const monthlyLeak = lostPatients * unbilledSessionsPerPatient * price;
-  const waText = encodeURIComponent(
-    `Hi, I saw on your site I might be losing around ${formatINR(monthlyLeak)}/month to lapsed patients. Can you tell me more?`,
-  );
+  const waCalculatorMessage = `Hi, I saw on your site I might be losing around ${formatINR(monthlyLeak)}/month to lapsed patients. Can you tell me more?`;
 
   useScrollReveal();
 
