@@ -384,16 +384,15 @@ export default function Landing() {
             >
               Sign up
             </Link>
-            <a
-              href="https://wa.me/?text=Hi,%20I%27d%20like%20to%20know%20more%20about%20FlowCare%20for%20my%20clinic."
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={() => openWhatsApp(WHATSAPP_NUMBER, WA_MESSAGE)}
               className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-lg"
               style={{ background: WA }}
             >
               <WhatsAppIcon size={15} />
               Talk to us
-            </a>
+            </button>
           </div>
         </div>
       </header>
