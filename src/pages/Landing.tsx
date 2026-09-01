@@ -1082,12 +1082,7 @@ export default function Landing() {
       <footer className="border-t bg-white" style={{ borderColor: LINE, padding: "48px 0 40px" }}>
         <div className="mx-auto flex max-w-[1080px] flex-wrap items-center justify-between gap-5 px-5 sm:px-8">
           <Link to="/" className="flex items-center gap-2.5">
-            <img
-              src={landingLogo}
-              alt="FlowCare"
-              className="h-8 w-auto object-contain"
-              draggable={false}
-            />
+            <BrandLogo height={32} showTagline />
           </Link>
           <button
             type="button"
