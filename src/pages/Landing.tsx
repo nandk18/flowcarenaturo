@@ -989,8 +989,16 @@ export default function Landing() {
           <div className="grid gap-4 md:grid-cols-2">
             {[
               {
-                q: "Do I have to switch my whole system?",
-                a: "No. FlowCare is built to layer onto how your clinic already runs — your front desk, your doctor's flow, your billing — not replace it overnight.",
+                q: "Does FlowCare integrate with Practo Ray, MocDoc, or whatever I use now?",
+                a: "No — FlowCare isn't a plug-in or add-on that connects to your existing software. It's a standalone system built to run your clinic on its own, not sit alongside another tool.",
+              },
+              {
+                q: "Do I have to stop using my current system once I switch?",
+                a: "Yes. Running two systems side by side usually causes more confusion than it solves — once you're set up on FlowCare, it becomes your main system.",
+              },
+              {
+                q: "Will I lose my existing patient records?",
+                a: "No — your existing patient data is migrated over during setup, so your history moves with you rather than starting from zero.",
               },
               {
                 q: "What if my staff aren't comfortable with new software?",
@@ -999,6 +1007,10 @@ export default function Landing() {
               {
                 q: "What if my clinic doesn't sell treatment plans?",
                 a: "FlowCare is built specifically for clinics running multi-session treatment plans — wellness, aesthetic, physio, and dental. If that's not your clinic, it may not be the right fit yet.",
+              },
+              {
+                q: "If my clinic relies on several connected tools today, is FlowCare still a fit?",
+                a: "Possibly not yet. FlowCare is built to be your one self-contained system, not a piece that plugs into a larger stack of separate tools. If your clinic depends on deep integrations across multiple platforms, that's worth talking through honestly before switching.",
               },
               {
                 q: "Is my patients' data secure?",
