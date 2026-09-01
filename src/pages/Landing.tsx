@@ -2,11 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 
+import { openWhatsApp } from "@/lib/whatsapp";
+
 import shotDashboard from "@/assets/landing/dashboard.png";
 import shotCalendar from "@/assets/landing/calendar.png";
 import shotDailyOps from "@/assets/landing/daily-ops.png";
 import shotAnalytics from "@/assets/landing/analytics.png";
 import shotPatient from "@/assets/landing/patient-profile.png";
+import landingLogoAsset from "@/assets/flowcare-logo-landing.jpg.asset.json";
 
 const PAPER = "#F6F8F7";
 const PAPER_2 = "#EFF3F1";
@@ -19,6 +22,8 @@ const LINE = "#D7E0DD";
 const WA = "#25D366";
 
 const LAPSE_RATE = 0.49;
+const WHATSAPP_NUMBER = "+91 9042866990";
+const WA_MESSAGE = "Hi, I'd like to know more about FlowCare for my clinic.";
 
 function formatINR(n: number) {
   if (n >= 100000) {
