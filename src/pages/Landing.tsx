@@ -32,24 +32,6 @@ function formatINR(n: number) {
   return "₹" + Math.round(n).toLocaleString("en-IN");
 }
 
-function LogoSvg({ width = 30, height = 30 }: { width?: number; height?: number }) {
-  return (
-    <svg width={width} height={height} viewBox="0 0 40 40" fill="none">
-      <path
-        d="M4 22C10 14 14 30 20 22C26 14 30 30 36 22"
-        stroke="url(#landing-logo-gradient)"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-      />
-      <defs>
-        <linearGradient id="landing-logo-gradient" x1="4" y1="22" x2="36" y2="22">
-          <stop stopColor={TEAL} />
-          <stop offset="1" stopColor={GREEN} />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
 
 function WhatsAppIcon({ size = 16 }: { size?: number }) {
   return (
