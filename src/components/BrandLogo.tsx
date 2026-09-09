@@ -7,8 +7,6 @@ interface BrandLogoProps {
   height?: number;
   /** Show the FLOWCARE wordmark next to the mark. */
   showName?: boolean;
-  /** Show the "Your remote admin partner" tagline under the name. */
-  showTagline?: boolean;
   /** Color of the wordmark text. */
   color?: string;
 }
@@ -23,7 +21,6 @@ export default function BrandLogo({
   className,
   height = 36,
   showName = true,
-  showTagline = false,
   color = NAVY,
 }: BrandLogoProps) {
   return (
@@ -36,7 +33,7 @@ export default function BrandLogo({
         draggable={false}
       />
       {showName && (
-        <span className="flex flex-col leading-none">
+        <span className="leading-none">
           <span
             style={{
               color,
@@ -48,20 +45,6 @@ export default function BrandLogo({
           >
             FLOWCARE
           </span>
-          {showTagline && (
-            <span
-              style={{
-                color,
-                fontFamily: "'Montserrat', 'Space Grotesk', system-ui, sans-serif",
-                fontWeight: 600,
-                fontSize: Math.max(7, Math.round(height * 0.17)),
-                letterSpacing: "0.22em",
-                marginTop: Math.round(height * 0.11),
-              }}
-            >
-              YOUR REMOTE ADMIN PARTNER
-            </span>
-          )}
         </span>
       )}
     </span>
