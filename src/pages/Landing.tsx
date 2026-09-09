@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import BrandLogo from "@/components/BrandLogo";
-import patientProfileAsset from "@/assets/landing/patient-profile.png.asset.json";
+import patientProfileImg from "@/assets/landing/patient-profile.png";
 import "./Landing.css";
 
 const LAPSE_RATE = 0.49;
