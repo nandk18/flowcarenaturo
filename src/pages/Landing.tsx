@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import BrandLogo from "@/components/BrandLogo";
-import patientProfileAsset from "@/assets/landing/patient-profile.png.asset.json";
+import patientProfileImg from "@/assets/landing/patient-profile.png";
 import "./Landing.css";
 
 const LAPSE_RATE = 0.49;
@@ -116,7 +116,7 @@ export default function Landing() {
       <section style={{paddingTop:0}}><div className="section-head reveal"><span className="kicker">The lapse most clinics can't see</span><h2 className="section-title">Patients commit to a treatment plan. You just can't see who quietly stops halfway through.</h2><p className="section-body">No system, no reminders, no way of knowing how many patients agreed to a multi-session plan and stopped showing up partway through — until someone actually goes and checks the numbers by hand.</p></div><div className="proof reveal"><span className="kicker">From one clinic's own billing data</span><div className="proof-grid"><div><div className="stat-num">49%</div><div className="stat-label">of patients lapse before finishing their treatment plan — completely invisible until the billing data was actually pulled and checked.</div></div><div><div className="stat-num green">₹13L<span style={{fontSize:18}}>/mo</span></div><div className="stat-label">in unbilled sessions at just one mid-size clinic — patients who started a plan, paid session-by-session for a while, and never came back to finish it.</div></div></div><div className="proof-note">Based on 6 months of real billing data from a wellness clinic in Chennai, where treatment plan length varies by patient. Your own numbers will differ — the calculator above gives you a rough version for your clinic specifically.</div></div><div className="inline-cta reveal"><p>Want to know if this is happening at your clinic too?</p><a href={whatsappUrl(WA_MESSAGE)} className="btn-primary" target="_blank" rel="noreferrer"><WhatsAppIcon size={15}/>Message us on WhatsApp</a></div></section>
 
       <section id="how"><div className="section-head reveal"><span className="kicker">How it works</span><h2 className="section-title">Built around how your clinic already runs</h2><p className="section-body">A standalone system built around how your clinic's day already runs — front desk, doctor, billing — so it feels familiar, not foreign, even though it replaces what you use today.</p></div>
-        <div className="product-shot-wrap reveal"><img src={patientProfileAsset.url} alt="FlowCare patient profile showing treatment progress, contact history, appointments, and billing" className="product-shot" loading="lazy"/></div>
+        <div className="product-shot-wrap reveal"><img src={patientProfileImg} alt="FlowCare patient profile showing treatment progress, contact history, appointments, and billing" className="product-shot" loading="lazy"/></div>
         <div className="feature-grid reveal">{features.map(([title,desc,icon]) => <article className="feature" key={title}><div className="feature-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2FAE9C" strokeWidth="2">{icon}</svg></div><h3>{title}</h3><p>{desc}</p></article>)}</div>
         <div className="inline-cta reveal"><p>See these features on your own clinic's data.</p><a href={whatsappUrl(WA_MESSAGE)} className="btn-primary" target="_blank" rel="noreferrer"><WhatsAppIcon size={15}/>Book a live walkthrough</a></div>
       </section>
