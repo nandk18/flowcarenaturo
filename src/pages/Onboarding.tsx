@@ -22,6 +22,7 @@ export default function Onboarding() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [dpaAccepted, setDpaAccepted] = useState(false);
+  const [pending, setPending] = useState(false);
 
   // Clinic details
   const [clinicName, setClinicName] = useState("");
