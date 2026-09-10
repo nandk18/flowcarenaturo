@@ -2303,6 +2303,62 @@ export type Database = {
           },
         ]
       }
+      subscription_payments: {
+        Row: {
+          amount: number
+          billing_cycle: string
+          clinic_id: string
+          created_at: string
+          currency: string
+          id: string
+          plan_tier: string
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          razorpay_signature: string | null
+          status: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          amount: number
+          billing_cycle: string
+          clinic_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          plan_tier: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
+          status?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          amount?: number
+          billing_cycle?: string
+          clinic_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          plan_tier?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
+          status?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_payments_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       therapist_sessions: {
         Row: {
           clinic_id: string | null
