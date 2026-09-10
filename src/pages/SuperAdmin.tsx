@@ -277,6 +277,16 @@ export default function SuperAdmin() {
                           {c.whatsapp_enabled ? "WhatsApp: On" : "WhatsApp: Off"}
                         </button>
 
+                        {c.subscription_status === "pending" && (
+                          <button
+                            disabled={busy}
+                            onClick={() => activateClinic(c)}
+                            className="text-xs px-2.5 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700 mr-1.5"
+                          >
+                            Activate Trial
+                          </button>
+                        )}
+
                         {c.is_active ? (
                           <button
                             onClick={() => { setDisableTarget(c); setReason(""); }}
