@@ -231,6 +231,16 @@ export default function SuperAdmin() {
                             <span className="h-1.5 w-1.5 rounded-full bg-red-400" /> Disabled
                           </span>
                         )}
+                        {c.subscription_status === "pending" && (
+                          <span className="ml-1.5 inline-flex items-center text-xs bg-amber-900/40 text-amber-400 px-2 py-0.5 rounded-full">
+                            Pending approval
+                          </span>
+                        )}
+                        {c.subscription_status === "trial" && c.trial_ends_at && (
+                          <span className="ml-1.5 inline-flex items-center text-xs bg-blue-900/40 text-blue-400 px-2 py-0.5 rounded-full">
+                            Trial until {new Date(c.trial_ends_at).toLocaleDateString("en-IN")}
+                          </span>
+                        )}
                         {!c.whatsapp_enabled && (
                           <span className="ml-1.5 inline-flex items-center text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">
                             WhatsApp off
