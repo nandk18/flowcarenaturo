@@ -111,6 +111,25 @@ export default function Onboarding() {
     }
   };
 
+  if (pending) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md text-center p-8 shadow-elevated">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <Clock className="h-8 w-8 text-primary" />
+          </div>
+          <h1 className="font-display text-2xl font-bold text-foreground mb-2">Approval Pending</h1>
+          <p className="text-muted-foreground mb-6">
+            Your clinic setup has been submitted. Our team will review and activate your 7-day free trial shortly. You'll receive an email once approved.
+          </p>
+          <Button variant="outline" onClick={() => { supabase.auth.signOut(); window.location.href = "/login"; }}>
+            Back to Login
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-2xl animate-fade-in">
