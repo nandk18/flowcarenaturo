@@ -156,6 +156,30 @@ export default function Auth() {
             </p>
           </div>
         )}
+        {clinicPending && (
+          <div className="mb-4 rounded-xl border border-warning/30 bg-warning/10 p-3 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-foreground">
+              Your clinic registration is pending admin approval. We'll notify you once it's activated.
+            </p>
+          </div>
+        )}
+        {trialExpired && (
+          <div className="mb-4 rounded-xl border border-warning/30 bg-warning/10 p-3 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-foreground">
+              Your 7-day free trial has ended. Please subscribe to continue using FlowCare.
+            </p>
+          </div>
+        )}
+        {subscriptionInactive && (
+          <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-foreground">
+              Your subscription is inactive. Please update your billing to restore access.
+            </p>
+          </div>
+        )}
         {authError && (
           <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 flex items-start gap-2">
             <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
