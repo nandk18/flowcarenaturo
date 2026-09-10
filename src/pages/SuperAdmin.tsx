@@ -118,6 +118,18 @@ export default function SuperAdmin() {
     toast.success("Settings PIN reset");
   };
 
+  const activateClinic = async (row: ClinicRow) => {
+    if (!confirm(`Activate ${row.clinic_name} and start a 7-day free trial?`)) return;
+    setBusy(true);
+    const { error } = await (supabase as any).rpc("super_admin_activate_clinic", {
+      p_clinic_id: row.clinic_id,
+    });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Clinic activated with 7-day trial");
+    fetchClinics();
+  };
+
   const toggleWhatsapp = async (row: ClinicRow) => {
     const next = !row.whatsapp_enabled;
     if (!next && !confirm(`Disable all WhatsApp messages for ${row.clinic_name}?`)) return;
