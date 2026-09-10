@@ -112,18 +112,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (subStatus === "trial") {
             const trialEnds = (clinic as any).trial_ends_at;
             if (trialEnds && new Date(trialEnds) <= new Date()) {
-              await supabase.auth.signOut();
-              setSession(null);
-              setProfile(null);
-              window.location.href = "/login?reason=trial_expired";
+              setProfile(prof);
+              window.location.href = "/subscription";
               return;
             }
           }
           if (["past_due", "cancelled", "disabled"].includes(subStatus)) {
-            await supabase.auth.signOut();
-            setSession(null);
-            setProfile(null);
-            window.location.href = "/login?reason=subscription_inactive";
+            setProfile(prof);
+            window.location.href = "/subscription";
             return;
           }
         }
