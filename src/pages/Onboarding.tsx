@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Building2, User, PenTool, Send, Check, ChevronRight, ChevronLeft } from "lucide-react";
+import { Building2, User, PenTool, Send, Check, ChevronRight, ChevronLeft, Clock } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 
 const steps = [
