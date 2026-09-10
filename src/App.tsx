@@ -65,6 +65,7 @@ import TermsOfService from "./pages/TermsOfService";
 import DataProcessingAgreement from "./pages/DataProcessingAgreement";
 import SecurityPage from "./pages/SecurityPage";
 import BillingConfigPage from "./pages/BillingConfigPage";
+import SubscriptionPage from "./pages/SubscriptionPage";
 import InvoiceDetailPage from "./pages/InvoiceDetailPage";
 import PublicInvoiceViewer from "./pages/PublicInvoiceViewer";
 import ShortLinkRedirect from "./pages/ShortLinkRedirect";
