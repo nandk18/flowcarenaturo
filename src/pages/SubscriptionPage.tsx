@@ -9,6 +9,19 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { Loader2, Check, Crown, Building2, Calendar, Users } from "lucide-react";
 
+function loadRazorpayScript(): Promise<boolean> {
+  const win = window as any;
+  if (win.Razorpay) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 const PLAN_PRICING: Record<string, { monthly: number; annual: number }> = {
   pro: { monthly: 2999, annual: 29990 },
   custom: { monthly: 4999, annual: 49990 },
