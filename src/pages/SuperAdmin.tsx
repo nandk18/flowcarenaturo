@@ -18,6 +18,8 @@ type ClinicRow = {
   clinic_id: string;
   clinic_name: string;
   is_active: boolean;
+  subscription_status: string | null;
+  trial_ends_at: string | null;
   whatsapp_enabled: boolean;
   disabled_at: string | null;
   disabled_reason: string | null;
