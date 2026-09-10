@@ -3171,9 +3171,10 @@ export type Database = {
           onboarding_complete: boolean
           patients_count: number
           revenue_30d: number
+          subscription_status: string
+          trial_ends_at: string
           users_count: number
           visits_7d: number
-          whatsapp_enabled: boolean
         }[]
       }
       super_admin_recent_activity: {
