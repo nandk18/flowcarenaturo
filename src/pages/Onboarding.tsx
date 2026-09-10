@@ -102,9 +102,8 @@ export default function Onboarding() {
       if (prof?.clinic_id) {
         await supabase.from("clinics").update({ onboarding_complete: true }).eq("id", prof.clinic_id);
       }
-      toast.success("Setup complete! Welcome to FlowCare.");
-      navigate("/dashboard");
-      window.location.reload();
+      toast.success("Setup submitted! Your clinic is pending approval.");
+      setPending(true);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
