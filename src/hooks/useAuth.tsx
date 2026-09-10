@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (prof.role === "admin" && prof.clinic_id) {
           const { data: clinic } = await supabase
             .from("clinics")
-            .select("is_active")
+            .select("is_active, subscription_status, trial_ends_at")
             .eq("id", prof.clinic_id)
             .maybeSingle();
           if (clinic && (clinic as any).is_active === false) {
@@ -99,6 +99,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSession(null);
             setProfile(null);
             window.location.href = "/login?reason=clinic_disabled";
+            return;
+          }
+          const subStatus = clinic ? (clinic as any).subscription_status : null;
+          if (subStatus === "pending") {
+            await supabase.auth.signOut();
+            setSession(null);
+            setProfile(null);
+            window.location.href = "/login?reason=clinic_pending";
+            return;
+          }
+          if (subStatus === "trial") {
+            const trialEnds = (clinic as any).trial_ends_at;
+            if (trialEnds && new Date(trialEnds) <= new Date()) {
+              await supabase.auth.signOut();
+              setSession(null);
+              setProfile(null);
+              window.location.href = "/login?reason=trial_expired";
+              return;
+            }
+          }
+          if (["past_due", "cancelled", "disabled"].includes(subStatus)) {
+            await supabase.auth.signOut();
+            setSession(null);
+            setProfile(null);
+            window.location.href = "/login?reason=subscription_inactive";
             return;
           }
         }
