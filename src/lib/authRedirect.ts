@@ -35,7 +35,7 @@ export async function ensureProfileAndGetPostAuthRoute(userId: string) {
 
   const { data: clinic, error: clinicError } = await supabase
     .from("clinics")
-    .select("onboarding_complete, is_active")
+    .select("onboarding_complete, is_active, subscription_status, trial_ends_at")
     .eq("id", profile.clinic_id)
     .maybeSingle();
 
@@ -44,6 +44,21 @@ export async function ensureProfileAndGetPostAuthRoute(userId: string) {
   if (clinic && (clinic as any).is_active === false) {
     await supabase.auth.signOut();
     return "/login?reason=clinic_disabled";
+  }
+
+  const subStatus = clinic ? (clinic as any).subscription_status : null;
+  if (subStatus === "pending") {
+    await supabase.auth.signOut();
+    return "/login?reason=clinic_pending";
+  }
+  if (subStatus === "trial") {
+    const trialEnds = (clinic as any).trial_ends_at;
+    if (trialEnds && new Date(trialEnds) <= new Date()) {
+      return "/subscription";
+    }
+  }
+  if (["past_due", "cancelled", "disabled"].includes(subStatus)) {
+    return "/subscription";
   }
 
   return clinic?.onboarding_complete ? "/dashboard" : "/onboarding";

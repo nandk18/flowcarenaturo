@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Building2, User, PenTool, Send, Check, ChevronRight, ChevronLeft } from "lucide-react";
+import { Building2, User, PenTool, Send, Check, ChevronRight, ChevronLeft, Clock } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 
 const steps = [
@@ -22,6 +22,7 @@ export default function Onboarding() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [dpaAccepted, setDpaAccepted] = useState(false);
+  const [pending, setPending] = useState(false);
 
   // Clinic details
   const [clinicName, setClinicName] = useState("");
@@ -101,15 +102,33 @@ export default function Onboarding() {
       if (prof?.clinic_id) {
         await supabase.from("clinics").update({ onboarding_complete: true }).eq("id", prof.clinic_id);
       }
-      toast.success("Setup complete! Welcome to FlowCare.");
-      navigate("/dashboard");
-      window.location.reload();
+      toast.success("Setup submitted! Your clinic is pending approval.");
+      setPending(true);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  if (pending) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md text-center p-8 shadow-elevated">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <Clock className="h-8 w-8 text-primary" />
+          </div>
+          <h1 className="font-display text-2xl font-bold text-foreground mb-2">Approval Pending</h1>
+          <p className="text-muted-foreground mb-6">
+            Your clinic setup has been submitted. Our team will review and activate your 7-day free trial shortly. You'll receive an email once approved.
+          </p>
+          <Button variant="outline" onClick={() => { supabase.auth.signOut(); window.location.href = "/login"; }}>
+            Back to Login
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

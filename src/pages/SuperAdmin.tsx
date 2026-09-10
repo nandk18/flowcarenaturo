@@ -18,6 +18,8 @@ type ClinicRow = {
   clinic_id: string;
   clinic_name: string;
   is_active: boolean;
+  subscription_status: string | null;
+  trial_ends_at: string | null;
   whatsapp_enabled: boolean;
   disabled_at: string | null;
   disabled_reason: string | null;
@@ -114,6 +116,18 @@ export default function SuperAdmin() {
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Settings PIN reset");
+  };
+
+  const activateClinic = async (row: ClinicRow) => {
+    if (!confirm(`Activate ${row.clinic_name} and start a 7-day free trial?`)) return;
+    setBusy(true);
+    const { error } = await (supabase as any).rpc("super_admin_activate_clinic", {
+      p_clinic_id: row.clinic_id,
+    });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Clinic activated with 7-day trial");
+    fetchClinics();
   };
 
   const toggleWhatsapp = async (row: ClinicRow) => {
@@ -217,6 +231,16 @@ export default function SuperAdmin() {
                             <span className="h-1.5 w-1.5 rounded-full bg-red-400" /> Disabled
                           </span>
                         )}
+                        {c.subscription_status === "pending" && (
+                          <span className="ml-1.5 inline-flex items-center text-xs bg-amber-900/40 text-amber-400 px-2 py-0.5 rounded-full">
+                            Pending approval
+                          </span>
+                        )}
+                        {c.subscription_status === "trial" && c.trial_ends_at && (
+                          <span className="ml-1.5 inline-flex items-center text-xs bg-blue-900/40 text-blue-400 px-2 py-0.5 rounded-full">
+                            Trial until {new Date(c.trial_ends_at).toLocaleDateString("en-IN")}
+                          </span>
+                        )}
                         {!c.whatsapp_enabled && (
                           <span className="ml-1.5 inline-flex items-center text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">
                             WhatsApp off
@@ -252,6 +276,16 @@ export default function SuperAdmin() {
                         >
                           {c.whatsapp_enabled ? "WhatsApp: On" : "WhatsApp: Off"}
                         </button>
+
+                        {c.subscription_status === "pending" && (
+                          <button
+                            disabled={busy}
+                            onClick={() => activateClinic(c)}
+                            className="text-xs px-2.5 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700 mr-1.5"
+                          >
+                            Activate Trial
+                          </button>
+                        )}
 
                         {c.is_active ? (
                           <button

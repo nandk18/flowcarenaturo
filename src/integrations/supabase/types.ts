@@ -625,6 +625,7 @@ export type Database = {
       clinics: {
         Row: {
           address: string | null
+          billing_cycle: string | null
           created_at: string | null
           disabled_at: string | null
           disabled_reason: string | null
@@ -636,21 +637,32 @@ export type Database = {
           invoice_footer_note: string | null
           invoice_header_note: string | null
           invoice_prefix: string | null
+          invoice_region: string | null
           is_active: boolean
           letterhead_url: string | null
           logo_url: string | null
+          max_patients_allowed: number | null
           name: string
           onboarding_complete: boolean | null
           phone: string | null
+          plan_tier: string | null
           prescription_template: string | null
+          razorpay_customer_id: string | null
+          razorpay_subscription_id: string | null
           regional_language: string | null
           show_logo_on_invoice: boolean
+          subscription_ends_at: string | null
+          subscription_starts_at: string | null
+          subscription_status: string | null
           treatment_enabled: boolean | null
+          trial_ends_at: string | null
+          trial_starts_at: string | null
           website: string | null
           whatsapp_enabled: boolean
         }
         Insert: {
           address?: string | null
+          billing_cycle?: string | null
           created_at?: string | null
           disabled_at?: string | null
           disabled_reason?: string | null
@@ -662,21 +674,32 @@ export type Database = {
           invoice_footer_note?: string | null
           invoice_header_note?: string | null
           invoice_prefix?: string | null
+          invoice_region?: string | null
           is_active?: boolean
           letterhead_url?: string | null
           logo_url?: string | null
+          max_patients_allowed?: number | null
           name: string
           onboarding_complete?: boolean | null
           phone?: string | null
+          plan_tier?: string | null
           prescription_template?: string | null
+          razorpay_customer_id?: string | null
+          razorpay_subscription_id?: string | null
           regional_language?: string | null
           show_logo_on_invoice?: boolean
+          subscription_ends_at?: string | null
+          subscription_starts_at?: string | null
+          subscription_status?: string | null
           treatment_enabled?: boolean | null
+          trial_ends_at?: string | null
+          trial_starts_at?: string | null
           website?: string | null
           whatsapp_enabled?: boolean
         }
         Update: {
           address?: string | null
+          billing_cycle?: string | null
           created_at?: string | null
           disabled_at?: string | null
           disabled_reason?: string | null
@@ -688,16 +711,26 @@ export type Database = {
           invoice_footer_note?: string | null
           invoice_header_note?: string | null
           invoice_prefix?: string | null
+          invoice_region?: string | null
           is_active?: boolean
           letterhead_url?: string | null
           logo_url?: string | null
+          max_patients_allowed?: number | null
           name?: string
           onboarding_complete?: boolean | null
           phone?: string | null
+          plan_tier?: string | null
           prescription_template?: string | null
+          razorpay_customer_id?: string | null
+          razorpay_subscription_id?: string | null
           regional_language?: string | null
           show_logo_on_invoice?: boolean
+          subscription_ends_at?: string | null
+          subscription_starts_at?: string | null
+          subscription_status?: string | null
           treatment_enabled?: boolean | null
+          trial_ends_at?: string | null
+          trial_starts_at?: string | null
           website?: string | null
           whatsapp_enabled?: boolean
         }
@@ -2270,6 +2303,62 @@ export type Database = {
           },
         ]
       }
+      subscription_payments: {
+        Row: {
+          amount: number
+          billing_cycle: string
+          clinic_id: string
+          created_at: string
+          currency: string
+          id: string
+          plan_tier: string
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          razorpay_signature: string | null
+          status: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          amount: number
+          billing_cycle: string
+          clinic_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          plan_tier: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
+          status?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          amount?: number
+          billing_cycle?: string
+          clinic_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          plan_tier?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
+          status?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_payments_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       therapist_sessions: {
         Row: {
           clinic_id: string | null
@@ -3072,6 +3161,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_subscription_active: {
+        Args: { p_clinic_id: string }
+        Returns: boolean
+      }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       list_clinic_therapists: {
         Args: { p_clinic_id: string }
@@ -3116,6 +3209,10 @@ export type Database = {
         Args: { p_rating: number; p_token: string }
         Returns: Json
       }
+      super_admin_activate_clinic: {
+        Args: { p_clinic_id: string }
+        Returns: undefined
+      }
       super_admin_clinic_summary: {
         Args: never
         Returns: {
@@ -3130,9 +3227,10 @@ export type Database = {
           onboarding_complete: boolean
           patients_count: number
           revenue_30d: number
+          subscription_status: string
+          trial_ends_at: string
           users_count: number
           visits_7d: number
-          whatsapp_enabled: boolean
         }[]
       }
       super_admin_recent_activity: {
