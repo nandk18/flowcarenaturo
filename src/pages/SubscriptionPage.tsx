@@ -58,6 +58,12 @@ export default function SubscriptionPage() {
   const isPastDue = status === "past_due" || status === "cancelled" || status === "disabled";
 
   useEffect(() => {
+    loadRazorpayScript().catch(() => {
+      // Script will be loaded lazily on checkout click as fallback
+    });
+  }, []);
+
+  useEffect(() => {
     if (currentPlan) setPlanTier(currentPlan as "pro" | "custom");
     if (currentCycle) setBillingCycle(currentCycle as "monthly" | "annual");
   }, [currentPlan, currentCycle]);
