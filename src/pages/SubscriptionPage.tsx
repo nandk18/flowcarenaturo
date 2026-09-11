@@ -84,6 +84,12 @@ export default function SubscriptionPage() {
     if (!clinic?.id || !profile?.user_id) return;
     setLoading(true);
     try {
+      const scriptReady = await loadRazorpayScript();
+      if (!scriptReady) {
+        toast.error("Unable to load Razorpay checkout. Please check your internet connection and try again.");
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("razorpay-checkout", {
         body: {
           clinic_id: clinic.id,
@@ -98,10 +104,6 @@ export default function SubscriptionPage() {
       }
 
       const win = window as any;
-      if (!win.Razorpay) {
-        toast.error("Razorpay checkout script not loaded. Please refresh and try again.");
-        return;
-      }
       const rzp = new win.Razorpay({
         key: data.key_id,
         amount: data.amount,
