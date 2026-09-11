@@ -287,7 +287,7 @@ export default function SubscriptionPage() {
                 )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" /> Patients</span>
-                  <span>{(patientCount || 0).toLocaleString("en-IN")} / {(maxPatients || limit).toLocaleString("en-IN")}</span>
+                  <span>{(patientCount || 0).toLocaleString("en-IN")} / {((maxPatients ?? limit) || limit).toLocaleString("en-IN")}</span>
                 </div>
               </CardContent>
             </Card>
