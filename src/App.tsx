@@ -120,6 +120,7 @@ const isAuthEntryRoute = (path: string) => path === "/" || path === "/auth" || p
 function AppRoutes() {
   const { session, profile, loading } = useAuth();
   const [clinicReady, setClinicReady] = useState<boolean | null>(null);
+  const [subscriptionIssue, setSubscriptionIssue] = useState<boolean>(false);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -293,15 +294,29 @@ function AppRoutes() {
     );
   }
 
-  if (profile?.clinic_id && clinicReady === null) {
+  if (profile?.clinic_id && clinicReady === null && !subscriptionIssue) {
     void (async () => {
       try {
         const { data, error } = await supabase
           .from("clinics")
-          .select("onboarding_complete")
+          .select("onboarding_complete, subscription_status, trial_ends_at")
           .eq("id", profile.clinic_id)
           .single();
-        setClinicReady(error ? false : data?.onboarding_complete ?? false);
+        if (error) {
+          setClinicReady(false);
+          return;
+        }
+        const subStatus = (data as any)?.subscription_status;
+        const trialEnds = (data as any)?.trial_ends_at;
+        const isPending = subStatus === "pending";
+        const isExpired = subStatus === "trial" && trialEnds && new Date(trialEnds) <= new Date();
+        const isInactive = ["past_due", "cancelled", "disabled"].includes(subStatus);
+        if (isPending || isExpired || isInactive) {
+          setSubscriptionIssue(true);
+          navigate("/subscription", { replace: true });
+        } else {
+          setClinicReady(data?.onboarding_complete ?? false);
+        }
       } catch {
         setClinicReady(false);
       }
@@ -310,6 +325,15 @@ function AppRoutes() {
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  if (subscriptionIssue) {
+    return (
+      <Routes>
+        <Route path="/subscription" element={<SubscriptionPage />} />
+        <Route path="*" element={<Navigate to="/subscription" replace />} />
+      </Routes>
     );
   }
 
@@ -353,9 +377,6 @@ function AppRoutes() {
 
       {/* Lead Pipeline */}
       <Route path="/leads/pipeline" element={<LeadsPage />} />
-
-      {/* Subscription / billing */}
-      <Route path="/subscription" element={<SubscriptionPage />} />
 
       {/* Billing detail (reachable from Settings → Billing) */}
       <Route path="/dashboard/billing/:invoiceId" element={<InvoiceDetailPage />} />

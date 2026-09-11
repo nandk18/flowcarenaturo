@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { Loader2, Check, Crown, Building2, Calendar, Users } from "lucide-react";
 
+
 function loadRazorpayScript(): Promise<boolean> {
   const win = window as any;
   if (win.Razorpay) return Promise.resolve(true);
@@ -33,18 +34,29 @@ const PLAN_PATIENT_LIMITS: Record<string, number> = {
 };
 
 export default function SubscriptionPage() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const { clinic, refetch } = useClinic();
   const [loading, setLoading] = useState(false);
   const [planTier, setPlanTier] = useState<"pro" | "custom">("pro");
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+  const [patientCount, setPatientCount] = useState(0);
+
+  useEffect(() => {
+    if (!clinic?.id) return;
+    supabase
+      .from("patients")
+      .select("id", { count: "exact", head: true })
+      .eq("clinic_id", clinic.id)
+      .then(({ count, error }) => {
+        if (!error) setPatientCount(count || 0);
+      });
+  }, [clinic?.id]);
 
   const status = (clinic as any)?.subscription_status as string | undefined;
   const trialEndsAt = (clinic as any)?.trial_ends_at as string | undefined;
   const subscriptionEndsAt = (clinic as any)?.subscription_ends_at as string | undefined;
   const currentPlan = (clinic as any)?.plan_tier as string | undefined;
   const currentCycle = (clinic as any)?.billing_cycle as string | undefined;
-  const patientCount = (clinic as any)?.patients_count as number | undefined;
   const maxPatients = (clinic as any)?.max_patients_allowed as number | undefined;
 
   const trialDaysLeft = useMemo(() => {
@@ -72,6 +84,12 @@ export default function SubscriptionPage() {
     if (!clinic?.id || !profile?.user_id) return;
     setLoading(true);
     try {
+      const scriptReady = await loadRazorpayScript();
+      if (!scriptReady) {
+        toast.error("Unable to load Razorpay checkout. Please check your internet connection and try again.");
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("razorpay-checkout", {
         body: {
           clinic_id: clinic.id,
@@ -86,10 +104,6 @@ export default function SubscriptionPage() {
       }
 
       const win = window as any;
-      if (!win.Razorpay) {
-        toast.error("Razorpay checkout script not loaded. Please refresh and try again.");
-        return;
-      }
       const rzp = new win.Razorpay({
         key: data.key_id,
         amount: data.amount,
@@ -114,7 +128,7 @@ export default function SubscriptionPage() {
           }
         },
         prefill: {
-          email: profile.user_id,
+          email: session?.user?.email || "",
         },
         theme: { color: "#0F172A" },
       });
@@ -152,6 +166,16 @@ export default function SubscriptionPage() {
             <CardContent className="py-4">
               <p className="text-sm text-foreground">
                 Your subscription has expired or is inactive. Please choose a plan to continue using FlowCare.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {status === "pending" && (
+          <Card className="mb-6 border-info/30 bg-info/10">
+            <CardContent className="py-4">
+              <p className="text-sm text-foreground">
+                Your clinic is awaiting approval from the FlowCare team. Once approved, your 7-day free trial will begin automatically.
               </p>
             </CardContent>
           </Card>
@@ -234,9 +258,9 @@ export default function SubscriptionPage() {
                 </p>
               </div>
 
-              <Button onClick={handleCheckout} disabled={loading || !clinic} className="w-full">
+              <Button onClick={handleCheckout} disabled={loading || !clinic || status === "pending"} className="w-full">
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {status === "active" ? "Update plan" : "Subscribe now"}
+                {status === "pending" ? "Awaiting approval" : status === "active" ? "Update plan" : "Subscribe now"}
               </Button>
             </CardContent>
           </Card>
@@ -273,7 +297,7 @@ export default function SubscriptionPage() {
                 )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" /> Patients</span>
-                  <span>{(patientCount || 0).toLocaleString("en-IN")} / {(maxPatients || limit).toLocaleString("en-IN")}</span>
+                  <span>{(patientCount || 0).toLocaleString("en-IN")} / {((maxPatients ?? limit) || limit).toLocaleString("en-IN")}</span>
                 </div>
               </CardContent>
             </Card>

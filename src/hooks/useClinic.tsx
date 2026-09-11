@@ -33,8 +33,8 @@ export function useClinic() {
     if (!profile?.clinic_id) { setLoading(false); return; }
 
     const fetchData = async () => {
-      const [clinicRes, doctorRes] = await Promise.all([
-        supabase.from("clinics").select("id, name, address, phone, email, website, logo_url, letterhead_url, regional_language, gst_number, gst_percentage, invoice_prefix, invoice_header_note, invoice_footer_note, show_logo_on_invoice").eq("id", profile.clinic_id!).single(),
+    const [clinicRes, doctorRes] = await Promise.all([
+        supabase.from("clinics").select("id, name, address, phone, email, website, logo_url, letterhead_url, regional_language, gst_number, gst_percentage, invoice_prefix, invoice_header_note, invoice_footer_note, show_logo_on_invoice, subscription_status, plan_tier, billing_cycle, trial_starts_at, trial_ends_at, subscription_starts_at, subscription_ends_at, max_patients_allowed").eq("id", profile.clinic_id!).single(),
         supabase.from("doctors").select("id, name, qualification, registration_number, specialty, signature_url, availability, default_template_id").eq("clinic_id", profile.clinic_id!).eq("user_id", profile.user_id).single(),
       ]);
       if (clinicRes.data) setClinic(clinicRes.data as any);
@@ -47,7 +47,7 @@ export function useClinic() {
   const refetch = async () => {
     if (!profile?.clinic_id) return;
     const [clinicRes, doctorRes] = await Promise.all([
-      supabase.from("clinics").select("id, name, address, phone, email, website, logo_url, letterhead_url, regional_language, gst_number, gst_percentage, invoice_prefix, invoice_header_note, invoice_footer_note, show_logo_on_invoice").eq("id", profile.clinic_id!).single(),
+      supabase.from("clinics").select("id, name, address, phone, email, website, logo_url, letterhead_url, regional_language, gst_number, gst_percentage, invoice_prefix, invoice_header_note, invoice_footer_note, show_logo_on_invoice, subscription_status, plan_tier, billing_cycle, trial_starts_at, trial_ends_at, subscription_starts_at, subscription_ends_at, max_patients_allowed").eq("id", profile.clinic_id!).single(),
       supabase.from("doctors").select("id, name, qualification, registration_number, specialty, signature_url, availability, default_template_id").eq("clinic_id", profile.clinic_id!).eq("user_id", profile.user_id).single(),
     ]);
     if (clinicRes.data) setClinic(clinicRes.data as any);
