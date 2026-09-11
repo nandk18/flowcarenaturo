@@ -128,7 +128,7 @@ export default function SubscriptionPage() {
           }
         },
         prefill: {
-          email: profile.user_id,
+          email: session?.user?.email || "",
         },
         theme: { color: "#0F172A" },
       });
