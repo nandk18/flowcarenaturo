@@ -298,10 +298,24 @@ function AppRoutes() {
       try {
         const { data, error } = await supabase
           .from("clinics")
-          .select("onboarding_complete")
+          .select("onboarding_complete, subscription_status, trial_ends_at")
           .eq("id", profile.clinic_id)
           .single();
-        setClinicReady(error ? false : data?.onboarding_complete ?? false);
+        if (error) {
+          setClinicReady(false);
+          return;
+        }
+        const subStatus = (data as any)?.subscription_status;
+        const trialEnds = (data as any)?.trial_ends_at;
+        const isPending = subStatus === "pending";
+        const isExpired = subStatus === "trial" && trialEnds && new Date(trialEnds) <= new Date();
+        const isInactive = ["past_due", "cancelled", "disabled"].includes(subStatus);
+        if (isPending || isExpired || isInactive) {
+          setClinicReady(false);
+          navigate("/subscription", { replace: true });
+        } else {
+          setClinicReady(data?.onboarding_complete ?? false);
+        }
       } catch {
         setClinicReady(false);
       }
