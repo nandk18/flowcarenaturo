@@ -57,7 +57,6 @@ export default function SubscriptionPage() {
   const subscriptionEndsAt = (clinic as any)?.subscription_ends_at as string | undefined;
   const currentPlan = (clinic as any)?.plan_tier as string | undefined;
   const currentCycle = (clinic as any)?.billing_cycle as string | undefined;
-  const patientCount = (clinic as any)?.patients_count as number | undefined;
   const maxPatients = (clinic as any)?.max_patients_allowed as number | undefined;
 
   const trialDaysLeft = useMemo(() => {
