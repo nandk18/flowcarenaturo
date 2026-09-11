@@ -34,7 +34,7 @@ const PLAN_PATIENT_LIMITS: Record<string, number> = {
 };
 
 export default function SubscriptionPage() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const { clinic, refetch } = useClinic();
   const [loading, setLoading] = useState(false);
   const [planTier, setPlanTier] = useState<"pro" | "custom">("pro");
