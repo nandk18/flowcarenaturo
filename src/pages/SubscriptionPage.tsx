@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { Loader2, Check, Crown, Building2, Calendar, Users } from "lucide-react";
 
+
 function loadRazorpayScript(): Promise<boolean> {
   const win = window as any;
   if (win.Razorpay) return Promise.resolve(true);
