@@ -11,6 +11,7 @@ import {
   MessageSquare,
   CalendarClock,
   Upload,
+  CreditCard,
 } from "lucide-react";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
 
