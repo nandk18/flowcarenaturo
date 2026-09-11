@@ -378,9 +378,6 @@ function AppRoutes() {
       {/* Lead Pipeline */}
       <Route path="/leads/pipeline" element={<LeadsPage />} />
 
-      {/* Subscription / billing */}
-      <Route path="/subscription" element={<SubscriptionPage />} />
-
       {/* Billing detail (reachable from Settings → Billing) */}
       <Route path="/dashboard/billing/:invoiceId" element={<InvoiceDetailPage />} />
 
