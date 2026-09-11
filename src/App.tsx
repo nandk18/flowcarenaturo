@@ -120,6 +120,7 @@ const isAuthEntryRoute = (path: string) => path === "/" || path === "/auth" || p
 function AppRoutes() {
   const { session, profile, loading } = useAuth();
   const [clinicReady, setClinicReady] = useState<boolean | null>(null);
+  const [subscriptionIssue, setSubscriptionIssue] = useState<boolean>(false);
 
   const location = useLocation();
   const navigate = useNavigate();
