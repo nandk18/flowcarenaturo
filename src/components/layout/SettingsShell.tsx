@@ -44,6 +44,7 @@ const NAV: ShellNavGroup[] = [
   {
     label: "Billing",
     items: [
+      { to: "/subscription", icon: CreditCard, label: "Subscription" },
       { to: "/settings/services", icon: Receipt, label: "Invoice Services" },
       { to: "/settings/store-items", icon: ShoppingBag, label: "Store Items" },
     ],
