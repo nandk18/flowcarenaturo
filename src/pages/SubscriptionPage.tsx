@@ -171,6 +171,16 @@ export default function SubscriptionPage() {
           </Card>
         )}
 
+        {status === "pending" && (
+          <Card className="mb-6 border-info/30 bg-info/10">
+            <CardContent className="py-4">
+              <p className="text-sm text-foreground">
+                Your clinic is awaiting approval from the FlowCare team. Once approved, your 7-day free trial will begin automatically.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid gap-6 md:grid-cols-3">
           <Card className="md:col-span-2">
             <CardHeader>
