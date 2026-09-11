@@ -258,9 +258,9 @@ export default function SubscriptionPage() {
                 </p>
               </div>
 
-              <Button onClick={handleCheckout} disabled={loading || !clinic} className="w-full">
+              <Button onClick={handleCheckout} disabled={loading || !clinic || status === "pending"} className="w-full">
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {status === "active" ? "Update plan" : "Subscribe now"}
+                {status === "pending" ? "Awaiting approval" : status === "active" ? "Update plan" : "Subscribe now"}
               </Button>
             </CardContent>
           </Card>
