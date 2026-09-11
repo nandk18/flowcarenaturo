@@ -39,6 +39,18 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(false);
   const [planTier, setPlanTier] = useState<"pro" | "custom">("pro");
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+  const [patientCount, setPatientCount] = useState(0);
+
+  useEffect(() => {
+    if (!clinic?.id) return;
+    supabase
+      .from("patients")
+      .select("id", { count: "exact", head: true })
+      .eq("clinic_id", clinic.id)
+      .then(({ count, error }) => {
+        if (!error) setPatientCount(count || 0);
+      });
+  }, [clinic?.id]);
 
   const status = (clinic as any)?.subscription_status as string | undefined;
   const trialEndsAt = (clinic as any)?.trial_ends_at as string | undefined;
