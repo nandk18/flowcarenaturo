@@ -294,7 +294,7 @@ function AppRoutes() {
     );
   }
 
-  if (profile?.clinic_id && clinicReady === null) {
+  if (profile?.clinic_id && clinicReady === null && !subscriptionIssue) {
     void (async () => {
       try {
         const { data, error } = await supabase
@@ -312,7 +312,7 @@ function AppRoutes() {
         const isExpired = subStatus === "trial" && trialEnds && new Date(trialEnds) <= new Date();
         const isInactive = ["past_due", "cancelled", "disabled"].includes(subStatus);
         if (isPending || isExpired || isInactive) {
-          setClinicReady(false);
+          setSubscriptionIssue(true);
           navigate("/subscription", { replace: true });
         } else {
           setClinicReady(data?.onboarding_complete ?? false);
@@ -325,6 +325,15 @@ function AppRoutes() {
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  if (subscriptionIssue) {
+    return (
+      <Routes>
+        <Route path="/subscription" element={<SubscriptionPage />} />
+        <Route path="*" element={<Navigate to="/subscription" replace />} />
+      </Routes>
     );
   }
 
