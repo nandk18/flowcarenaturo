@@ -307,11 +307,8 @@ function AppRoutes() {
           return;
         }
         const subStatus = (data as any)?.subscription_status;
-        const trialEnds = (data as any)?.trial_ends_at;
         const isPending = subStatus === "pending";
-        const isExpired = subStatus === "trial" && trialEnds && new Date(trialEnds) <= new Date();
-        const isInactive = ["past_due", "cancelled", "disabled"].includes(subStatus);
-        if (isPending || isExpired || isInactive) {
+        if (isPending) {
           setSubscriptionIssue(true);
           navigate("/subscription", { replace: true });
         } else {
