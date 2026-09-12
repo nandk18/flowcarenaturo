@@ -109,19 +109,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             window.location.href = "/login?reason=clinic_pending";
             return;
           }
-          if (subStatus === "trial") {
-            const trialEnds = (clinic as any).trial_ends_at;
-            if (trialEnds && new Date(trialEnds) <= new Date()) {
-              setProfile(prof);
-              window.location.href = "/subscription";
-              return;
-            }
-          }
-          if (["past_due", "cancelled", "disabled"].includes(subStatus)) {
-            setProfile(prof);
-            window.location.href = "/subscription";
-            return;
-          }
         }
         setProfile(prof);
         return;
