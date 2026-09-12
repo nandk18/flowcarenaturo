@@ -119,14 +119,14 @@ export default function SuperAdmin() {
   };
 
   const activateClinic = async (row: ClinicRow) => {
-    if (!confirm(`Activate ${row.clinic_name} and start a 7-day free trial?`)) return;
+    if (!confirm(`Activate ${row.clinic_name} with full access?`)) return;
     setBusy(true);
     const { error } = await (supabase as any).rpc("super_admin_activate_clinic", {
       p_clinic_id: row.clinic_id,
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Clinic activated with 7-day trial");
+    toast.success("Clinic activated with full access");
     fetchClinics();
   };
 
@@ -236,9 +236,9 @@ export default function SuperAdmin() {
                             Pending approval
                           </span>
                         )}
-                        {c.subscription_status === "trial" && c.trial_ends_at && (
+                        {c.subscription_status === "active" && c.is_active && (
                           <span className="ml-1.5 inline-flex items-center text-xs bg-blue-900/40 text-blue-400 px-2 py-0.5 rounded-full">
-                            Trial until {new Date(c.trial_ends_at).toLocaleDateString("en-IN")}
+                            Full access
                           </span>
                         )}
                         {!c.whatsapp_enabled && (
@@ -283,7 +283,7 @@ export default function SuperAdmin() {
                             onClick={() => activateClinic(c)}
                             className="text-xs px-2.5 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700 mr-1.5"
                           >
-                            Activate Trial
+                            Activate
                           </button>
                         )}
 

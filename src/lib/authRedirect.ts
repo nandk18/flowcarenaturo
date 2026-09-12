@@ -51,15 +51,6 @@ export async function ensureProfileAndGetPostAuthRoute(userId: string) {
     await supabase.auth.signOut();
     return "/login?reason=clinic_pending";
   }
-  if (subStatus === "trial") {
-    const trialEnds = (clinic as any).trial_ends_at;
-    if (trialEnds && new Date(trialEnds) <= new Date()) {
-      return "/subscription";
-    }
-  }
-  if (["past_due", "cancelled", "disabled"].includes(subStatus)) {
-    return "/subscription";
-  }
 
   return clinic?.onboarding_complete ? "/dashboard" : "/onboarding";
 }
