@@ -2,7 +2,7 @@
 
 Everything your clinic team can do in FlowCare, screen by screen. Written for a brand-new user: the receptionist on day one, the doctor running consultations, the therapist on the floor, and the owner watching the numbers.
 
-**Live app:** https://flowcarenaturo.lovable.app
+**Live app:** https://www.goflowcare.com
 
 ---
 

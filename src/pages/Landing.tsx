@@ -72,7 +72,7 @@ export default function Landing() {
     <Helmet>
       <title>FlowCare — Clinic Treatment Plan Tracking</title>
       <meta name="description" content="Track every clinic treatment plan, catch lapsed patients, and automate WhatsApp follow-ups with FlowCare." />
-      <link rel="canonical" href="https://flowcarenaturo.lovable.app/" />
+      <link rel="canonical" href="https://www.goflowcare.com/" />
       <meta property="og:title" content="FlowCare — Clinic Treatment Plan Tracking" />
       <meta property="og:description" content="Track every clinic treatment plan, catch lapsed patients, and automate WhatsApp follow-ups with FlowCare." />
       <meta property="og:type" content="website" />

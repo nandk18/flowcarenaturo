@@ -7,7 +7,7 @@ interface SeoHeadProps {
   ogType?: "website" | "article";
 }
 
-const BASE_URL = "https://stethoscribe.com";
+const BASE_URL = "https://www.goflowcare.com";
 
 export default function SeoHead({ title, description, path, ogType = "website" }: SeoHeadProps) {
   const url = `${BASE_URL}${path}`;
