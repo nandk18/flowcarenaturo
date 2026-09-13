@@ -7,7 +7,7 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID") ?? "";
 const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN") ?? "";
 const TWILIO_WHATSAPP_FROM = Deno.env.get("TWILIO_WHATSAPP_FROM") ?? "";
-const PUBLIC_URL = Deno.env.get("PUBLIC_URL") ?? Deno.env.get("SITE_URL") ?? "https://flowcarenaturo.lovable.app";
+const PUBLIC_URL = Deno.env.get("PUBLIC_URL") ?? Deno.env.get("SITE_URL") ?? "https://www.goflowcare.com";
 
 const TEMPLATES: Record<string, string> = {
   booked: Deno.env.get("TWILIO_TEMPLATE_BOOKED") ?? "",
