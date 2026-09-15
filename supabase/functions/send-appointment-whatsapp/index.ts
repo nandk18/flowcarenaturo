@@ -301,6 +301,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Which Twilio account / number / template does this clinic send from?
+    const sender = await resolveSender(sb, clinicId, event as WhatsAppEvent);
+    if (!sender.accountSid || !sender.authToken || !sender.fromNumber) {
+      return json({ error: "Twilio is not configured" }, 500);
+    }
+    if (!sender.contentSid) {
+      return json({ skipped: true, reason: `no template configured for "${event}"` });
+    }
+
     // Create pending log row
     const { data: logRow } = await sb
       .from("whatsapp_messages")
@@ -312,64 +321,39 @@ Deno.serve(async (req) => {
         event,
         followup_stage: event === "followup" ? stage ?? 1 : null,
         to_phone: to,
-        template_sid: contentSid,
+        template_sid: sender.contentSid,
+        sender_mode: sender.mode,
+        from_number: sender.fromNumber,
         status: "pending",
-
       })
       .select("id")
       .maybeSingle();
     logId = logRow?.id ?? null;
 
-    const form = new URLSearchParams({
-      To: `whatsapp:${to}`,
-      From: fromWhatsapNumber(),
-      ContentSid: contentSid,
-      ContentVariables: JSON.stringify(variables),
-    });
+    const result = await sendTwilioTemplate(sender, to, variables);
 
-    const res = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: "Basic " + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`),
-        },
-        body: form,
-      },
-    );
-
-    const bodyText = await res.text();
-
-    if (!res.ok) {
-      console.error(`Twilio request failed [${res.status}]: ${bodyText}`);
+    if (!result.ok) {
+      console.error(`Twilio request failed [${result.status}]: ${result.body}`);
       if (logId) {
         await sb
           .from("whatsapp_messages")
-          .update({ status: "failed", error: `[${res.status}] ${bodyText}`.slice(0, 2000) })
+          .update({ status: "failed", error: `[${result.status}] ${result.body}`.slice(0, 2000) })
           .eq("id", logId);
       }
       return json(
-        { error: "Twilio request failed", status: res.status, details: bodyText },
-        res.status,
+        { error: "Twilio request failed", status: result.status, details: result.body },
+        result.status,
       );
-    }
-
-    let parsed: any = null;
-    try {
-      parsed = JSON.parse(bodyText);
-    } catch {
-      // non-JSON success body — keep raw
     }
 
     if (logId) {
       await sb
         .from("whatsapp_messages")
-        .update({ status: "sent", twilio_sid: parsed?.sid ?? null })
+        .update({ status: "sent", twilio_sid: result.sid })
         .eq("id", logId);
     }
 
-    return json({ sent: true, sid: parsed?.sid ?? null, to, event });
+    return json({ sent: true, sid: result.sid, to, event, sender_mode: sender.mode });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("send-appointment-whatsapp error:", message);
