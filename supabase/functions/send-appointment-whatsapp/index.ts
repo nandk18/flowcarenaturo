@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
     const stage = Number(payload.stage) >= 1 ? Math.min(3, Math.floor(Number(payload.stage))) : null;
 
 
-    if (!event || !(event in TEMPLATES)) {
+    if (!event || !VALID_EVENTS.includes(event as WhatsAppEvent)) {
       return json({ error: "a valid event is required" }, 400);
     }
     if (event === "review" && !therapy_session_id) {
@@ -85,15 +85,6 @@ Deno.serve(async (req) => {
     }
     if (["booked", "rescheduled", "cancelled", "reminder", "followup"].includes(event) && !appointment_id) {
       return json({ error: "appointment_id is required for this event" }, 400);
-    }
-
-    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_WHATSAPP_FROM) {
-      return json({ error: "Twilio is not configured" }, 500);
-    }
-
-    const contentSid = TEMPLATES[event];
-    if (!contentSid) {
-      return json({ skipped: true, reason: `no template configured for "${event}"` });
     }
 
     let to: string | null = null;
