@@ -1,23 +1,24 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  resolveSender,
+  sendTwilioTemplate,
+  type WhatsAppEvent,
+} from "../_shared/whatsappSender.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID") ?? "";
-const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN") ?? "";
-const TWILIO_WHATSAPP_FROM = Deno.env.get("TWILIO_WHATSAPP_FROM") ?? "";
 const PUBLIC_URL = Deno.env.get("PUBLIC_URL") ?? Deno.env.get("SITE_URL") ?? "https://www.goflowcare.com";
 
-const TEMPLATES: Record<string, string> = {
-  booked: Deno.env.get("TWILIO_TEMPLATE_BOOKED") ?? "",
-  rescheduled: Deno.env.get("TWILIO_TEMPLATE_RESCHEDULED") ?? "",
-  cancelled: Deno.env.get("TWILIO_TEMPLATE_CANCELLED") ?? "",
-  // Reminder reuses the booked template (identical variables) unless overridden.
-  reminder: Deno.env.get("TWILIO_TEMPLATE_REMINDER") || Deno.env.get("TWILIO_TEMPLATE_BOOKED") || "",
-  review: Deno.env.get("TWILIO_TEMPLATE_REVIEW") ?? "",
-  followup: Deno.env.get("TWILIO_TEMPLATE_FOLLOWUP") ?? "",
-};
+const VALID_EVENTS = [
+  "booked",
+  "rescheduled",
+  "cancelled",
+  "reminder",
+  "review",
+  "followup",
+] as const;
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
