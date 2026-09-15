@@ -1,23 +1,24 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  resolveSender,
+  sendTwilioTemplate,
+  type WhatsAppEvent,
+} from "../_shared/whatsappSender.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID") ?? "";
-const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN") ?? "";
-const TWILIO_WHATSAPP_FROM = Deno.env.get("TWILIO_WHATSAPP_FROM") ?? "";
 const PUBLIC_URL = Deno.env.get("PUBLIC_URL") ?? Deno.env.get("SITE_URL") ?? "https://www.goflowcare.com";
 
-const TEMPLATES: Record<string, string> = {
-  booked: Deno.env.get("TWILIO_TEMPLATE_BOOKED") ?? "",
-  rescheduled: Deno.env.get("TWILIO_TEMPLATE_RESCHEDULED") ?? "",
-  cancelled: Deno.env.get("TWILIO_TEMPLATE_CANCELLED") ?? "",
-  // Reminder reuses the booked template (identical variables) unless overridden.
-  reminder: Deno.env.get("TWILIO_TEMPLATE_REMINDER") || Deno.env.get("TWILIO_TEMPLATE_BOOKED") || "",
-  review: Deno.env.get("TWILIO_TEMPLATE_REVIEW") ?? "",
-  followup: Deno.env.get("TWILIO_TEMPLATE_FOLLOWUP") ?? "",
-};
+const VALID_EVENTS = [
+  "booked",
+  "rescheduled",
+  "cancelled",
+  "reminder",
+  "review",
+  "followup",
+] as const;
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -58,11 +59,6 @@ function fmtDate(d: string | null | undefined): string {
   return y && m && day ? `${day}/${m}/${y}` : String(d);
 }
 
-/** Build the WhatsApp sender number with the whatsapp: prefix. */
-function fromWhatsapNumber(): string {
-  const num = TWILIO_WHATSAPP_FROM.startsWith("+") ? TWILIO_WHATSAPP_FROM : "+" + TWILIO_WHATSAPP_FROM;
-  return `whatsapp:${num}`;
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -81,7 +77,7 @@ Deno.serve(async (req) => {
     const stage = Number(payload.stage) >= 1 ? Math.min(3, Math.floor(Number(payload.stage))) : null;
 
 
-    if (!event || !(event in TEMPLATES)) {
+    if (!event || !VALID_EVENTS.includes(event as WhatsAppEvent)) {
       return json({ error: "a valid event is required" }, 400);
     }
     if (event === "review" && !therapy_session_id) {
@@ -89,15 +85,6 @@ Deno.serve(async (req) => {
     }
     if (["booked", "rescheduled", "cancelled", "reminder", "followup"].includes(event) && !appointment_id) {
       return json({ error: "appointment_id is required for this event" }, 400);
-    }
-
-    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_WHATSAPP_FROM) {
-      return json({ error: "Twilio is not configured" }, 500);
-    }
-
-    const contentSid = TEMPLATES[event];
-    if (!contentSid) {
-      return json({ skipped: true, reason: `no template configured for "${event}"` });
     }
 
     let to: string | null = null;
@@ -314,6 +301,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Which Twilio account / number / template does this clinic send from?
+    const sender = await resolveSender(sb, clinicId, event as WhatsAppEvent);
+    if (!sender.accountSid || !sender.authToken || !sender.fromNumber) {
+      return json({ error: "Twilio is not configured" }, 500);
+    }
+    if (!sender.contentSid) {
+      return json({ skipped: true, reason: `no template configured for "${event}"` });
+    }
+
     // Create pending log row
     const { data: logRow } = await sb
       .from("whatsapp_messages")
@@ -325,64 +321,39 @@ Deno.serve(async (req) => {
         event,
         followup_stage: event === "followup" ? stage ?? 1 : null,
         to_phone: to,
-        template_sid: contentSid,
+        template_sid: sender.contentSid,
+        sender_mode: sender.mode,
+        from_number: sender.fromNumber,
         status: "pending",
-
       })
       .select("id")
       .maybeSingle();
     logId = logRow?.id ?? null;
 
-    const form = new URLSearchParams({
-      To: `whatsapp:${to}`,
-      From: fromWhatsapNumber(),
-      ContentSid: contentSid,
-      ContentVariables: JSON.stringify(variables),
-    });
+    const result = await sendTwilioTemplate(sender, to, variables);
 
-    const res = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: "Basic " + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`),
-        },
-        body: form,
-      },
-    );
-
-    const bodyText = await res.text();
-
-    if (!res.ok) {
-      console.error(`Twilio request failed [${res.status}]: ${bodyText}`);
+    if (!result.ok) {
+      console.error(`Twilio request failed [${result.status}]: ${result.body}`);
       if (logId) {
         await sb
           .from("whatsapp_messages")
-          .update({ status: "failed", error: `[${res.status}] ${bodyText}`.slice(0, 2000) })
+          .update({ status: "failed", error: `[${result.status}] ${result.body}`.slice(0, 2000) })
           .eq("id", logId);
       }
       return json(
-        { error: "Twilio request failed", status: res.status, details: bodyText },
-        res.status,
+        { error: "Twilio request failed", status: result.status, details: result.body },
+        result.status,
       );
-    }
-
-    let parsed: any = null;
-    try {
-      parsed = JSON.parse(bodyText);
-    } catch {
-      // non-JSON success body — keep raw
     }
 
     if (logId) {
       await sb
         .from("whatsapp_messages")
-        .update({ status: "sent", twilio_sid: parsed?.sid ?? null })
+        .update({ status: "sent", twilio_sid: result.sid })
         .eq("id", logId);
     }
 
-    return json({ sent: true, sid: parsed?.sid ?? null, to, event });
+    return json({ sent: true, sid: result.sid, to, event, sender_mode: sender.mode });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("send-appointment-whatsapp error:", message);

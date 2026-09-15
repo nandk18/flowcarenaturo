@@ -562,6 +562,65 @@ export type Database = {
           },
         ]
       }
+      clinic_whatsapp_settings: {
+        Row: {
+          account_sid: string | null
+          auth_token_encrypted: string | null
+          clinic_id: string
+          created_at: string
+          from_number: string | null
+          mode: string
+          template_booked: string | null
+          template_cancelled: string | null
+          template_followup: string | null
+          template_reminder: string | null
+          template_rescheduled: string | null
+          template_review: string | null
+          updated_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          account_sid?: string | null
+          auth_token_encrypted?: string | null
+          clinic_id: string
+          created_at?: string
+          from_number?: string | null
+          mode?: string
+          template_booked?: string | null
+          template_cancelled?: string | null
+          template_followup?: string | null
+          template_reminder?: string | null
+          template_rescheduled?: string | null
+          template_review?: string | null
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          account_sid?: string | null
+          auth_token_encrypted?: string | null
+          clinic_id?: string
+          created_at?: string
+          from_number?: string | null
+          mode?: string
+          template_booked?: string | null
+          template_cancelled?: string | null
+          template_followup?: string | null
+          template_reminder?: string | null
+          template_rescheduled?: string | null
+          template_review?: string | null
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_whatsapp_settings_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinical_notes: {
         Row: {
           audio_url: string | null
@@ -2929,8 +2988,10 @@ export type Database = {
           error: string | null
           event: string
           followup_stage: number | null
+          from_number: string | null
           id: string
           patient_id: string | null
+          sender_mode: string | null
           status: string
           template_sid: string | null
           therapy_session_id: string | null
@@ -2945,8 +3006,10 @@ export type Database = {
           error?: string | null
           event: string
           followup_stage?: number | null
+          from_number?: string | null
           id?: string
           patient_id?: string | null
+          sender_mode?: string | null
           status?: string
           template_sid?: string | null
           therapy_session_id?: string | null
@@ -2961,8 +3024,10 @@ export type Database = {
           error?: string | null
           event?: string
           followup_stage?: number | null
+          from_number?: string | null
           id?: string
           patient_id?: string | null
+          sender_mode?: string | null
           status?: string
           template_sid?: string | null
           therapy_session_id?: string | null
