@@ -59,11 +59,6 @@ function fmtDate(d: string | null | undefined): string {
   return y && m && day ? `${day}/${m}/${y}` : String(d);
 }
 
-/** Build the WhatsApp sender number with the whatsapp: prefix. */
-function fromWhatsapNumber(): string {
-  const num = TWILIO_WHATSAPP_FROM.startsWith("+") ? TWILIO_WHATSAPP_FROM : "+" + TWILIO_WHATSAPP_FROM;
-  return `whatsapp:${num}`;
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
