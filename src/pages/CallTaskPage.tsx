@@ -652,6 +652,25 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
                   );
                 })}
 
+                {/* Counts-only mount: keeps lead call totals accurate even when no
+                    group is rendered yet (otherwise lead counts stay stuck at 0). */}
+                {showType("lead") &&
+                  !groups.some((g) => g !== "done" && groupCount(g) > 0) && (
+                    <div className="hidden">
+                      <CallTask
+                        clinicId={clinicId}
+                        onDoneClick={() => setShowDone(true)}
+                        doneTodayOverride={doneCalls.length}
+                        hidePills
+                        flat
+                        statusFilter={(statusTab as string) === "done" ? "done" : "overdue"}
+                        onCountsChange={(c) => setLeadCounts(c)}
+                      />
+                    </div>
+                  )}
+
+
+
                 {!anyRows && (
                   <div className="rounded-xl border border-dashed bg-card px-7 py-8 text-center">
                     <div className="mx-auto mb-3.5 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
