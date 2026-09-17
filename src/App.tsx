@@ -46,6 +46,7 @@ import OpeningChecklistSettingsPage from "./pages/OpeningChecklistSettingsPage";
 import ClosingChecklistSettingsPage from "./pages/ClosingChecklistSettingsPage";
 import ExpenseCategoriesSettingsPage from "./pages/ExpenseCategoriesSettingsPage";
 import MessageTemplatesSettingsPage from "./pages/MessageTemplatesSettingsPage";
+import WhatsAppSettingsPage from "./pages/WhatsAppSettingsPage";
 import PettyCashSettingsPage from "./pages/PettyCashSettingsPage";
 import TreatmentIndex from "./pages/TreatmentIndex";
 import TreatmentBoard from "./pages/TreatmentBoard";
