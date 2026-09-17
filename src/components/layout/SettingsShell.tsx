@@ -63,7 +63,7 @@ const NAV: ShellNavGroup[] = [
   {
     label: "Integrations",
     items: [
-      { to: "/settings/integrations/whatsapp", icon: MessageCircle, label: "WhatsApp", badge: "Soon" },
+      { to: "/settings/integrations/whatsapp", icon: MessageCircle, label: "WhatsApp" },
       { to: "/settings/integrations/sms", icon: MessageSquare, label: "SMS", badge: "Soon" },
     ],
   },
