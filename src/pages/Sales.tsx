@@ -559,6 +559,9 @@ type LeadListProps = {
   renderSearchEmpty?: (searchTerm: string) => React.ReactNode;
 };
 
+const PATIENT_LIST_COLUMNS =
+  "id, clinic_id, name, first_name, last_name, phone, email, dob, gender, blood_group, lead_status, call_due_date, sla_breach_days, created_at, convenient_time, lead_source";
+
 export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient", defaultStatus = "all", renderSearchEmpty }: LeadListProps) {
   const navigate = useNavigate();
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -572,6 +575,14 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
   const [search, setSearch] = useUrlState("search", "");
   const [fromDate, setFromDate] = useUrlState("from", "");
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+  const [totalCount, setTotalCount] = useState(0);
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+
+  // Debounce search input so typing doesn't fire a query per keystroke
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   // Fetch counts per status (independent of active filter)
   useEffect(() => {
@@ -609,90 +620,104 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
   };
   const setPageSize = (s: number) => setPageSizeStr(String(s));
 
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setLoading(true);
+  // Builds the filtered query — filtering happens in the database, not the browser
+  const buildQuery = useCallback(
+    (opts: { count?: boolean } = {}) => {
       let query = supabase
         .from("patients")
-        .select("id, clinic_id, name, first_name, last_name, phone, email, dob, gender, blood_group, lead_status, call_due_date, sla_breach_days, created_at, convenient_time, lead_source")
+        .select(PATIENT_LIST_COLUMNS, opts.count ? { count: "exact" } : undefined)
         .eq("clinic_id", clinicId);
 
-      const q = search.trim();
+      const q = debouncedSearch.trim();
       if (q) {
         const safe = q.replace(/[%,()]/g, " ");
         query = query.or(`name.ilike.%${safe}%,phone.ilike.%${safe}%,email.ilike.%${safe}%`);
       } else if (statusFilter !== "all") {
         query = query.eq("lead_status", statusFilter);
       }
+      if (sourceFilter !== "all") query = query.eq("lead_source", sourceFilter);
+      if (fromDate) query = query.gte("created_at", fromDate);
+      if (toDate) query = query.lte("created_at", `${toDate}T23:59:59`);
 
-      const { data: patientsData } = await query
-        .order("created_at", { ascending: false })
-        .limit(1000);
-      if (cancelled) return;
-      const rows = (patientsData ?? []) as Patient[];
-      setPatients(rows);
+      return query.order("created_at", { ascending: false });
+    },
+    [clinicId, debouncedSearch, statusFilter, sourceFilter, fromDate, toDate],
+  );
 
-      const ids = rows.map((r) => r.id);
-      if (ids.length) {
-        const { data: notes } = await supabase
-          .from("contact_notes")
-          .select("patient_id, note, created_at")
-          .in("patient_id", ids)
-          .order("created_at", { ascending: false });
-        const map: Record<string, string> = {};
-        ((notes ?? []) as ContactNote[]).forEach((n) => {
-          if (n.patient_id && !map[n.patient_id]) map[n.patient_id] = n.note;
-        });
-        if (!cancelled) setNotesByPatient(map);
-      } else {
-        if (!cancelled) setNotesByPatient({});
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const from = (page - 1) * pageSize;
+        const { data: patientsData, count } = await buildQuery({ count: true }).range(from, from + pageSize - 1);
+        if (cancelled) return;
+        const rows = (patientsData ?? []) as unknown as Patient[];
+        setPatients(rows);
+        setTotalCount(count ?? rows.length);
+
+        // Only load notes for the rows actually on screen
+        const ids = rows.map((r) => r.id);
+        if (ids.length) {
+          const { data: notes } = await supabase
+            .from("contact_notes")
+            .select("patient_id, note, created_at")
+            .in("patient_id", ids)
+            .order("created_at", { ascending: false });
+          const map: Record<string, string> = {};
+          ((notes ?? []) as ContactNote[]).forEach((n) => {
+            if (n.patient_id && !map[n.patient_id]) map[n.patient_id] = n.note;
+          });
+          if (!cancelled) setNotesByPatient(map);
+        } else if (!cancelled) {
+          setNotesByPatient({});
+        }
+      } catch {
+        if (!cancelled) setPatients([]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     };
     load();
     return () => { cancelled = true; };
-  }, [clinicId, statusFilter, search]);
+  }, [buildQuery, page, pageSize]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return patients.filter((p) => {
-      // Search overrides status filter so user can find any patient
-      if (q) {
-        const matches =
-          p.name?.toLowerCase().includes(q) ||
-          (p.phone ?? "").toLowerCase().includes(q) ||
-          (p.email ?? "").toLowerCase().includes(q);
-        if (!matches) return false;
-      } else {
-        if (statusFilter !== "all" && p.lead_status !== statusFilter) return false;
-      }
-      if (sourceFilter !== "all" && p.lead_source !== sourceFilter) return false;
-      if (fromDate && p.created_at && p.created_at < fromDate) return false;
-      if (toDate && p.created_at && p.created_at > toDate + "T23:59:59") return false;
-      return true;
-    });
-  }, [patients, statusFilter, sourceFilter, search, fromDate, toDate]);
+  const pageRows = patients;
 
-  useEffect(() => { setPage(1); }, [statusFilter, sourceFilter, search, fromDate, toDate, pageSize]);
+  useEffect(() => { setPage(1); }, [statusFilter, sourceFilter, debouncedSearch, fromDate, toDate, pageSize]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  const exportRows = () =>
-    filtered.map((p) => ({
+  const exportRows = async () => {
+    // Export pulls the full filtered set on demand (capped) instead of keeping it in memory
+    const { data } = await buildQuery().limit(5000);
+    const all = (data ?? []) as unknown as Patient[];
+    const ids = all.map((p) => p.id);
+    const map: Record<string, string> = {};
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data: notes } = await supabase
+        .from("contact_notes")
+        .select("patient_id, note, created_at")
+        .in("patient_id", ids.slice(i, i + 200))
+        .order("created_at", { ascending: false });
+      ((notes ?? []) as ContactNote[]).forEach((n) => {
+        if (n.patient_id && !map[n.patient_id]) map[n.patient_id] = n.note;
+      });
+    }
+    return all.map((p) => ({
       Name: p.name,
       Phone: p.phone ?? "",
       Status: p.lead_status ?? "",
       "Lead Source": p.lead_source ?? "",
       "Call Due": p.call_due_date ?? "",
       "SLA Breach (days)": p.sla_breach_days ?? 0,
-      "Last Note": notesByPatient[p.id] ?? "",
+      "Last Note": map[p.id] ?? "",
       "Added On": p.created_at ? new Date(p.created_at).toLocaleDateString() : "",
     }));
+  };
 
-  const exportCsv = () => {
-    const rows = exportRows();
+  const exportCsv = async () => {
+    const rows = await exportRows();
     if (!rows.length) { toast.error("Nothing to export"); return; }
     const headers = Object.keys(rows[0]);
     const csv = [
@@ -713,8 +738,8 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
     URL.revokeObjectURL(url);
   };
 
-  const exportXlsx = () => {
-    const rows = exportRows();
+  const exportXlsx = async () => {
+    const rows = await exportRows();
     if (!rows.length) { toast.error("Nothing to export"); return; }
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
