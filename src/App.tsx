@@ -391,6 +391,7 @@ function AppRoutes() {
       <Route path="/settings/closing-checklist" element={<ClosingChecklistSettingsPage />} />
       <Route path="/settings/expense-categories" element={<ExpenseCategoriesSettingsPage />} />
       <Route path="/settings/message-templates" element={<MessageTemplatesSettingsPage />} />
+      <Route path="/settings/integrations/whatsapp" element={<WhatsAppSettingsPage />} />
       <Route path="/settings/petty-cash" element={<PettyCashSettingsPage />} />
       <Route path="/settings/:section" element={<Settings />} />
       <Route path="/settings/:section/:subsection" element={<Settings />} />
