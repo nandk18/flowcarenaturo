@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Users, Phone, UserPlus } from "lucide-react";
 import SalesShell from "@/components/layout/SalesShell";
