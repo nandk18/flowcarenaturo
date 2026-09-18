@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Users, Phone, UserPlus } from "lucide-react";
 import SalesShell from "@/components/layout/SalesShell";
@@ -892,9 +892,9 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <span className="text-muted-foreground">
-          {filtered.length === 0
+          {totalCount === 0
             ? "0 results"
-            : `Showing ${(page - 1) * pageSize + 1}\u2013${Math.min(page * pageSize, filtered.length)} of ${filtered.length}`}
+            : `Showing ${(page - 1) * pageSize + 1}\u2013${Math.min(page * pageSize, totalCount)} of ${totalCount}`}
         </span>
         {totalPages > 1 && (
           <div className="flex gap-2">
