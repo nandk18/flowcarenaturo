@@ -3242,6 +3242,17 @@ export type Database = {
       }
       mark_review_sent: { Args: { p_token: string }; Returns: undefined }
       next_working_day: { Args: { p_from: string }; Returns: string }
+      patient_list_metrics: {
+        Args: {
+          p_clinic_id: string
+          p_from?: string
+          p_search?: string
+          p_source?: string
+          p_status?: string
+          p_to?: string
+        }
+        Returns: Json
+      }
       schedule_plan_sessions: {
         Args: { p_date: string; p_plan_id: string }
         Returns: number
