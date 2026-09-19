@@ -565,7 +565,6 @@ const PATIENT_LIST_COLUMNS =
 export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient", defaultStatus = "all", renderSearchEmpty }: LeadListProps) {
   const navigate = useNavigate();
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [notesByPatient, setNotesByPatient] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useUrlState("status", defaultStatus) as [
     LeadStatus | "all",
@@ -584,31 +583,6 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
     return () => clearTimeout(t);
   }, [search]);
 
-  // Fetch counts per status (independent of active filter)
-  useEffect(() => {
-    let cancelled = false;
-    const loadCounts = async () => {
-      const statuses: LeadStatus[] = ["attempt1", "attempt2", "attempt3", "closed", "lapsed", "current"];
-      const results = await Promise.all([
-        supabase.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", clinicId),
-        ...statuses.map((s) =>
-          supabase
-            .from("patients")
-            .select("id", { count: "exact", head: true })
-            .eq("clinic_id", clinicId)
-            .eq("lead_status", s),
-        ),
-      ]);
-      if (cancelled) return;
-      const counts: Record<string, number> = { all: results[0].count ?? 0 };
-      statuses.forEach((s, i) => {
-        counts[s] = results[i + 1].count ?? 0;
-      });
-      setStatusCounts(counts);
-    };
-    loadCounts();
-    return () => { cancelled = true; };
-  }, [clinicId]);
   const [toDate, setToDate] = useUrlState("to", "");
   const [pageStr, setPageStr] = useUrlState("page", "1");
   const [pageSizeStr, setPageSizeStr] = useUrlState("per_page", "20");
@@ -622,19 +596,18 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
 
   // Builds the filtered query — filtering happens in the database, not the browser
   const buildQuery = useCallback(
-    (opts: { count?: boolean } = {}) => {
+    () => {
       let query = supabase
         .from("patients")
-        .select(PATIENT_LIST_COLUMNS, opts.count ? { count: "exact" } : undefined)
+        .select(PATIENT_LIST_COLUMNS)
         .eq("clinic_id", clinicId);
 
       const q = debouncedSearch.trim();
       if (q) {
         const safe = q.replace(/[%,()]/g, " ");
         query = query.or(`name.ilike.%${safe}%,phone.ilike.%${safe}%,email.ilike.%${safe}%`);
-      } else if (statusFilter !== "all") {
-        query = query.eq("lead_status", statusFilter);
       }
+      if (statusFilter !== "all") query = query.eq("lead_status", statusFilter);
       if (sourceFilter !== "all") query = query.eq("lead_source", sourceFilter);
       if (fromDate) query = query.gte("created_at", fromDate);
       if (toDate) query = query.lte("created_at", `${toDate}T23:59:59`);
@@ -644,34 +617,53 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
     [clinicId, debouncedSearch, statusFilter, sourceFilter, fromDate, toDate],
   );
 
+  // One aggregate request replaces seven separate exact-count queries. It runs
+  // independently so the visible rows never wait for status totals.
+  useEffect(() => {
+    let cancelled = false;
+    const loadMetrics = async () => {
+      const { data, error } = await supabase.rpc("patient_list_metrics", {
+        p_clinic_id: clinicId,
+        p_status: statusFilter,
+        p_source: sourceFilter,
+        p_search: debouncedSearch.trim(),
+        p_from: fromDate ? `${fromDate}T00:00:00` : undefined,
+        p_to: toDate ? `${toDate}T23:59:59` : undefined,
+      });
+      if (cancelled || error || !data || typeof data !== "object" || Array.isArray(data)) return;
+
+      const metrics = data as Record<string, unknown>;
+      const rawCounts = metrics.status_counts;
+      if (rawCounts && typeof rawCounts === "object" && !Array.isArray(rawCounts)) {
+        const counts: Record<string, number> = {};
+        Object.entries(rawCounts).forEach(([key, value]) => {
+          counts[key] = typeof value === "number" ? value : Number(value) || 0;
+        });
+        setStatusCounts(counts);
+      }
+
+      const nextTotal = typeof metrics.filtered_count === "number"
+        ? metrics.filtered_count
+        : Number(metrics.filtered_count) || 0;
+      setTotalCount(nextTotal);
+      const lastPage = Math.max(1, Math.ceil(nextTotal / pageSize));
+      if (page > lastPage) setPage(lastPage);
+    };
+    loadMetrics();
+    return () => { cancelled = true; };
+  }, [clinicId, statusFilter, sourceFilter, debouncedSearch, fromDate, toDate, page, pageSize]);
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
       try {
         const from = (page - 1) * pageSize;
-        const { data: patientsData, count } = await buildQuery({ count: true }).range(from, from + pageSize - 1);
+        const { data: patientsData, error } = await buildQuery().range(from, from + pageSize - 1);
+        if (error) throw error;
         if (cancelled) return;
         const rows = (patientsData ?? []) as unknown as Patient[];
         setPatients(rows);
-        setTotalCount(count ?? rows.length);
-
-        // Only load notes for the rows actually on screen
-        const ids = rows.map((r) => r.id);
-        if (ids.length) {
-          const { data: notes } = await supabase
-            .from("contact_notes")
-            .select("patient_id, note, created_at")
-            .in("patient_id", ids)
-            .order("created_at", { ascending: false });
-          const map: Record<string, string> = {};
-          ((notes ?? []) as ContactNote[]).forEach((n) => {
-            if (n.patient_id && !map[n.patient_id]) map[n.patient_id] = n.note;
-          });
-          if (!cancelled) setNotesByPatient(map);
-        } else if (!cancelled) {
-          setNotesByPatient({});
-        }
       } catch {
         if (!cancelled) setPatients([]);
       } finally {
