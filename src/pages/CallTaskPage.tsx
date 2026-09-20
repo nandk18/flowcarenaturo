@@ -3,7 +3,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
 import { supabase } from "@/integrations/supabase/client";
-import { CallTask } from "./Sales";
+import { CallTask, type Patient } from "./Sales";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,8 +83,8 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
     "all" | "overdue" | "due" | "done",
     (v: "all" | "overdue" | "due" | "done") => void,
   ];
-  const [leadCounts, setLeadCounts] = useState<{ overdue: number; due: number }>({ overdue: 0, due: 0 });
-  const [leadTotal, setLeadTotal] = useState(0);
+  const [leadRows, setLeadRows] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const sendApptReminder = async (a: TomorrowAppt) => {
     if (!clinicId || !a.patient?.phone) return;
@@ -112,6 +112,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
 
   const loadAll = useCallback(async () => {
     if (!clinicId) return;
+    setLoading(true);
     try {
       const [apptsRes, callsRes, careRes, cancelRes, leadRes] = await Promise.all([
         supabase
@@ -144,12 +145,13 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
           .order("called_at", { ascending: false }),
         supabase
           .from("patients")
-          .select("id, call_due_date", { count: "exact", head: true })
+          .select("*")
           .eq("clinic_id", clinicId)
           .in("lead_status", ["attempt1", "attempt2", "attempt3"])
           .lte("call_due_date", today),
       ]);
-      setLeadTotal(leadRes.count ?? 0);
+      if (leadRes.error) throw leadRes.error;
+      setLeadRows((leadRes.data ?? []) as Patient[]);
 
       const appts = (apptsRes.data ?? []).map((x: any) => ({
         ...x,
@@ -220,6 +222,9 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
       setDoneCalls([]);
       setCareRows([]);
       setCancelledRows([]);
+      setLeadRows([]);
+    } finally {
+      setLoading(false);
     }
   }, [clinicId, tomorrow, today, sevenAgoIso]);
 
@@ -371,6 +376,8 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
   };
 
   const doneFor = () => doneCalls.filter((c) => showType(callType(c)));
+  const overdueLeadRows = leadRows.filter((p) => p.call_due_date && p.call_due_date < today);
+  const dueLeadRows = leadRows.filter((p) => p.call_due_date === today);
 
   const apptsFor = (status: "overdue" | "due" | "done") =>
     status === "due" ? tomorrowAppts.filter((a) => !calledMap[a.patient_id]) : [];
@@ -390,12 +397,12 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
             const overdueCount =
               (showType("cancel") ? cancelledRows.filter((r) => cancelStatus(r) === "overdue").length : 0) +
               (showType("care") ? careRows.filter((r) => careStatus(r) === "overdue").length : 0) +
-              (showType("lead") ? leadCounts.overdue : 0);
+              (showType("lead") ? overdueLeadRows.length : 0);
             const dueCount =
               (showType("appt") ? tomorrowAppts.filter((a) => !calledMap[a.patient_id]).length : 0) +
               (showType("care") ? careRows.filter((r) => careStatus(r) === "due").length : 0) +
               (showType("cancel") ? cancelledRows.filter((r) => cancelStatus(r) === "due").length : 0) +
-              (showType("lead") ? leadCounts.due : 0);
+              (showType("lead") ? dueLeadRows.length : 0);
             const doneCount = doneFor().length;
             const statusOptions: { key: "all" | "overdue" | "due" | "done"; label: string; count: number }[] = [
               { key: "all", label: "All", count: overdueCount + dueCount + doneCount },
@@ -403,13 +410,13 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
               { key: "due", label: "Due today", count: dueCount },
               { key: "done", label: "Done today", count: doneCount },
             ];
-            const totalTypeCount = tomorrowAppts.length + careRows.length + cancelledRows.filter((r) => !isInformed(r.notes)).length + leadTotal;
+            const totalTypeCount = tomorrowAppts.length + careRows.length + cancelledRows.filter((r) => !isInformed(r.notes)).length + leadRows.length;
             const typeOptions: { key: "all" | "appt" | "care" | "cancel" | "lead"; label: string; count: number }[] = [
               { key: "all", label: "Type: All", count: totalTypeCount },
               { key: "appt", label: "Appointment Tomorrow", count: tomorrowAppts.length },
               { key: "care", label: "Care Call", count: careRows.length },
               { key: "cancel", label: "Cancelled Call", count: cancelledRows.filter((r) => !isInformed(r.notes)).length },
-              { key: "lead", label: "Lead Call", count: leadTotal },
+              { key: "lead", label: "Lead Call", count: leadRows.length },
             ];
             const groups: ("overdue" | "due" | "done")[] =
               (statusTab as string) === "all" ? ["overdue", "due", "done"] : [statusTab as "overdue" | "due" | "done"];
@@ -424,7 +431,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
                 : (showType("appt") ? apptsFor(g).length : 0) +
                   (showType("care") ? careFor(g).length : 0) +
                   (showType("cancel") ? cancelFor(g).length : 0) +
-                  (showType("lead") ? (g === "overdue" ? leadCounts.overdue : leadCounts.due) : 0);
+                  (showType("lead") ? (g === "overdue" ? overdueLeadRows.length : dueLeadRows.length) : 0);
 
             const anyRows = groups.some((g) => groupCount(g) > 0);
 
@@ -643,7 +650,8 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
                               hidePills
                               flat
                               statusFilter={g}
-                              onCountsChange={(c) => setLeadCounts(c)}
+                              rowsOverride={leadRows}
+                              onLeadAction={loadAll}
                             />
                           )}
                         </ul>
@@ -652,32 +660,18 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
                   );
                 })}
 
-                {/* Counts-only mount: keeps lead call totals accurate even when no
-                    group is rendered yet (otherwise lead counts stay stuck at 0). */}
-                {showType("lead") &&
-                  !groups.some((g) => g !== "done" && groupCount(g) > 0) && (
-                    <div className="hidden">
-                      <CallTask
-                        clinicId={clinicId}
-                        onDoneClick={() => setShowDone(true)}
-                        doneTodayOverride={doneCalls.length}
-                        hidePills
-                        flat
-                        statusFilter={(statusTab as string) === "done" ? "done" : "overdue"}
-                        onCountsChange={(c) => setLeadCounts(c)}
-                      />
-                    </div>
-                  )}
-
-
-
-                {!anyRows && (
+                {!loading && !anyRows && (
                   <div className="rounded-xl border border-dashed bg-card px-7 py-8 text-center">
                     <div className="mx-auto mb-3.5 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                       <CheckCircle2 className="h-5 w-5 text-primary" />
                     </div>
                     <p className="text-[14.5px] font-semibold">Rest of today's tasks are clear</p>
                     <p className="mt-1 text-[13px] text-muted-foreground">Nothing due right now — check back later.</p>
+                  </div>
+                )}
+                {loading && (
+                  <div className="rounded-xl border bg-card px-7 py-8 text-center text-sm text-muted-foreground">
+                    Loading call tasks...
                   </div>
                 )}
               </>
