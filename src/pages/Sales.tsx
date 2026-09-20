@@ -651,7 +651,7 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
     };
     loadMetrics();
     return () => { cancelled = true; };
-  }, [clinicId, statusFilter, sourceFilter, debouncedSearch, fromDate, toDate, page, pageSize]);
+  }, [clinicId, statusFilter, sourceFilter, debouncedSearch, fromDate, toDate, pageSize]);
 
   useEffect(() => {
     let cancelled = false;
