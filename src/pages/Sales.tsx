@@ -69,7 +69,7 @@ import { openWhatsApp } from "@/lib/whatsapp";
 
 type LeadStatus = "attempt1" | "attempt2" | "attempt3" | "closed" | "lapsed" | "current";
 
-type Patient = {
+export type Patient = {
   id: string;
   clinic_id: string;
   name: string;
@@ -1072,7 +1072,7 @@ function CallSection({
   );
 }
 
-export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, statusFilter, onCountsChange, flat }: { clinicId: string; onDoneClick?: () => void; doneTodayOverride?: number; hidePills?: boolean; flat?: boolean; statusFilter?: "overdue" | "due" | "done"; onCountsChange?: (c: { overdue: number; due: number }) => void }) {
+export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, statusFilter, onCountsChange, flat, rowsOverride, onLeadAction }: { clinicId: string; onDoneClick?: () => void; doneTodayOverride?: number; hidePills?: boolean; flat?: boolean; statusFilter?: "overdue" | "due" | "done"; onCountsChange?: (c: { overdue: number; due: number }) => void; rowsOverride?: Patient[]; onLeadAction?: () => void }) {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [rows, setRows] = useState<Patient[]>([]);
@@ -1082,6 +1082,11 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, 
 
   const load = async () => {
     if (!clinicId) return;
+    if (rowsOverride) {
+      setRows(rowsOverride);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const today = todayISO();
@@ -1111,7 +1116,7 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clinicId]);
+  }, [clinicId, rowsOverride]);
 
   const today = todayISO();
   const { overdue, dueToday } = useMemo(() => {
@@ -1254,6 +1259,7 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, 
       }
     }
     if (navigateAfter) navigate(navigateAfter);
+    onLeadAction?.();
   };
 
   // Report counts up when they change
