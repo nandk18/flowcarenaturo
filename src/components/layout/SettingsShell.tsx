@@ -11,7 +11,6 @@ import {
   MessageSquare,
   CalendarClock,
   Upload,
-  CreditCard,
 } from "lucide-react";
 import SectionShell, { ShellNavGroup } from "./SectionShell";
 
@@ -44,7 +43,6 @@ const NAV: ShellNavGroup[] = [
   {
     label: "Billing",
     items: [
-      { to: "/subscription", icon: CreditCard, label: "Subscription" },
       { to: "/settings/services", icon: Receipt, label: "Invoice Services" },
       { to: "/settings/store-items", icon: ShoppingBag, label: "Store Items" },
     ],

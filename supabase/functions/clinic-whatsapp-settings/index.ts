@@ -1,7 +1,6 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
-  encryptToken,
   resolveSender,
   sendTwilioTemplate,
   type WhatsAppEvent,
@@ -17,7 +16,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODES = ["default", "own_number", "own_account"];
+const MODES = ["default", "own_number"];
 const TEMPLATE_FIELDS = [
   "template_booked",
   "template_rescheduled",
@@ -87,43 +86,20 @@ Deno.serve(async (req) => {
         return json({ error: "Enter a valid WhatsApp number with country code" }, 400);
       }
 
-      const accountSid = clean(body.account_sid);
-      if (mode === "own_account" && (!accountSid || !accountSid.startsWith("AC"))) {
-        return json({ error: "Enter a valid Twilio Account SID (starts with AC)" }, 400);
-      }
-
       const patch: Record<string, unknown> = {
         clinic_id: clinicId,
         mode,
         from_number: fromNumber,
-        account_sid: mode === "own_account" ? accountSid : null,
+        account_sid: null,
+        auth_token_encrypted: null,
         verified_at: null,
       };
       for (const f of TEMPLATE_FIELDS) patch[f] = clean(body[f]);
-
-      const newToken = clean(body.auth_token);
-      if (mode !== "own_account") {
-        patch.auth_token_encrypted = null;
-      } else if (newToken) {
-        patch.auth_token_encrypted = await encryptToken(newToken);
-      }
-      // No new token supplied in own_account mode: keep whatever is stored.
 
       const { error } = await admin
         .from("clinic_whatsapp_settings")
         .upsert(patch, { onConflict: "clinic_id" });
       if (error) return json({ error: error.message }, 400);
-
-      if (mode === "own_account" && !newToken) {
-        const { data: row } = await admin
-          .from("clinic_whatsapp_settings")
-          .select("auth_token_encrypted")
-          .eq("clinic_id", clinicId)
-          .maybeSingle();
-        if (!row?.auth_token_encrypted) {
-          return json({ saved: true, warning: "Saved, but no auth token is stored yet." });
-        }
-      }
 
       return json({ saved: true });
     }
