@@ -348,7 +348,6 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/rx/:prescriptionId" element={<PrescriptionViewer />} />
-      <Route path="/subscription" element={<SubscriptionPage />} />
 
       {/* Dashboard */}
       <Route path="/dashboard" element={<AdminDashboard />} />

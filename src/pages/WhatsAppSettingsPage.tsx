@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { CheckCircle2, Loader2, RotateCcw, Send } from "lucide-react";
 
-type Mode = "default" | "own_number" | "own_account";
+type Mode = "default" | "own_number";
 
 const TEMPLATE_FIELDS: { key: string; label: string; hint: string }[] = [
   { key: "template_booked", label: "Booking confirmation", hint: "Name, clinic, date, time, practitioner" },
@@ -32,28 +32,17 @@ const MODE_OPTIONS: { value: Mode; title: string; body: string }[] = [
     title: "Use our own number (managed by FlowCare)",
     body: "Your number sends the messages, but we handle the WhatsApp account and billing. Tell us the number and we'll register it for you.",
   },
-  {
-    value: "own_account",
-    title: "Use our own WhatsApp business account",
-    body: "You connect your own Twilio account, number and approved messages. Everything, including cost, stays with you.",
-  },
 ];
 
 type Settings = {
   mode: Mode;
   from_number: string;
-  account_sid: string;
-  auth_token: string;
-  has_token: boolean;
   verified_at: string | null;
 } & Record<string, any>;
 
 const EMPTY: Settings = {
   mode: "default",
   from_number: "",
-  account_sid: "",
-  auth_token: "",
-  has_token: false,
   verified_at: null,
   template_booked: "",
   template_rescheduled: "",
@@ -90,9 +79,6 @@ export default function WhatsAppSettingsPage() {
           ),
           mode: (row.mode as Mode) ?? "default",
           from_number: row.from_number ?? "",
-          account_sid: row.account_sid ?? "",
-          auth_token: "",
-          has_token: Boolean(row.auth_token_encrypted),
           verified_at: row.verified_at ?? null,
         });
       } else {
@@ -135,8 +121,6 @@ export default function WhatsAppSettingsPage() {
         action: "save",
         mode: s.mode,
         from_number: s.from_number,
-        account_sid: s.account_sid,
-        auth_token: s.auth_token,
         ...Object.fromEntries(TEMPLATE_FIELDS.map((f) => [f.key, s[f.key] ?? ""])),
       });
       toast.success("WhatsApp settings saved");
@@ -228,33 +212,6 @@ export default function WhatsAppSettingsPage() {
                   />
                 </div>
 
-                {s.mode === "own_account" && (
-                  <>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="sid">Twilio Account SID</Label>
-                      <Input
-                        id="sid"
-                        placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                        value={s.account_sid}
-                        onChange={(e) => setS((p) => ({ ...p, account_sid: e.target.value }))}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="token">Twilio Auth Token</Label>
-                      <Input
-                        id="token"
-                        type="password"
-                        autoComplete="new-password"
-                        placeholder={s.has_token ? "Saved — type a new one to replace it" : "Paste your auth token"}
-                        value={s.auth_token}
-                        onChange={(e) => setS((p) => ({ ...p, auth_token: e.target.value }))}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Stored encrypted. It is never shown again after saving.
-                      </p>
-                    </div>
-                  </>
-                )}
               </CardContent>
             </Card>
           )}

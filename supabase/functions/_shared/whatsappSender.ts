@@ -4,7 +4,6 @@
  * A clinic can send from:
  *  - "default"     : FlowCare's shared Twilio account + number + templates (env)
  *  - "own_number"  : their own number, onboarded inside FlowCare's Twilio account
- *  - "own_account" : their own Twilio account (SID + auth token) and templates
  *
  * Anything missing falls back to the shared default so a half-finished
  * configuration never silently stops messages going out.
@@ -32,51 +31,8 @@ export type ResolvedSender = {
   authToken: string;
   fromNumber: string;
   contentSid: string;
-  mode: "default" | "own_number" | "own_account";
+  mode: "default" | "own_number";
 };
-
-const CRED_KEY = Deno.env.get("WHATSAPP_CRED_KEY") ?? "";
-
-async function aesKey(): Promise<CryptoKey> {
-  if (!CRED_KEY) throw new Error("WHATSAPP_CRED_KEY is not configured");
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(CRED_KEY));
-  return crypto.subtle.importKey("raw", digest, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
-}
-
-function b64(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes));
-}
-
-function unb64(s: string): Uint8Array {
-  return Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-}
-
-/** Encrypt a Twilio auth token for storage (returns "iv.ciphertext", both base64). */
-export async function encryptToken(plain: string): Promise<string> {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const cipher = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
-    await aesKey(),
-    new TextEncoder().encode(plain),
-  );
-  return `${b64(iv)}.${b64(new Uint8Array(cipher))}`;
-}
-
-/** Decrypt a stored Twilio auth token. Returns null when it cannot be read. */
-export async function decryptToken(stored: string | null | undefined): Promise<string | null> {
-  if (!stored || !stored.includes(".")) return null;
-  try {
-    const [ivPart, dataPart] = stored.split(".");
-    const plain = await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv: unb64(ivPart) },
-      await aesKey(),
-      unb64(dataPart),
-    );
-    return new TextDecoder().decode(plain);
-  } catch {
-    return null;
-  }
-}
 
 /** Default (shared) credentials read from environment. */
 export function defaultCredentials(event: WhatsAppEvent) {
@@ -132,12 +88,7 @@ export async function resolveSender(
     };
   }
 
-  // own_account: everything must be present, otherwise fall back.
-  const token = await decryptToken(row.auth_token_encrypted);
-  const accountSid = (row.account_sid as string | null) || "";
-  if (!token || !accountSid || !fromNumber || !templateSid) return fallback;
-
-  return { accountSid, authToken: token, fromNumber, contentSid: templateSid, mode: "own_account" };
+  return fallback;
 }
 
 /** Post a templated WhatsApp message to Twilio. Returns the raw response + body. */
