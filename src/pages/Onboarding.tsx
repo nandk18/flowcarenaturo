@@ -120,7 +120,7 @@ export default function Onboarding() {
           </div>
           <h1 className="font-display text-2xl font-bold text-foreground mb-2">Approval Pending</h1>
           <p className="text-muted-foreground mb-6">
-            Your clinic setup has been submitted. Our team will review and activate your 7-day free trial shortly. You'll receive an email once approved.
+            Your clinic setup has been submitted. Our team will review and activate your account shortly. You'll receive an email once approved.
           </p>
           <Button variant="outline" onClick={() => { supabase.auth.signOut(); window.location.href = "/login"; }}>
             Back to Login

@@ -155,7 +155,7 @@ export default function SubscriptionPage() {
           <Card className="mb-6 border-warning/30 bg-warning/10">
             <CardContent className="py-4">
               <p className="text-sm text-foreground">
-                You are on a 7-day free trial. {trialDaysLeft} {trialDaysLeft === 1 ? "day" : "days"} remaining.
+                Your account is active. {trialDaysLeft} {trialDaysLeft === 1 ? "day" : "days"} remaining.
               </p>
             </CardContent>
           </Card>
@@ -175,7 +175,7 @@ export default function SubscriptionPage() {
           <Card className="mb-6 border-info/30 bg-info/10">
             <CardContent className="py-4">
               <p className="text-sm text-foreground">
-                Your clinic is awaiting approval from the FlowCare team. Once approved, your 7-day free trial will begin automatically.
+                Your clinic is awaiting approval from the FlowCare team. Once approved, your account will be activated automatically.
               </p>
             </CardContent>
           </Card>
