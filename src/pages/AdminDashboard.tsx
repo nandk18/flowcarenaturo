@@ -17,6 +17,7 @@ import RescheduleAppointmentModal from "@/components/appointments/RescheduleAppo
 import { format } from "date-fns";
 import { formatDoctorName } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
 
 type ApptService = {
   service_id: string;
@@ -96,6 +97,11 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [mode, setMode] = useState<"consult" | "treatment">("consult");
+  const { enabled: treatmentEnabled } = useTreatmentEnabled();
+
+  useEffect(() => {
+    if (!treatmentEnabled && mode === "treatment") setMode("consult");
+  }, [treatmentEnabled, mode]);
 
   // Modals for consult actions
   const [cancelAppt, setCancelAppt] = useState<Appt | null>(null);
