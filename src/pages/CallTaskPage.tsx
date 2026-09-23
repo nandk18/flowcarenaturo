@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
@@ -106,9 +106,12 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
     else formStorage.clear(`call_note_${patientId}`);
   };
 
-  const today = format(new Date(), "yyyy-MM-dd");
-  const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
-  const sevenAgoIso = new Date(Date.now() - 7 * 86400_000).toISOString();
+  // Stable per-day values: recreating these every render made `loadAll`
+  // change identity on each render, which re-triggered its effect forever
+  // and left the call tasks stuck on "Loading".
+  const today = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
+  const tomorrow = useMemo(() => format(addDays(new Date(), 1), "yyyy-MM-dd"), []);
+  const sevenAgoIso = useMemo(() => new Date(Date.now() - 7 * 86400_000).toISOString(), []);
 
   const loadAll = useCallback(async () => {
     if (!clinicId) return;

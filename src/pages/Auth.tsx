@@ -168,7 +168,7 @@ export default function Auth() {
           <div className="mb-4 rounded-xl border border-warning/30 bg-warning/10 p-3 flex items-start gap-2">
             <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
             <p className="text-sm text-foreground">
-              Your 7-day free trial has ended. Please subscribe to continue using FlowCare.
+              Your access has ended. Please contact the FlowCare team to continue.
             </p>
           </div>
         )}

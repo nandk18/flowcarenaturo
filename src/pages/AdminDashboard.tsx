@@ -17,6 +17,7 @@ import RescheduleAppointmentModal from "@/components/appointments/RescheduleAppo
 import { format } from "date-fns";
 import { formatDoctorName } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
 
 type ApptService = {
   service_id: string;
@@ -96,6 +97,11 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [mode, setMode] = useState<"consult" | "treatment">("consult");
+  const { enabled: treatmentEnabled } = useTreatmentEnabled();
+
+  useEffect(() => {
+    if (!treatmentEnabled && mode === "treatment") setMode("consult");
+  }, [treatmentEnabled, mode]);
 
   // Modals for consult actions
   const [cancelAppt, setCancelAppt] = useState<Appt | null>(null);
@@ -362,7 +368,9 @@ export default function AdminDashboard() {
           value={activeAppts.length}
           trendLabel="No change"
           trendTone="flat"
-          sub={`${consultAppts.length} consultations · ${treatmentAppts.length} treatments`}
+          sub={treatmentEnabled
+            ? `${consultAppts.length} consultations · ${treatmentAppts.length} treatments`
+            : `${consultAppts.length} consultations`}
           accent="info"
         />
         <KpiTile
@@ -390,7 +398,9 @@ export default function AdminDashboard() {
           onChange={(v) => setMode(v as "consult" | "treatment")}
           items={[
             { value: "consult", label: (<span className="flex items-center gap-1.5"><Stethoscope className="h-4 w-4" /> Consultations</span>), count: consultAppts.length },
-            { value: "treatment", label: (<span className="flex items-center gap-1.5"><Sparkles className="h-4 w-4" /> Treatments</span>), count: treatmentAppts.length },
+            ...(treatmentEnabled
+              ? [{ value: "treatment", label: (<span className="flex items-center gap-1.5"><Sparkles className="h-4 w-4" /> Treatments</span>), count: treatmentAppts.length }]
+              : []),
           ]}
         />
         <Button onClick={() => setBookOpen(true)} className="w-full sm:w-auto">
@@ -401,7 +411,7 @@ export default function AdminDashboard() {
       </div>
 
 
-      {mode === "consult" ? (
+      {mode === "consult" || !treatmentEnabled ? (
         <ConsultationTabs
           appts={consultAppts}
           loading={loading}

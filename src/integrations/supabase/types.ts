@@ -147,6 +147,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "appointments_rescheduled_from_fkey"
             columns: ["rescheduled_from"]
             isOneToOne: false
@@ -319,6 +326,13 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -714,6 +728,7 @@ export type Database = {
           subscription_starts_at: string | null
           subscription_status: string | null
           treatment_enabled: boolean | null
+          treatment_overbooking_allowed: boolean
           trial_ends_at: string | null
           trial_starts_at: string | null
           website: string | null
@@ -751,6 +766,7 @@ export type Database = {
           subscription_starts_at?: string | null
           subscription_status?: string | null
           treatment_enabled?: boolean | null
+          treatment_overbooking_allowed?: boolean
           trial_ends_at?: string | null
           trial_starts_at?: string | null
           website?: string | null
@@ -788,6 +804,7 @@ export type Database = {
           subscription_starts_at?: string | null
           subscription_status?: string | null
           treatment_enabled?: boolean | null
+          treatment_overbooking_allowed?: boolean
           trial_ends_at?: string | null
           trial_starts_at?: string | null
           website?: string | null
@@ -840,6 +857,13 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_notes_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -1342,6 +1366,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "invoices_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "invoices_visit_id_fkey"
             columns: ["visit_id"]
             isOneToOne: false
@@ -1423,6 +1454,13 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lab_orders_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
             referencedColumns: ["id"]
           },
           {
@@ -1533,6 +1571,13 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lab_results_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -1734,6 +1779,13 @@ export type Database = {
             referencedRelation: "patients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "notifications_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       patient_documents: {
@@ -1792,6 +1844,13 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_documents_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
             referencedColumns: ["id"]
           },
           {
@@ -1859,6 +1918,13 @@ export type Database = {
             referencedRelation: "patients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "patient_form_tokens_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       patient_idle_log: {
@@ -1911,6 +1977,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "patient_idle_log_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "patient_idle_log_treatment_plan_id_fkey"
             columns: ["treatment_plan_id"]
             isOneToOne: false
@@ -1919,7 +1992,7 @@ export type Database = {
           },
         ]
       }
-      patients: {
+      patients_secure: {
         Row: {
           address: string | null
           alcohol: string | null
@@ -2096,6 +2169,13 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -2516,6 +2596,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "therapy_session_reviews_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "therapy_session_reviews_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: true
@@ -2637,6 +2724,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "therapy_sessions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "therapy_sessions_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
@@ -2722,6 +2816,13 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "todo_list_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -2878,6 +2979,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "treatment_plans_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "treatment_plans_visit_id_fkey"
             columns: ["visit_id"]
             isOneToOne: false
@@ -2978,6 +3086,13 @@ export type Database = {
             referencedRelation: "patients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "visits_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       whatsapp_messages: {
@@ -3054,7 +3169,123 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      patients: {
+        Row: {
+          address: string | null
+          alcohol: string | null
+          allergies: Json | null
+          assigned_to: string | null
+          blood_group: string | null
+          call_due_date: string | null
+          chronic_conditions: Json | null
+          clinic_id: string | null
+          convenient_time: string | null
+          created_at: string | null
+          dinner_time: string | null
+          dob: string | null
+          email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relation: string | null
+          first_name: string | null
+          food_habits: string | null
+          gender: string | null
+          healthcare_id: string | null
+          id: string | null
+          last_name: string | null
+          lead_source: string | null
+          lead_status: string | null
+          medication_history: string | null
+          name: string | null
+          past_surgery_details: string | null
+          phone: string | null
+          sla_breach_days: number | null
+          sleep_hours: number | null
+          smoking: string | null
+        }
+        Insert: {
+          address?: string | null
+          alcohol?: string | null
+          allergies?: Json | null
+          assigned_to?: string | null
+          blood_group?: string | null
+          call_due_date?: string | null
+          chronic_conditions?: Json | null
+          clinic_id?: string | null
+          convenient_time?: string | null
+          created_at?: string | null
+          dinner_time?: string | null
+          dob?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: never
+          emergency_contact_relation?: string | null
+          first_name?: string | null
+          food_habits?: string | null
+          gender?: string | null
+          healthcare_id?: string | null
+          id?: string | null
+          last_name?: string | null
+          lead_source?: string | null
+          lead_status?: string | null
+          medication_history?: never
+          name?: string | null
+          past_surgery_details?: never
+          phone?: string | null
+          sla_breach_days?: number | null
+          sleep_hours?: number | null
+          smoking?: string | null
+        }
+        Update: {
+          address?: string | null
+          alcohol?: string | null
+          allergies?: Json | null
+          assigned_to?: string | null
+          blood_group?: string | null
+          call_due_date?: string | null
+          chronic_conditions?: Json | null
+          clinic_id?: string | null
+          convenient_time?: string | null
+          created_at?: string | null
+          dinner_time?: string | null
+          dob?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: never
+          emergency_contact_relation?: string | null
+          first_name?: string | null
+          food_habits?: string | null
+          gender?: string | null
+          healthcare_id?: string | null
+          id?: string | null
+          last_name?: string | null
+          lead_source?: string | null
+          lead_status?: string | null
+          medication_history?: never
+          name?: string | null
+          past_surgery_details?: never
+          phone?: string | null
+          sla_breach_days?: number | null
+          sleep_hours?: number | null
+          smoking?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patients_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patients_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _analytics_can_access: { Args: { p_clinic_id: string }; Returns: boolean }
@@ -3253,6 +3484,8 @@ export type Database = {
         }
         Returns: Json
       }
+      pii_decrypt: { Args: { p_value: string }; Returns: string }
+      pii_encrypt: { Args: { p_value: string }; Returns: string }
       schedule_plan_sessions: {
         Args: { p_date: string; p_plan_id: string }
         Returns: number
@@ -3304,6 +3537,7 @@ export type Database = {
           patients_count: number
           revenue_30d: number
           subscription_status: string
+          treatment_enabled: boolean
           trial_ends_at: string
           users_count: number
           visits_7d: number
@@ -3329,6 +3563,10 @@ export type Database = {
       }
       super_admin_set_clinic_active: {
         Args: { p_active: boolean; p_clinic_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      super_admin_set_clinic_treatment: {
+        Args: { p_clinic_id: string; p_enabled: boolean }
         Returns: undefined
       }
       super_admin_set_clinic_whatsapp: {
