@@ -714,6 +714,7 @@ export type Database = {
           subscription_starts_at: string | null
           subscription_status: string | null
           treatment_enabled: boolean | null
+          treatment_overbooking_allowed: boolean
           trial_ends_at: string | null
           trial_starts_at: string | null
           website: string | null
@@ -751,6 +752,7 @@ export type Database = {
           subscription_starts_at?: string | null
           subscription_status?: string | null
           treatment_enabled?: boolean | null
+          treatment_overbooking_allowed?: boolean
           trial_ends_at?: string | null
           trial_starts_at?: string | null
           website?: string | null
@@ -788,6 +790,7 @@ export type Database = {
           subscription_starts_at?: string | null
           subscription_status?: string | null
           treatment_enabled?: boolean | null
+          treatment_overbooking_allowed?: boolean
           trial_ends_at?: string | null
           trial_starts_at?: string | null
           website?: string | null
@@ -3304,6 +3307,7 @@ export type Database = {
           patients_count: number
           revenue_30d: number
           subscription_status: string
+          treatment_enabled: boolean
           trial_ends_at: string
           users_count: number
           visits_7d: number
@@ -3329,6 +3333,10 @@ export type Database = {
       }
       super_admin_set_clinic_active: {
         Args: { p_active: boolean; p_clinic_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      super_admin_set_clinic_treatment: {
+        Args: { p_clinic_id: string; p_enabled: boolean }
         Returns: undefined
       }
       super_admin_set_clinic_whatsapp: {
