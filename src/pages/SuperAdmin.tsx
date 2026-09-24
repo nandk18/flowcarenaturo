@@ -25,6 +25,7 @@ type ClinicRow = {
   disabled_reason: string | null;
   created_at: string;
   onboarding_complete: boolean;
+  treatment_enabled: boolean;
   users_count: number;
   patients_count: number;
   visits_7d: number;
