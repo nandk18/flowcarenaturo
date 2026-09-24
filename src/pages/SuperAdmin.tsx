@@ -145,6 +145,20 @@ export default function SuperAdmin() {
     fetchClinics();
   };
 
+  const toggleTreatment = async (row: ClinicRow) => {
+    const next = !row.treatment_enabled;
+    if (!next && !confirm(`Turn off the Treatment module for ${row.clinic_name}?`)) return;
+    setBusy(true);
+    const { error } = await (supabase as any).rpc("super_admin_set_clinic_treatment", {
+      p_clinic_id: row.clinic_id,
+      p_enabled: next,
+    });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next ? "Treatment enabled" : "Treatment disabled");
+    fetchClinics();
+  };
+
 
 
   const filteredActivity = clinicFilter === "all"
