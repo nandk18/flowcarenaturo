@@ -628,6 +628,18 @@ export default function Settings() {
               </Select>
               <p className="text-xs text-muted-foreground">Used for bilingual prescription headers</p>
             </div>
+            {treatmentEnabled && (
+              <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                <div>
+                  <Label>Allow treatments on booked slots</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    When on, a treatment can be booked even if the doctor already has a consultation
+                    at that time. When off, every booked slot is blocked.
+                  </p>
+                </div>
+                <Switch checked={overbookingAllowed} onCheckedChange={setOverbookingAllowed} />
+              </div>
+            )}
             <Button onClick={handleSaveClinic} disabled={saving} className="rounded-lg">
               <Save className="mr-2 h-4 w-4" /> Save Clinic Details
             </Button>
