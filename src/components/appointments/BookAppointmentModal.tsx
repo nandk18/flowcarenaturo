@@ -63,6 +63,7 @@ export default function BookAppointmentModal({
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
+  const [overbookingAllowed, setOverbookingAllowed] = useState(true);
 
   const [schedules, setSchedules] = useState<DoctorSchedule[]>([]);
   const [exceptions, setExceptions] = useState<DoctorException[]>([]);
@@ -257,14 +258,23 @@ export default function BookAppointmentModal({
       toast.error("Patient, doctor, date and time are required");
       return;
     }
-    // Consultation slot conflict: only one consultation per doctor/date/time
-    if (bookingKind === "consultation") {
+    // Slot conflict: only one consultation per doctor/date/time. Treatments are
+    // also blocked when the clinic disallows booking over a taken slot.
+    const enforceSlot = bookingKind === "consultation" || !overbookingAllowed;
+    if (enforceSlot) {
       const normTime = time.length === 5 ? `${time}:00` : time;
       const clash = dayAppts.find(
-        (a) => a.appointment_time?.startsWith(time) && apptKinds[a.id] !== "treatment" && a.status !== "cancelled",
+        (a) =>
+          a.appointment_time?.startsWith(time) &&
+          a.status !== "cancelled" &&
+          (!overbookingAllowed || apptKinds[a.id] !== "treatment"),
       );
       if (clash) {
-        toast.error("Another consultation is already booked at this time. Multiple treatments are allowed, but only one consultation per slot.");
+        toast.error(
+          overbookingAllowed
+            ? "Another consultation is already booked at this time. Multiple treatments are allowed, but only one consultation per slot."
+            : "This slot is already booked. Pick a different time.",
+        );
         return;
       }
       // Re-check server-side to avoid race
@@ -276,12 +286,13 @@ export default function BookAppointmentModal({
         .eq("appointment_time", normTime)
         .neq("status", "cancelled");
       const serverClash = (existing ?? []).some((a: any) => {
+        if (!overbookingAllowed) return true;
         const svcs = a.appointment_services ?? [];
         if (svcs.length === 0) return true;
         return svcs.some((r: any) => (r.invoice_services?.service_type ?? "consultation") !== "treatment");
       });
       if (serverClash) {
-        toast.error("Another consultation was just booked at this time. Pick a different slot.");
+        toast.error("This slot was just booked. Pick a different time.");
         return;
       }
     }
