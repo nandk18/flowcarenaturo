@@ -291,6 +291,13 @@ export default function SuperAdmin() {
                         >
                           {c.whatsapp_enabled ? "WhatsApp: On" : "WhatsApp: Off"}
                         </button>
+                        <button
+                          disabled={busy}
+                          onClick={() => toggleTreatment(c)}
+                          className={`text-xs px-2.5 py-1 rounded-md mr-1.5 ${c.treatment_enabled ? "bg-slate-800 text-purple-300 hover:bg-slate-700" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+                        >
+                          {c.treatment_enabled ? "Treatment: On" : "Treatment: Off"}
+                        </button>
 
                         {c.subscription_status === "pending" && (
                           <button
