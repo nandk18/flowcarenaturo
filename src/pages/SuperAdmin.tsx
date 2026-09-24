@@ -25,6 +25,7 @@ type ClinicRow = {
   disabled_reason: string | null;
   created_at: string;
   onboarding_complete: boolean;
+  treatment_enabled: boolean;
   users_count: number;
   patients_count: number;
   visits_7d: number;
@@ -141,6 +142,20 @@ export default function SuperAdmin() {
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success(next ? "WhatsApp enabled" : "WhatsApp disabled");
+    fetchClinics();
+  };
+
+  const toggleTreatment = async (row: ClinicRow) => {
+    const next = !row.treatment_enabled;
+    if (!next && !confirm(`Turn off the Treatment module for ${row.clinic_name}?`)) return;
+    setBusy(true);
+    const { error } = await (supabase as any).rpc("super_admin_set_clinic_treatment", {
+      p_clinic_id: row.clinic_id,
+      p_enabled: next,
+    });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next ? "Treatment enabled" : "Treatment disabled");
     fetchClinics();
   };
 
@@ -275,6 +290,13 @@ export default function SuperAdmin() {
                           className={`text-xs px-2.5 py-1 rounded-md mr-1.5 ${c.whatsapp_enabled ? "bg-slate-800 text-emerald-300 hover:bg-slate-700" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
                         >
                           {c.whatsapp_enabled ? "WhatsApp: On" : "WhatsApp: Off"}
+                        </button>
+                        <button
+                          disabled={busy}
+                          onClick={() => toggleTreatment(c)}
+                          className={`text-xs px-2.5 py-1 rounded-md mr-1.5 ${c.treatment_enabled ? "bg-slate-800 text-purple-300 hover:bg-slate-700" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+                        >
+                          {c.treatment_enabled ? "Treatment: On" : "Treatment: Off"}
                         </button>
 
                         {c.subscription_status === "pending" && (

@@ -11,6 +11,8 @@ import SettingsShell from "@/components/layout/SettingsShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { useTreatmentEnabled } from "@/hooks/useTreatmentEnabled";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +45,7 @@ type TeamMember = {
 export default function Settings() {
   const { user, profile } = useAuth();
   const { clinic, doctor, loading, refetch } = useClinic();
+  const { enabled: treatmentEnabled } = useTreatmentEnabled();
   const navigate = useNavigate();
   const { section: sectionParam, subsection } = useParams<{ section?: string; subsection?: string }>();
   const section = sectionParam || "clinic";
@@ -67,6 +70,7 @@ export default function Settings() {
   const [clinicEmail, setClinicEmail] = useState("");
   const [clinicWebsite, setClinicWebsite] = useState("");
   const [regionalLanguage, setRegionalLanguage] = useState("Tamil");
+  const [overbookingAllowed, setOverbookingAllowed] = useState(true);
 
   // Billing settings moved to /settings/billing-config (BillingConfigPage)
 
@@ -130,6 +134,7 @@ export default function Settings() {
       setClinicEmail((clinic as any).email || "");
       setClinicWebsite((clinic as any).website || "");
       setRegionalLanguage((clinic as any).regional_language || "Tamil");
+      setOverbookingAllowed((clinic as any).treatment_overbooking_allowed !== false);
     }
   }, [clinic]);
 
@@ -206,6 +211,7 @@ export default function Settings() {
         email: clinicEmail || null,
         website: clinicWebsite || null,
         regional_language: regionalLanguage,
+        treatment_overbooking_allowed: overbookingAllowed,
       } as any).eq("id", profile.clinic_id);
       if (error) throw error;
       toast.success("Clinic details saved!");
@@ -623,6 +629,18 @@ export default function Settings() {
               </Select>
               <p className="text-xs text-muted-foreground">Used for bilingual prescription headers</p>
             </div>
+            {treatmentEnabled && (
+              <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                <div>
+                  <Label>Allow treatments on booked slots</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    When on, a treatment can be booked even if the doctor already has a consultation
+                    at that time. When off, every booked slot is blocked.
+                  </p>
+                </div>
+                <Switch checked={overbookingAllowed} onCheckedChange={setOverbookingAllowed} />
+              </div>
+            )}
             <Button onClick={handleSaveClinic} disabled={saving} className="rounded-lg">
               <Save className="mr-2 h-4 w-4" /> Save Clinic Details
             </Button>

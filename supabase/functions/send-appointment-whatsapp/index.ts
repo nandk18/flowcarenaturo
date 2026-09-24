@@ -18,6 +18,7 @@ const VALID_EVENTS = [
   "reminder",
   "review",
   "followup",
+  "patient_form_link",
 ] as const;
 
 const json = (body: unknown, status = 200) =>
@@ -72,6 +73,8 @@ Deno.serve(async (req) => {
       therapy_session_id?: string;
       event?: string;
       stage?: number;
+      patient_id?: string;
+      form_link?: string;
     };
     const { appointment_id, therapy_session_id, event } = payload;
     const stage = Number(payload.stage) >= 1 ? Math.min(3, Math.floor(Number(payload.stage))) : null;
