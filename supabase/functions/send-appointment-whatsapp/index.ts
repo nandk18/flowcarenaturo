@@ -18,6 +18,7 @@ const VALID_EVENTS = [
   "reminder",
   "review",
   "followup",
+  "patient_form_link",
 ] as const;
 
 const json = (body: unknown, status = 200) =>
