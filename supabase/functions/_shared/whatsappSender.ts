@@ -15,7 +15,8 @@ export type WhatsAppEvent =
   | "cancelled"
   | "reminder"
   | "review"
-  | "followup";
+  | "followup"
+  | "patient_form_link";
 
 export const TEMPLATE_COLUMNS: Record<WhatsAppEvent, string> = {
   booked: "template_booked",
@@ -24,6 +25,7 @@ export const TEMPLATE_COLUMNS: Record<WhatsAppEvent, string> = {
   reminder: "template_reminder",
   review: "template_review",
   followup: "template_followup",
+  patient_form_link: "template_form_link",
 };
 
 export type ResolvedSender = {
@@ -43,6 +45,7 @@ export function defaultCredentials(event: WhatsAppEvent) {
     reminder: Deno.env.get("TWILIO_TEMPLATE_REMINDER") || Deno.env.get("TWILIO_TEMPLATE_BOOKED") || "",
     review: Deno.env.get("TWILIO_TEMPLATE_REVIEW") ?? "",
     followup: Deno.env.get("TWILIO_TEMPLATE_FOLLOWUP") ?? "",
+    patient_form_link: Deno.env.get("TWILIO_TEMPLATE_FORM_LINK") ?? "",
   };
   return {
     accountSid: Deno.env.get("TWILIO_ACCOUNT_SID") ?? "",
