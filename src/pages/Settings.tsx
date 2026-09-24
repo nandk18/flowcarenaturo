@@ -45,6 +45,7 @@ type TeamMember = {
 export default function Settings() {
   const { user, profile } = useAuth();
   const { clinic, doctor, loading, refetch } = useClinic();
+  const { enabled: treatmentEnabled } = useTreatmentEnabled();
   const navigate = useNavigate();
   const { section: sectionParam, subsection } = useParams<{ section?: string; subsection?: string }>();
   const section = sectionParam || "clinic";
