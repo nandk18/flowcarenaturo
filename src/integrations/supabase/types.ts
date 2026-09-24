@@ -587,6 +587,7 @@ export type Database = {
           template_booked: string | null
           template_cancelled: string | null
           template_followup: string | null
+          template_form_link: string | null
           template_reminder: string | null
           template_rescheduled: string | null
           template_review: string | null
@@ -603,6 +604,7 @@ export type Database = {
           template_booked?: string | null
           template_cancelled?: string | null
           template_followup?: string | null
+          template_form_link?: string | null
           template_reminder?: string | null
           template_rescheduled?: string | null
           template_review?: string | null
@@ -619,6 +621,7 @@ export type Database = {
           template_booked?: string | null
           template_cancelled?: string | null
           template_followup?: string | null
+          template_form_link?: string | null
           template_reminder?: string | null
           template_rescheduled?: string | null
           template_review?: string | null

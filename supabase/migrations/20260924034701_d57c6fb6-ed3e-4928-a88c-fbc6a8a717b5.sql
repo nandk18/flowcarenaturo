@@ -1,0 +1,1 @@
+ALTER TABLE public.clinic_whatsapp_settings ADD COLUMN IF NOT EXISTS template_form_link text;
