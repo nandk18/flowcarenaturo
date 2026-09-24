@@ -147,6 +147,20 @@ export default function BookAppointmentModal({
       });
   }, [open, profile?.clinic_id]);
 
+  // Clinic rule: can a treatment be booked on a slot already taken by a consultation?
+  useEffect(() => {
+    if (!open || !profile?.clinic_id) return;
+    let cancelled = false;
+    (supabase as any)
+      .from("clinics")
+      .select("treatment_overbooking_allowed")
+      .eq("id", profile.clinic_id)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (!cancelled) setOverbookingAllowed(data?.treatment_overbooking_allowed !== false);
+      });
+    return () => { cancelled = true; };
+  }, [open, profile?.clinic_id]);
 
   // Patient search
   useEffect(() => {
@@ -207,11 +221,13 @@ export default function BookAppointmentModal({
     return anyConsult ? "consultation" : "treatment";
   }, [selectedServiceIds, services]);
 
-  // Appointments that block a slot: only consultations block. Treatments never block.
+  // Appointments that block a slot. Consultations always block. Treatments ignore
+  // existing consultations only when the clinic allows treatment overbooking.
   const blockingAppts = useMemo(() => {
-    if (bookingKind === "treatment") return [] as ExistingAppointment[];
+    if (bookingKind === "treatment" && overbookingAllowed) return [] as ExistingAppointment[];
+    if (bookingKind === "treatment") return dayAppts;
     return dayAppts.filter((a) => apptKinds[a.id] !== "treatment");
-  }, [dayAppts, apptKinds, bookingKind]);
+  }, [dayAppts, apptKinds, bookingKind, overbookingAllowed]);
 
   const slots = useMemo(() => {
     if (!doctorId || !date) return [];
