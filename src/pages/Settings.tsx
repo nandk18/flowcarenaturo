@@ -67,6 +67,7 @@ export default function Settings() {
   const [clinicEmail, setClinicEmail] = useState("");
   const [clinicWebsite, setClinicWebsite] = useState("");
   const [regionalLanguage, setRegionalLanguage] = useState("Tamil");
+  const [overbookingAllowed, setOverbookingAllowed] = useState(true);
 
   // Billing settings moved to /settings/billing-config (BillingConfigPage)
 
@@ -130,6 +131,7 @@ export default function Settings() {
       setClinicEmail((clinic as any).email || "");
       setClinicWebsite((clinic as any).website || "");
       setRegionalLanguage((clinic as any).regional_language || "Tamil");
+      setOverbookingAllowed((clinic as any).treatment_overbooking_allowed !== false);
     }
   }, [clinic]);
 
@@ -206,6 +208,7 @@ export default function Settings() {
         email: clinicEmail || null,
         website: clinicWebsite || null,
         regional_language: regionalLanguage,
+        treatment_overbooking_allowed: overbookingAllowed,
       } as any).eq("id", profile.clinic_id);
       if (error) throw error;
       toast.success("Clinic details saved!");
