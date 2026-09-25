@@ -98,9 +98,40 @@ Deno.serve(async (req) => {
     let logSessionId: string | null = therapy_session_id ?? null;
 
     // ------------------------------------------------------------------
+    // PATIENT FORM LINK: send the intake form link to a patient
+    // ------------------------------------------------------------------
+    if (event === "patient_form_link") {
+      if (!payload.patient_id || !payload.form_link) {
+        return json({ error: "patient_id and form_link are required for this event" }, 400);
+      }
+      const { data: patient, error: pErr } = await sb
+        .from("patients")
+        .select("id, clinic_id, name, first_name, last_name, phone")
+        .eq("id", payload.patient_id)
+        .maybeSingle();
+      if (pErr) throw new Error(`patient lookup failed: ${pErr.message}`);
+      if (!patient) return json({ skipped: true, reason: "patient not found" });
+
+      const { data: clinic } = patient.clinic_id
+        ? await sb.from("clinics").select("name").eq("id", patient.clinic_id).maybeSingle()
+        : { data: null as any };
+
+      to = toE164(patient.phone);
+      if (!to) return json({ skipped: true, reason: "patient has no valid phone number" });
+
+      clinicId = patient.clinic_id;
+      patientId = patient.id;
+      variables = {
+        "1": (patient.name || `${patient.first_name ?? ""} ${patient.last_name ?? ""}`.trim()) || "Patient",
+        "2": clinic?.name || "our clinic",
+        "3": payload.form_link,
+      };
+    }
+
+    // ------------------------------------------------------------------
     // FOLLOWUP: no return visit a week after a completed appointment
     // ------------------------------------------------------------------
-    if (event === "followup") {
+    else if (event === "followup") {
       const { data: appt, error: apptErr } = await sb
         .from("appointments")
         .select("id, clinic_id, patient_id, doctor_id, appointment_date, status")

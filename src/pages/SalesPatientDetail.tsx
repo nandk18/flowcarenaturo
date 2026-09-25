@@ -336,8 +336,21 @@ export default function SalesPatientDetail() {
         form_link: url,
       });
       if (patient.phone) {
-        openWhatsApp(patient.phone, msg);
-        toast.success("WhatsApp opened with form link");
+        let autoSent = false;
+        try {
+          const { data: res } = await supabase.functions.invoke("send-appointment-whatsapp", {
+            body: { event: "patient_form_link", patient_id: patient.id, form_link: url },
+          });
+          autoSent = !!(res as any)?.sent;
+        } catch {
+          autoSent = false;
+        }
+        if (autoSent) {
+          toast.success("Form link sent on WhatsApp");
+        } else {
+          openWhatsApp(patient.phone, msg);
+          toast.success("WhatsApp opened with form link");
+        }
       } else {
         await navigator.clipboard.writeText(url);
         toast.success("Form link copied to clipboard (no phone on file)");
