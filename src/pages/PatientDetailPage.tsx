@@ -87,7 +87,20 @@ export default function PatientDetailPage() {
         form_link: url,
       });
       if (patient.phone) {
-        openWhatsApp(patient.phone, msg);
+        let autoSent = false;
+        try {
+          const { data: res } = await supabase.functions.invoke("send-appointment-whatsapp", {
+            body: { event: "patient_form_link", patient_id: patient.id, form_link: url },
+          });
+          autoSent = !!(res as any)?.sent;
+        } catch {
+          autoSent = false;
+        }
+        if (autoSent) {
+          toast({ title: "Form link sent", description: "The patient received the form link on WhatsApp." });
+        } else {
+          openWhatsApp(patient.phone, msg);
+        }
       } else {
         await navigator.clipboard.writeText(url);
         toast({ title: "Form link copied", description: "Patient has no phone — link copied to clipboard." });
