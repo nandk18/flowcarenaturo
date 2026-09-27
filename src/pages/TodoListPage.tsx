@@ -115,9 +115,9 @@ export default function TodoListPage({ bare = false }: { bare?: boolean } = {}) 
     <>
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
             <Select value={scopeFilter} onValueChange={(v) => setScopeFilter(v as any)}>
-              <SelectTrigger className="w-[150px]"><SelectValue placeholder="Type" /></SelectTrigger>
+              <SelectTrigger className="min-w-0 w-full sm:w-[150px]"><SelectValue placeholder="Type" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Type: All</SelectItem>
                 <SelectItem value="patient">Patient tasks</SelectItem>
@@ -125,7 +125,7 @@ export default function TodoListPage({ bare = false }: { bare?: boolean } = {}) 
               </SelectContent>
             </Select>
             <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as any)}>
-              <SelectTrigger className="w-[150px]"><SelectValue placeholder="Priority" /></SelectTrigger>
+              <SelectTrigger className="min-w-0 w-full sm:w-[150px]"><SelectValue placeholder="Priority" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Priority: All</SelectItem>
                 <SelectItem value="high">High</SelectItem>
