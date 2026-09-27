@@ -227,7 +227,7 @@ export default function SectionShell({
     <SidebarProvider defaultOpen={defaultOpen} style={SHELL_STYLE}>
       <InnerSidebar navGroups={navGroups} accent={accent} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card px-3 safe-top safe-x no-select sm:px-6">
+        <header className="sticky top-0 z-30 flex min-h-14 min-w-0 items-center gap-2 border-b border-border bg-card px-3 safe-top safe-x no-select sm:gap-3 sm:px-6">
           <SidebarTrigger />
           {title && (
             <div className="flex min-w-0 flex-1 items-center">
@@ -240,10 +240,10 @@ export default function SectionShell({
               )}
             </div>
           )}
-          {headerRight && <div className="ml-auto flex items-center gap-2">{headerRight}</div>}
+          {headerRight && <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">{headerRight}</div>}
         </header>
         <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-background p-4 pb-safe safe-x sm:p-6 lg:p-8 no-bounce">
-          <div className="animate-enter mx-auto w-full max-w-[1500px]">{children}</div>
+          <div className="animate-enter mx-auto min-w-0 w-full max-w-[1500px]">{children}</div>
         </main>
 
 

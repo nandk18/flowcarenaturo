@@ -442,7 +442,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
               <>
                 <div className="flex flex-wrap items-center gap-2">
                   <Select value={statusTab as string} onValueChange={(v) => setStatusTab(v as any)}>
-                    <SelectTrigger className="w-[190px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                    <SelectTrigger className="min-w-0 w-full sm:w-[190px]"><SelectValue placeholder="Status" /></SelectTrigger>
                     <SelectContent>
                       {statusOptions.map((s) => (
                         <SelectItem key={s.key} value={s.key}>{s.label} ({s.count})</SelectItem>
@@ -450,7 +450,7 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
                     </SelectContent>
                   </Select>
                   <Select value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-                    <SelectTrigger className="w-[220px]"><SelectValue placeholder="Type: All" /></SelectTrigger>
+                    <SelectTrigger className="min-w-0 w-full sm:w-[220px]"><SelectValue placeholder="Type: All" /></SelectTrigger>
                     <SelectContent>
                       {typeOptions.map((t) => (
                         <SelectItem key={t.key} value={t.key}>{t.label} ({t.count})</SelectItem>
