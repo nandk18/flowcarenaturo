@@ -329,14 +329,14 @@ export default function AvailabilityPage() {
 
         <Button variant="outline" size="sm" className="h-8" onClick={goToday}>Today</Button>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex w-full items-center justify-center gap-2 sm:ml-auto sm:w-auto">
           <button
             onClick={goPrev}
             className="flex h-[30px] w-[30px] items-center justify-center rounded-lg border text-muted-foreground hover:bg-muted"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </button>
-          <span className="min-w-[150px] text-center text-[13.5px] font-semibold">{headerLabel}</span>
+          <span className="min-w-0 max-w-[calc(100vw-10rem)] text-center text-[13.5px] font-semibold sm:min-w-[150px]">{headerLabel}</span>
           <button
             onClick={goNext}
             className="flex h-[30px] w-[30px] items-center justify-center rounded-lg border text-muted-foreground hover:bg-muted"
@@ -438,7 +438,7 @@ export default function AvailabilityPage() {
       {/* Cancelled / appt detail dialog */}
       {detailAppt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setDetailAppt(null)}>
-          <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-lg bg-card p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-display text-lg font-semibold">Appointment</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               {detailAppt.patient?.name} · {detailAppt.appointment_date} {detailAppt.appointment_time?.slice(0, 5)}
@@ -517,7 +517,7 @@ function MonthView({
             key={dateStr}
             onClick={() => onPickDay(day)}
             className={cn(
-              "relative flex min-h-[92px] flex-col gap-1 border-b border-l p-1.5 text-left text-[11px]",
+              "relative flex min-h-[60px] min-w-0 flex-col gap-1 border-b border-l p-1 text-left text-[11px] sm:min-h-[92px] sm:p-1.5",
               (i % 7) === 0 && "border-l-0",
               summary === "off" ? "bg-muted/20" : "bg-card",
               !inMonth && "opacity-40",
@@ -527,14 +527,15 @@ function MonthView({
             <div className="flex items-center justify-between">
               <span className="text-[11.5px] font-medium">{format(day, "d")}</span>
               {summaryLabel[summary] && (
-                <span className="text-[9px] uppercase tracking-wide text-muted-foreground">{summaryLabel[summary]}</span>
+                <span className="hidden text-[9px] uppercase tracking-wide text-muted-foreground sm:inline">{summaryLabel[summary]}</span>
               )}
             </div>
             <div className="flex-1 space-y-0.5 overflow-hidden">
+              {items.length > 0 && <span className="text-[10px] font-medium text-muted-foreground sm:hidden">{items.length} appt{items.length === 1 ? "" : "s"}</span>}
               {items.slice(0, 3).map((a) => {
                 const t = typeStyle[apptType(a)];
                 return (
-                  <div key={a.id} className={cn("flex items-center gap-1 truncate rounded-r border-l-2 bg-muted/50 px-1 py-0.5", t.border, a.status === "cancelled" && "opacity-60")}>
+                  <div key={a.id} className={cn("hidden items-center gap-1 truncate rounded-r border-l-2 bg-muted/50 px-1 py-0.5 sm:flex", t.border, a.status === "cancelled" && "opacity-60")}>
                     <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", t.dot)} />
                     <span className={cn("truncate", a.status === "cancelled" && "line-through text-muted-foreground")}>
                       {a.patient?.name ?? "—"}
@@ -542,7 +543,7 @@ function MonthView({
                   </div>
                 );
               })}
-              {items.length > 3 && <div className="text-[9.5px] text-muted-foreground">+{items.length - 3} more</div>}
+              {items.length > 3 && <div className="hidden text-[9.5px] text-muted-foreground sm:block">+{items.length - 3} more</div>}
             </div>
           </button>
         );
@@ -556,14 +557,14 @@ function WeekView({
 }: { cursor: Date; apptsByDate: Map<string, Appt[]>; summaryFor: (d: Date) => DaySummary; onPickSlot: (date: string, time: string) => void; onOpenAppt: (a: Appt) => void }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(cursor, { weekStartsOn: 1 }), i));
   return (
-    <div className="grid grid-cols-7 gap-2">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-7">
       {days.map((day) => {
         const dateStr = format(day, "yyyy-MM-dd");
         const items = apptsByDate.get(dateStr) ?? [];
         const today = isSameDay(day, new Date());
         const summary = summaryFor(day);
         return (
-          <div key={dateStr} className={cn("overflow-hidden rounded-xl border bg-card", today && "ring-1 ring-inset ring-info")}>
+            <div key={dateStr} className={cn("min-w-0 overflow-hidden rounded-lg border bg-card", today && "ring-1 ring-inset ring-info")}>
             <div className={cn("flex items-center justify-between border-b bg-muted/30 px-2 py-2 text-[11px] font-semibold", summary === "off" && "text-muted-foreground/60")}>
               <span>{format(day, "EEE d")}</span>
               {summaryLabel[summary] && (
