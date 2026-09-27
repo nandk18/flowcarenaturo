@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const LEAD_COLUMNS: { key: string; label: string; dot: string }[] = [
   { key: "attempt1", label: "Attempt 1", dot: "bg-amber-500" },
@@ -27,6 +28,7 @@ export default function LeadPipelineBoard({ clinicId }: { clinicId: string | nul
   const [pipeline, setPipeline] = useState<Lead[]>([]);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mobileStage, setMobileStage] = useState("attempt1");
 
   useEffect(() => {
     let cancelled = false;
@@ -103,10 +105,17 @@ export default function LeadPipelineBoard({ clinicId }: { clinicId: string | nul
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm">Lead pipeline</CardTitle>
-        <p className="text-xs text-muted-foreground">Drag a lead card between columns to change its stage</p>
+        <p className="hidden text-xs text-muted-foreground sm:block">Drag a lead card between columns to change its stage</p>
       </CardHeader>
-      <CardContent className="overflow-x-auto">
-        <div className="flex min-w-[720px] gap-3">
+      <CardContent className="min-w-0">
+        <div className="mb-3 grid grid-cols-2 gap-2 sm:hidden">
+          {LEAD_COLUMNS.map((col) => (
+            <Button key={col.key} type="button" variant={mobileStage === col.key ? "secondary" : "outline"} size="sm" className="min-w-0 justify-between px-2" onClick={() => setMobileStage(col.key)} aria-pressed={mobileStage === col.key}>
+              <span className="truncate">{col.label}</span><span className="ml-1 shrink-0">{pipeline.filter((p) => p.status === col.key).length}</span>
+            </Button>
+          ))}
+        </div>
+        <div className="flex min-w-0 gap-3 overflow-x-auto sm:min-w-[720px]">
           {LEAD_COLUMNS.map((col) => {
             const items = pipeline.filter((p) => p.status === col.key);
             return (
@@ -120,7 +129,7 @@ export default function LeadPipelineBoard({ clinicId }: { clinicId: string | nul
                   const id = e.dataTransfer.getData("text/plain");
                   if (id) moveLead(id, col.key);
                 }}
-                className={`flex-1 rounded-lg border bg-muted/30 p-2 transition-colors ${
+                className={`min-w-0 flex-1 rounded-lg border bg-muted/30 p-2 transition-colors ${mobileStage === col.key ? "" : "hidden sm:block"} ${
                   dragOverCol === col.key ? "border-primary bg-primary/5" : ""
                 }`}
               >
@@ -154,6 +163,12 @@ export default function LeadPipelineBoard({ clinicId }: { clinicId: string | nul
                           <p className="mt-1 text-[11px] text-muted-foreground">Due {p.due}</p>
                         ) : null}
                       </Link>
+                      <div className="mt-2 sm:hidden">
+                        <label className="sr-only" htmlFor={`stage-${p.id}`}>Move {p.name} to stage</label>
+                        <select id={`stage-${p.id}`} value={p.status} onChange={(e) => moveLead(p.id, e.target.value)} className="h-9 w-full rounded-md border border-input bg-background px-2 text-xs text-foreground">
+                          {LEAD_COLUMNS.map((stage) => <option key={stage.key} value={stage.key}>{stage.label}</option>)}
+                        </select>
+                      </div>
                     </div>
                   ))}
                 </div>
