@@ -42,7 +42,7 @@ export default function CallTaskRow({
 }) {
   return (
     <li className="rounded-[10px] border bg-card px-3 py-2.5">
-      <div className="flex items-start gap-3">
+      <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap">
         <span
           className={cn(
             "mt-0.5 flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[7px]",
@@ -64,7 +64,7 @@ export default function CallTaskRow({
           </div>
           <p className={cn("mt-0.5 text-xs", TONE_TEXT[tone])}>{meta}</p>
         </div>
-        {actions && <div className="flex shrink-0 items-center gap-2 self-center">{actions}</div>}
+        {actions && <div className="flex w-full min-w-0 flex-wrap items-center gap-2 pl-[38px] sm:w-auto sm:shrink-0 sm:pl-0">{actions}</div>}
       </div>
       {children && <div className="mt-2 sm:pl-[38px]">{children}</div>}
     </li>
