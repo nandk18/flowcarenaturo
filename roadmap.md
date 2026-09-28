@@ -8,4 +8,4 @@
 - [x] Scale `/patients` with database paging, consolidated counts, and indexed search
 - [x] Make Daily Ops call-task dropdown counts and rows use one shared result
 - [x] Hide Subscription and limit WhatsApp settings to FlowCare-managed numbers
-- [ ] Review and correct mobile alignment across public and clinic screens; verify phone and desktop layouts
+- [ ] Verify signed-in clinic screens at phone and desktop sizes — blocked until a test session is available in the preview (external sign-in cannot be restored here)

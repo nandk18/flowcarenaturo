@@ -275,13 +275,13 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
           ))}
         </div>
         {range === "Custom" && (
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <input
               type="date"
               value={customStart}
               max={customEnd}
               onChange={(e) => setCustomStart(e.target.value)}
-              className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+              className="h-8 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-xs sm:flex-none"
             />
             <span className="text-xs text-muted-foreground">to</span>
             <input
@@ -289,7 +289,7 @@ export default function AnalyticsView({ clinicId, title, subtitle }: Props) {
               value={customEnd}
               min={customStart}
               onChange={(e) => setCustomEnd(e.target.value)}
-              className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+              className="h-8 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-xs sm:flex-none"
             />
           </div>
         )}

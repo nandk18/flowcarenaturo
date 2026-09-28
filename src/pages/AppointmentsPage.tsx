@@ -338,7 +338,7 @@ export default function AppointmentsPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">Appointments</h1>
           <p className="text-sm text-muted-foreground">Schedule and manage patient appointments</p>
@@ -367,12 +367,12 @@ export default function AppointmentsPage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-7 gap-2">
+           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-7">
             {weekDays.map(day => {
               const dayStr = format(day, "yyyy-MM-dd");
               const dayAppts = appointments.filter(a => a.appointment_date === dayStr && a.status !== "cancelled");
               return (
-                <div key={dayStr} className={`min-h-[120px] rounded-xl border p-2 ${isToday(day) ? "border-primary bg-primary/5" : "border-border"}`}>
+                 <div key={dayStr} className={`min-w-0 min-h-[120px] rounded-lg border p-2 ${isToday(day) ? "border-primary bg-primary/5" : "border-border"}`}>
                   <div className="text-xs font-medium text-muted-foreground mb-1">{format(day, "EEE")}</div>
                   <div className={`text-lg font-bold mb-2 ${isToday(day) ? "text-primary" : "text-foreground"}`}>{format(day, "d")}</div>
                   <div className="space-y-1">

@@ -812,14 +812,14 @@ export default function Settings() {
                         </p>
                         <div className="space-y-2">
                           {members.map(member => (
-                            <div key={member.user_id} className="flex items-center justify-between rounded-xl bg-muted/30 p-3">
-                              <div className="flex items-center gap-3">
+                            <div key={member.user_id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/30 p-3 sm:flex-nowrap">
+                              <div className="flex min-w-0 items-center gap-3">
                                 <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 font-display text-sm font-bold text-primary">
                                   {(member.display_name || "?").charAt(0).toUpperCase()}
                                 </div>
-                                <div>
-                                  <p className="font-medium text-foreground text-sm">{member.display_name}</p>
-                                  <div className="flex items-center gap-2 mt-0.5">
+                                <div className="min-w-0">
+                                  <p className="break-words font-medium text-foreground text-sm">{member.display_name}</p>
+                                  <div className="flex flex-wrap items-center gap-2 mt-0.5">
                                     <Badge className={`capitalize text-xs ${roleBadgeClass[member.role] || ""} border-0`}>{member.role}</Badge>
                                     {member.is_doctor && member.role !== "doctor" && (
                                       <Badge className="text-xs bg-info/10 text-info border-0">Doctor</Badge>

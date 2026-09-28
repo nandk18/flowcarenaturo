@@ -557,7 +557,7 @@ function WeekView({
 }: { cursor: Date; apptsByDate: Map<string, Appt[]>; summaryFor: (d: Date) => DaySummary; onPickSlot: (date: string, time: string) => void; onOpenAppt: (a: Appt) => void }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(cursor, { weekStartsOn: 1 }), i));
   return (
-    <div className="grid grid-cols-1 gap-2 sm:grid-cols-7">
+    <div className="grid grid-cols-1 gap-2 lg:grid-cols-7">
       {days.map((day) => {
         const dateStr = format(day, "yyyy-MM-dd");
         const items = apptsByDate.get(dateStr) ?? [];
@@ -683,7 +683,7 @@ function MultiDoctorDayView({
   };
 
   return (
-    <div className="overflow-x-auto rounded-xl border bg-card">
+    <div className="max-w-full overflow-x-auto rounded-lg border bg-card">
       <div className="grid min-w-fit" style={{ gridTemplateColumns: `64px repeat(${columns.length}, minmax(180px, 1fr))` }}>
         <div className="border-b bg-muted/30" />
         {columns.map(({ doctor, color, activeAppts }) => (
