@@ -19,8 +19,8 @@ export default function RestoreBanner({
   return (
     <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-100">
       <FileText className="h-4 w-4 shrink-0" />
-      <span className="flex-1 min-w-[200px]">{message}</span>
-      <div className="flex items-center gap-2">
+      <span className="min-w-0 flex-1 basis-[200px]">{message}</span>
+      <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" variant="default" onClick={onContinue}>
           Continue Editing
         </Button>
