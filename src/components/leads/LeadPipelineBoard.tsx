@@ -115,7 +115,8 @@ export default function LeadPipelineBoard({ clinicId }: { clinicId: string | nul
             </Button>
           ))}
         </div>
-        <div className="flex min-w-0 gap-3 overflow-x-auto sm:min-w-[720px]">
+        <div className="overflow-x-auto">
+        <div className="flex min-w-0 gap-3 sm:min-w-[720px]">
           {LEAD_COLUMNS.map((col) => {
             const items = pipeline.filter((p) => p.status === col.key);
             return (
@@ -175,6 +176,7 @@ export default function LeadPipelineBoard({ clinicId }: { clinicId: string | nul
               </div>
             );
           })}
+        </div>
         </div>
       </CardContent>
     </Card>

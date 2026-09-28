@@ -519,7 +519,7 @@
 .product-shot-wrap { margin-top:38px; padding:18px 18px 0; border-radius:20px; background:linear-gradient(180deg,rgba(47,174,156,.08),transparent); }
 .product-shot { display:block; width:100%; border:1px solid var(--line); border-radius:14px 14px 0 0; box-shadow:0 30px 60px -20px rgba(14,42,56,.18); }
 @media(max-width:640px){
- .nav{padding:13px 20px}.landing-page .auth-links{gap:8px}.landing-page .auth-links a{font-size:12px}.nav-cta{padding:9px 12px}.nav-cta-label{display:none}
+ .nav{padding:13px 20px}.landing-page .auth-links{gap:8px}.landing-page .auth-links a{font-size:12px}.nav-cta{display:inline-flex;align-items:center;justify-content:center;padding:9px 12px}.nav-cta-label{display:none}
  .hero{padding-top:58px}.trust-chip{align-items:flex-start;line-height:1.5}.hero-ctas{flex-direction:column;align-items:flex-start}.flow-caption{gap:10px;flex-direction:column}
  .calc-card{padding:24px}.proof{padding:38px 24px}.pricing-card{padding:30px 24px}.inline-cta{padding:18px}.feature{padding:26px 22px}
 }
