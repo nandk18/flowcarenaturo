@@ -387,7 +387,6 @@ export function LeadForm({ clinicId, initial, onSaved, prefill }: LeadFormProps)
               <SelectItem value="Instagram">Instagram</SelectItem>
               <SelectItem value="Phone">Phone</SelectItem>
               <SelectItem value="WhatsApp">WhatsApp</SelectItem>
-              <SelectItem value="YuvaLife">YuvaLife</SelectItem>
               <SelectItem value="Friend">Friend</SelectItem>
             </SelectContent>
           </Select>
@@ -789,7 +788,6 @@ export function LeadList({ clinicId, onEdit, patientHrefPrefix = "/sales/patient
                   <SelectItem value="Instagram">Instagram</SelectItem>
                   <SelectItem value="Phone">Phone</SelectItem>
                   <SelectItem value="WhatsApp">WhatsApp</SelectItem>
-                  <SelectItem value="YuvaLife">YuvaLife</SelectItem>
                   <SelectItem value="Friend">Friend</SelectItem>
                 </SelectContent>
               </Select>

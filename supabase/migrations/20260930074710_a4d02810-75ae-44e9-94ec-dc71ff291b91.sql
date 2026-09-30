@@ -1,0 +1,2 @@
+ALTER TABLE public.patients_secure DROP CONSTRAINT patients_lead_status_check;
+ALTER TABLE public.patients_secure ADD CONSTRAINT patients_lead_status_check CHECK (lead_status = ANY (ARRAY['attempt1','attempt2','attempt3','closed','current','lapsed']));
