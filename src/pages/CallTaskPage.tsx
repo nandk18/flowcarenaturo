@@ -112,6 +112,9 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
   const today = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
   const tomorrow = useMemo(() => format(addDays(new Date(), 1), "yyyy-MM-dd"), []);
   const sevenAgoIso = useMemo(() => new Date(Date.now() - 7 * 86400_000).toISOString(), []);
+  // Local-day window as real UTC timestamps (a bare "YYYY-MM-DDT00:00:00" is read as UTC).
+  const dayStartIso = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); }, []);
+  const dayEndIso = useMemo(() => { const d = new Date(); d.setHours(23, 59, 59, 999); return d.toISOString(); }, []);
 
   const loadAll = useCallback(async () => {
     if (!clinicId) return;
@@ -129,8 +132,8 @@ export default function CallTaskPage({ bare = false }: { bare?: boolean } = {}) 
           .from("call_logs")
           .select("id, patient_id, called_at, outcome, notes, called_by, patients(id, name)")
           .eq("clinic_id", clinicId)
-          .gte("called_at", today + "T00:00:00")
-          .lte("called_at", today + "T23:59:59")
+          .gte("called_at", dayStartIso)
+          .lte("called_at", dayEndIso)
           .order("called_at", { ascending: false }),
         (supabase as any)
           .from("appointments")
