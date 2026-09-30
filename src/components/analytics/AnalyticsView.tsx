@@ -22,7 +22,6 @@ const LEAD_SOURCES: { key: string; label: string }[] = [
   { key: "instagram", label: "Instagram" },
   { key: "phone", label: "Phone" },
   { key: "whatsapp", label: "WhatsApp" },
-  { key: "yuvalife", label: "YuvaLife" },
   { key: "friend", label: "Friend / Referral" },
 ];
 
