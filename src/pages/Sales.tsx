@@ -1101,8 +1101,8 @@ export function CallTask({ clinicId, onDoneClick, doneTodayOverride, hidePills, 
           .from("call_logs")
           .select("id", { count: "exact", head: true })
           .eq("clinic_id", clinicId)
-          .gte("called_at", today + "T00:00:00")
-          .lte("called_at", today + "T23:59:59"),
+          .gte("called_at", (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); })())
+          .lte("called_at", (() => { const d = new Date(); d.setHours(23, 59, 59, 999); return d.toISOString(); })()),
       ]);
       setRows(Array.isArray(patientsRes.data) ? (patientsRes.data as Patient[]) : []);
       setDoneToday(callsRes.count ?? 0);
